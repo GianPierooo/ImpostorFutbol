@@ -1,0 +1,2 @@
+export { RoleAssignmentScreen } from './RoleAssignment';
+
