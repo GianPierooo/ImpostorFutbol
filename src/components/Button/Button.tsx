@@ -62,10 +62,11 @@ const styles = StyleSheet.create({
   button: {
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.xl,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 56, // Botones grandes para fácil interacción
+    ...theme.shadows.medium,
   },
   primary: {
     backgroundColor: theme.colors.primary,
@@ -77,6 +78,7 @@ const styles = StyleSheet.create({
   },
   accent: {
     backgroundColor: theme.colors.accent,
+    ...theme.shadows.accent,
   },
   disabled: {
     opacity: 0.5,

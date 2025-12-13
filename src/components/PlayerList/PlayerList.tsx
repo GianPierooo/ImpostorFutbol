@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Typography } from '../Typography';
 import { theme } from '../../theme';
 import { Player } from '../../types';
@@ -43,8 +43,8 @@ const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove }) => {
         onPress={() => onRemove(player.id)}
         activeOpacity={0.7}
       >
-        <Typography variant="body" color={theme.colors.error}>
-          Eliminar
+        <Typography variant="body" color={theme.colors.error} style={styles.removeButtonText}>
+          ✕
         </Typography>
       </TouchableOpacity>
     </View>
@@ -78,15 +78,11 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, onRemove }) => 
         </Typography>
       </View>
       
-      <FlatList
-        data={players}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <PlayerItem player={item} onRemove={onRemove} />
-        )}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-      />
+      <View style={styles.listContent}>
+        {players.map((player) => (
+          <PlayerItem key={player.id} player={player} onRemove={onRemove} />
+        ))}
+      </View>
     </View>
   );
 };
@@ -111,11 +107,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: theme.colors.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.borderLight,
+    ...theme.shadows.small,
   },
   playerInfo: {
     flexDirection: 'row',
@@ -123,13 +120,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: theme.colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing.md,
+    ...theme.shadows.small,
   },
   avatarText: {
     fontWeight: theme.typography.weights.bold,
@@ -138,8 +136,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   removeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: theme.colors.errorLight + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.xs,
+  },
+  removeButtonText: {
+    fontSize: 20,
+    fontWeight: theme.typography.weights.bold,
   },
   emptyContainer: {
     flex: 1,

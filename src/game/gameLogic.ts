@@ -10,7 +10,7 @@ export interface GameState {
   secretWord: SecretWord;
   impostorId: string;
   currentRound: number;
-  maxRounds: number;
+  maxRounds: number | null; // null = sin límite
   phase: 'roleAssignment' | 'round' | 'voting' | 'results';
 }
 
