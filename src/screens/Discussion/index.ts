@@ -1,0 +1,2 @@
+export { DiscussionScreen } from './Discussion';
+

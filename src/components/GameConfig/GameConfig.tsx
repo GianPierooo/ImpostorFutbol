@@ -2,11 +2,11 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Typography } from '../Typography';
 import { theme } from '../../theme';
-import { GameConfig } from '../../types';
+import { GameConfig as GameConfigType } from '../../types';
 
 interface GameConfigProps {
-  config: GameConfig;
-  onChange: (config: GameConfig) => void;
+  config: GameConfigType;
+  onChange: (config: GameConfigType) => void;
   disabled?: boolean;
 }
 
@@ -15,12 +15,8 @@ export const GameConfig: React.FC<GameConfigProps> = ({
   onChange,
   disabled = false,
 }) => {
-  const handleRoundChange = (rounds: number) => {
+  const handleRoundChange = (rounds: number | null) => {
     onChange({ ...config, rounds });
-  };
-
-  const handleTimeChange = (time: number | null) => {
-    onChange({ ...config, timePerRound: time });
   };
 
   return (
@@ -35,7 +31,28 @@ export const GameConfig: React.FC<GameConfigProps> = ({
           Número de rondas
         </Typography>
         <View style={styles.optionsRow}>
-          {[1, 2, 3].map((rounds) => (
+          <TouchableOpacity
+            style={[
+              styles.option,
+              config.rounds === null && styles.optionSelected,
+              disabled && styles.optionDisabled,
+            ]}
+            onPress={() => !disabled && handleRoundChange(null)}
+            disabled={disabled}
+            activeOpacity={0.7}
+          >
+            <Typography
+              variant="body"
+              color={
+                config.rounds === null
+                  ? theme.colors.textLight
+                  : theme.colors.text
+              }
+            >
+              Sin límite
+            </Typography>
+          </TouchableOpacity>
+          {[3, 4, 5, 6].map((rounds) => (
             <TouchableOpacity
               key={rounds}
               style={[
@@ -57,60 +74,6 @@ export const GameConfig: React.FC<GameConfigProps> = ({
                 style={styles.optionText}
               >
                 {rounds}
-              </Typography>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      {/* Selector de Tiempo (Opcional) */}
-      <View style={styles.section}>
-        <Typography variant="body" color={theme.colors.textSecondary} style={styles.label}>
-          Tiempo por ronda (opcional)
-        </Typography>
-        <View style={styles.optionsRow}>
-          <TouchableOpacity
-            style={[
-              styles.option,
-              config.timePerRound === null && styles.optionSelected,
-              disabled && styles.optionDisabled,
-            ]}
-            onPress={() => !disabled && handleTimeChange(null)}
-            disabled={disabled}
-            activeOpacity={0.7}
-          >
-            <Typography
-              variant="body"
-              color={
-                config.timePerRound === null
-                  ? theme.colors.textLight
-                  : theme.colors.text
-              }
-            >
-              Sin límite
-            </Typography>
-          </TouchableOpacity>
-          {[30, 60, 120].map((seconds) => (
-            <TouchableOpacity
-              key={seconds}
-              style={[
-                styles.option,
-                config.timePerRound === seconds && styles.optionSelected,
-                disabled && styles.optionDisabled,
-              ]}
-              onPress={() => !disabled && handleTimeChange(seconds)}
-              disabled={disabled}
-              activeOpacity={0.7}
-            >
-              <Typography
-                variant="body"
-                color={
-                  config.timePerRound === seconds
-                    ? theme.colors.textLight
-                    : theme.colors.text
-                }
-              >
-                {seconds}s
               </Typography>
             </TouchableOpacity>
           ))}
@@ -146,16 +109,18 @@ const styles = StyleSheet.create({
     minWidth: 80,
     paddingVertical: theme.spacing.md,
     paddingHorizontal: theme.spacing.lg,
-    borderRadius: 12,
+    borderRadius: 16,
     backgroundColor: theme.colors.surface,
     borderWidth: 2,
     borderColor: theme.colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    ...theme.shadows.small,
   },
   optionSelected: {
     backgroundColor: theme.colors.accent,
     borderColor: theme.colors.accent,
+    ...theme.shadows.accent,
   },
   optionDisabled: {
     opacity: 0.5,

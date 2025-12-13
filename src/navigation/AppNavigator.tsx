@@ -8,6 +8,7 @@ import { HomeScreen } from '../screens/Home';
 import { LobbyScreen } from '../screens/Lobby';
 import { RoleAssignmentScreen } from '../screens/RoleAssignment';
 import { RoundScreen } from '../screens/Round';
+import { DiscussionScreen } from '../screens/Discussion';
 import { VotingScreen } from '../screens/Voting';
 import { ResultsScreen } from '../screens/Results';
 import { theme } from '../theme';
@@ -30,6 +31,7 @@ export const AppNavigator: React.FC = () => {
         <Stack.Screen name="Lobby" component={LobbyScreen} />
         <Stack.Screen name="RoleAssignment" component={RoleAssignmentScreen} />
         <Stack.Screen name="Round" component={RoundScreen} />
+        <Stack.Screen name="Discussion" component={DiscussionScreen} />
         <Stack.Screen name="Voting" component={VotingScreen} />
         <Stack.Screen name="Results" component={ResultsScreen} />
       </Stack.Navigator>

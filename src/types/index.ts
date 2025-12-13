@@ -23,12 +23,34 @@ export type GameState = {
   secretWord: string; // Jugador o equipo de fútbol
   impostorId: string | null;
   currentRound: number;
-  maxRounds: number;
+  maxRounds: number | null; // null = sin límite
 };
 
 export type GameConfig = {
-  rounds: number;
-  timePerRound: number | null;
+  rounds: number | null; // null = sin límite
+};
+
+export type Pista = {
+  id: string;
+  playerId: string;
+  playerName: string;
+  text: string;
+  round: number;
+  turn: number;
+};
+
+export type Voto = {
+  voterId: string; // Quién vota
+  voterName: string;
+  targetId: string; // Por quién vota
+  targetName: string;
+};
+
+export type VotingResult = {
+  votes: Voto[];
+  voteCounts: Record<string, number>; // targetId -> cantidad de votos
+  mostVoted: string | null; // ID del más votado
+  isTie: boolean;
 };
 
 export type NavigationParamList = {
@@ -39,6 +61,7 @@ export type NavigationParamList = {
     config: GameConfig;
   };
   Round: undefined;
+  Discussion: undefined;
   Voting: undefined;
   Results: undefined;
 };

@@ -17,8 +17,7 @@ import { NavigationParamList, GameConfig } from '../../types';
 type Props = NativeStackScreenProps<NavigationParamList, 'Lobby'>;
 
 const DEFAULT_CONFIG: GameConfig = {
-  rounds: 2,
-  timePerRound: null, // Sin tiempo límite por defecto
+  rounds: 3, // Por defecto 3 rondas
 };
 
 export const LobbyScreen: React.FC<Props> = ({ navigation }) => {
@@ -48,11 +47,14 @@ export const LobbyScreen: React.FC<Props> = ({ navigation }) => {
     // Iniciar el juego en el contexto
     startGame(players, config);
 
-    // Navegar a la pantalla de asignación de roles
+    // Usar setTimeout para asegurar que el estado se actualice antes de navegar
+    // Esto evita race conditions donde RoleAssignment se monta antes de que roleAssignment esté disponible
+    setTimeout(() => {
     navigation.navigate('RoleAssignment', {
       players,
       config,
     });
+    }, 0);
   };
 
   return (
@@ -62,9 +64,14 @@ export const LobbyScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.headerContainer}>
         <Typography variant="h2" style={styles.title}>
-          Lobby
+            🎮 Lobby
+          </Typography>
+          <Typography variant="caption" color={theme.colors.textSecondary} style={styles.subtitle}>
+            Añade jugadores y configura la partida
         </Typography>
+        </View>
 
         {/* Input para añadir jugadores */}
         <View style={styles.inputSection}>
@@ -119,8 +126,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingBottom: theme.spacing.xl,
   },
-  title: {
+  headerContainer: {
+    width: '100%',
     marginBottom: theme.spacing.xl,
+    alignItems: 'center',
+  },
+  title: {
+    marginBottom: theme.spacing.xs,
+    textAlign: 'center',
+    fontWeight: theme.typography.weights.bold,
+  },
+  subtitle: {
     textAlign: 'center',
   },
   inputSection: {

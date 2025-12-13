@@ -9,19 +9,20 @@ import { NavigationParamList, Player } from '../../types';
 type Props = NativeStackScreenProps<NavigationParamList, 'RoleAssignment'>;
 
 export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { players } = route.params;
   const { roleAssignment, getPlayerInfo, nextPhase } = useGame();
   
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [showRole, setShowRole] = useState(false);
   const [allPlayersSeen, setAllPlayersSeen] = useState(false);
 
+  // Usar players de roleAssignment en lugar de route.params para consistencia
+  const players = roleAssignment?.players || [];
   const currentPlayer = players[currentPlayerIndex];
   const playerInfo = currentPlayer ? getPlayerInfo(currentPlayer.id) : null;
 
   // Verificar si todos los jugadores han visto su rol
   useEffect(() => {
-    if (currentPlayerIndex >= players.length) {
+    if (players.length > 0 && currentPlayerIndex >= players.length) {
       setAllPlayersSeen(true);
     }
   }, [currentPlayerIndex, players.length]);
@@ -104,11 +105,16 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
 
         {!showRole ? (
           <View style={styles.roleSection}>
+            <View style={styles.iconContainer}>
+              <Typography variant="h1" style={styles.emoji}>
+                👀
+              </Typography>
+            </View>
             <Typography variant="bodyLarge" color={theme.colors.textSecondary} style={styles.infoText}>
               Presiona el botón para ver tu rol
             </Typography>
             <Button
-              title="Ver mi Rol"
+              title="🔍 Ver mi Rol"
               variant="accent"
               onPress={handleShowRole}
               style={styles.button}
@@ -118,6 +124,10 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
           <View style={styles.roleSection}>
             {playerInfo?.isImpostor ? (
               <>
+                <View style={styles.impostorCard}>
+                  <Typography variant="h1" style={styles.emoji}>
+                    🎭
+                  </Typography>
                 <Typography variant="h1" color={theme.colors.error} style={styles.roleText}>
                   Eres el
                 </Typography>
@@ -127,9 +137,14 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
                 <Typography variant="bodyLarge" color={theme.colors.textSecondary} style={styles.instructionText}>
                   No sabes la palabra secreta. Tu objetivo es descubrirla o hacer que los demás no la descubran.
                 </Typography>
+                </View>
               </>
             ) : (
               <>
+                <View style={styles.normalCard}>
+                  <Typography variant="h1" style={styles.emoji}>
+                    ⚽
+                  </Typography>
                 <Typography variant="h4" color={theme.colors.textSecondary} style={styles.labelText}>
                   La palabra secreta es:
                 </Typography>
@@ -139,6 +154,7 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
                 <Typography variant="bodyLarge" color={theme.colors.textSecondary} style={styles.instructionText}>
                   Da pistas sobre esta palabra sin decirla directamente. Encuentra al impostor.
                 </Typography>
+                </View>
               </>
             )}
 
@@ -167,6 +183,7 @@ const styles = StyleSheet.create({
   title: {
     marginBottom: theme.spacing.md,
     textAlign: 'center',
+    fontWeight: theme.typography.weights.bold,
   },
   subtitle: {
     marginBottom: theme.spacing.xl,
@@ -177,6 +194,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
+  },
+  iconContainer: {
+    marginBottom: theme.spacing.lg,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: theme.colors.accent + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...theme.shadows.medium,
+  },
+  emoji: {
+    fontSize: 48,
+  },
+  impostorCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 24,
+    padding: theme.spacing.xl,
+    borderWidth: 3,
+    borderColor: theme.colors.error,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 350,
+    ...theme.shadows.large,
+  },
+  normalCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 24,
+    padding: theme.spacing.xl,
+    borderWidth: 3,
+    borderColor: theme.colors.accent,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 350,
+    ...theme.shadows.large,
   },
   roleText: {
     textAlign: 'center',
