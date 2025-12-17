@@ -57,6 +57,24 @@ class RoomService {
     await redisService.saveRoom(code, roomData);
     await redisService.addPlayer(code, hostId, hostName, true);
 
+    // Indexar partida en Elasticsearch (si está disponible)
+    try {
+      const searchService = require('./searchService');
+      await searchService.indexGame({
+        roomCode: code,
+        hostId: hostId,
+        hostName: hostName,
+        status: constants.GAME_PHASES.LOBBY,
+        playerCount: 1,
+        maxPlayers: constants.MAX_PLAYERS_PER_ROOM,
+        createdAt: roomData.createdAt,
+        lastActivity: Date.now(),
+      });
+    } catch (error) {
+      // Continuar aunque falle la indexación
+      console.warn('No se pudo indexar partida en Elasticsearch:', error.message);
+    }
+
     return {
       code,
       room: await redisService.getRoom(code),

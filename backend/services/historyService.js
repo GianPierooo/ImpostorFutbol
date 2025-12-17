@@ -104,6 +104,32 @@ class HistoryService {
           );
         }
 
+        // 7. Actualizar índices de usuarios en Elasticsearch
+        try {
+          const searchService = require('./searchService');
+          for (const player of players) {
+            const userId = userIds[player.id];
+            const user = await userService.getUserById(userId);
+            if (user) {
+              const winRate = user.games_played > 0 
+                ? (user.games_won / user.games_played) * 100 
+                : 0;
+              
+              await searchService.indexUser({
+                id: userId,
+                username: user.username,
+                rating: user.rating,
+                gamesPlayed: user.games_played,
+                gamesWon: user.games_won,
+                winRate: winRate,
+                lastActive: new Date().toISOString(),
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('No se pudieron actualizar índices de usuarios:', error.message);
+        }
+
         return {
           success: true,
           data: {

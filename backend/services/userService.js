@@ -36,6 +36,22 @@ class UserService {
         [username, email, avatar]
       );
 
+      // Indexar usuario en Elasticsearch (si está disponible)
+      try {
+        const searchService = require('./searchService');
+        await searchService.indexUser({
+          id: result.rows[0].id,
+          username: username,
+          rating: 1000,
+          gamesPlayed: 0,
+          gamesWon: 0,
+          winRate: 0,
+          lastActive: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.warn('No se pudo indexar usuario en Elasticsearch:', error.message);
+      }
+
       return {
         success: true,
         data: result.rows[0],

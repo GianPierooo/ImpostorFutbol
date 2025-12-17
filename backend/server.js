@@ -16,12 +16,17 @@ const gamesRoutes = require('./routes/games');
 const usersRoutes = require('./routes/users');
 const historyRoutes = require('./routes/history');
 const rankingsRoutes = require('./routes/rankings');
+const searchRoutes = require('./routes/search');
 
 // WebSocket
 const setupSocketHandlers = require('./websocket/socketHandler');
 
 // PostgreSQL
 const { testConnection } = require('./config/postgres');
+
+// Elasticsearch
+const { testConnection: testElasticsearchConnection, createIndex } = require('./config/elasticsearch');
+const { initIndices } = require('./database/elasticsearch/init_indices');
 
 // Configuración
 const PORT = process.env.PORT || 3000;
@@ -67,6 +72,7 @@ app.use('/api/games', gamesRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/games/history', historyRoutes);
 app.use('/api/rankings', rankingsRoutes);
+app.use('/api/search', searchRoutes);
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -80,6 +86,7 @@ app.get('/', (req, res) => {
       users: '/api/users',
       history: '/api/games/history',
       rankings: '/api/rankings',
+      search: '/api/search',
     },
   });
 });
@@ -119,6 +126,18 @@ server.listen(PORT, async () => {
   } catch (error) {
     console.warn('⚠️ PostgreSQL no disponible. El servidor continuará sin historial de partidas.');
     console.warn('   Para habilitar historial, instala PostgreSQL y configura las variables de entorno.');
+  }
+
+  // Probar conexión a Elasticsearch (no crítico si falla)
+  try {
+    const esConnected = await testElasticsearchConnection();
+    if (esConnected) {
+      // Inicializar índices si no existen
+      await initIndices();
+    }
+  } catch (error) {
+    console.warn('⚠️ Elasticsearch no disponible. El servidor continuará sin búsqueda avanzada.');
+    console.warn('   Para habilitar búsqueda, instala Elasticsearch y configura las variables de entorno.');
   }
 });
 

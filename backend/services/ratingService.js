@@ -48,6 +48,16 @@ class RatingService {
         [newRating, userId]
       );
 
+      // Actualizar índice en Elasticsearch (si está disponible)
+      try {
+        const searchService = require('./searchService');
+        await searchService.updateUserIndex(userId, {
+          rating: newRating,
+        });
+      } catch (error) {
+        console.warn('No se pudo actualizar índice de usuario:', error.message);
+      }
+
       return {
         success: true,
         data: {

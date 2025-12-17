@@ -68,6 +68,14 @@ class RedisService {
     for (const playerId of players) {
       await redisClient.del(`player:${code}:${playerId}`);
     }
+    
+    // Eliminar del índice de Elasticsearch (si está disponible)
+    try {
+      const searchService = require('./searchService');
+      await searchService.deleteGame(code);
+    } catch (error) {
+      console.warn('No se pudo eliminar partida del índice:', error.message);
+    }
   }
 
   /**
@@ -90,6 +98,7 @@ class RedisService {
     
     // Actualizar última actividad de la sala
     await this.updateRoomActivity(code);
+    await this.updateGameIndex(code);
   }
 
   /**
@@ -100,6 +109,7 @@ class RedisService {
   async removePlayer(code, playerId) {
     await redisClient.sRem(`players:${code}`, playerId);
     await redisClient.del(`player:${code}:${playerId}`);
+    await this.updateGameIndex(code);
   }
 
   /**
@@ -289,6 +299,35 @@ class RedisService {
   }
 
   /**
+   * Actualiza el índice de partida en Elasticsearch
+   * @param {string} code - Código de la sala
+   */
+  async updateGameIndex(code) {
+    try {
+      const searchService = require('./searchService');
+      const room = await this.getRoom(code);
+      const players = await this.getAllPlayersInfo(code);
+      
+      if (room) {
+        const hostPlayer = players.find(p => p.id === room.hostId);
+        await searchService.indexGame({
+          roomCode: code,
+          hostId: room.hostId,
+          hostName: hostPlayer?.name || 'Unknown',
+          status: room.status,
+          playerCount: players.length,
+          maxPlayers: constants.MAX_PLAYERS_PER_ROOM,
+          createdAt: room.createdAt,
+          lastActivity: Date.now(),
+        });
+      }
+    } catch (error) {
+      // Continuar aunque falle la indexación
+      console.warn('No se pudo actualizar índice de partida:', error.message);
+    }
+  }
+
+  /**
    * Actualiza el estado de una sala
    * @param {string} code - Código de la sala
    * @param {string} status - Nuevo estado
@@ -296,6 +335,7 @@ class RedisService {
   async updateRoomStatus(code, status) {
     await redisClient.hSet(`room:${code}`, 'status', status);
     await this.updateRoomActivity(code);
+    await this.updateGameIndex(code);
   }
 
   /**

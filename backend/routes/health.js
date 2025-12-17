@@ -6,6 +6,7 @@ const express = require('express');
 const router = express.Router();
 const redisService = require('../services/redisService');
 const { testConnection } = require('../config/postgres');
+const { testConnection: testElasticsearchConnection } = require('../config/elasticsearch');
 
 /**
  * Health check básico
@@ -72,7 +73,37 @@ router.get('/postgres', async (req, res) => {
 });
 
 /**
- * Health check completo (Redis + PostgreSQL)
+ * Health check con Elasticsearch
+ */
+router.get('/elasticsearch', async (req, res) => {
+  try {
+    const isConnected = await testElasticsearchConnection();
+    
+    if (isConnected) {
+      res.json({
+        status: 'ok',
+        elasticsearch: 'connected',
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      res.status(503).json({
+        status: 'error',
+        elasticsearch: 'disconnected',
+        timestamp: new Date().toISOString(),
+      });
+    }
+  } catch (error) {
+    res.status(503).json({
+      status: 'error',
+      elasticsearch: 'disconnected',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
+/**
+ * Health check completo (Redis + PostgreSQL + Elasticsearch)
  */
 router.get('/full', async (req, res) => {
   const status = {
@@ -99,6 +130,18 @@ router.get('/full', async (req, res) => {
     }
   } catch (error) {
     status.services.postgres = 'disconnected';
+    status.status = 'degraded';
+  }
+
+  // Verificar Elasticsearch
+  try {
+    const isConnected = await testElasticsearchConnection();
+    status.services.elasticsearch = isConnected ? 'connected' : 'disconnected';
+    if (!isConnected) {
+      status.status = 'degraded';
+    }
+  } catch (error) {
+    status.services.elasticsearch = 'disconnected';
     status.status = 'degraded';
   }
 
