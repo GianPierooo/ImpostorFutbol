@@ -89,8 +89,27 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       loadRoomState();
     };
 
-    const handlePlayerLeft = () => {
-      loadRoomState();
+    const handlePlayerLeft = async (data: any) => {
+      // Si se recibió el estado actualizado en el evento, usarlo directamente
+      if (data.roomState) {
+        setRoomState(data.roomState);
+        setPlayers(data.roomState.players || []);
+        setIsHost(data.roomState.room?.hostId === playerId);
+      } else {
+        // Si no, recargar estado de la sala
+        if (roomCode) {
+          try {
+            const result = await roomsAPI.get(roomCode);
+            if (result.success && result.data) {
+              setRoomState(result.data);
+              setPlayers(result.data.players || []);
+              setIsHost(result.data.room?.hostId === playerId);
+            }
+          } catch (error) {
+            console.error('Error loading room state after player left:', error);
+          }
+        }
+      }
     };
 
     const handleGameStateChanged = (data: any) => {

@@ -11,7 +11,7 @@ interface PlayerListProps {
 
 interface PlayerItemProps {
   player: Player;
-  onRemove: (id: string) => void;
+  onRemove?: (id: string) => void;
 }
 
 const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove }) => {
@@ -38,15 +38,17 @@ const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove }) => {
           {player.name}
         </Typography>
       </View>
-      <TouchableOpacity
-        style={styles.removeButton}
-        onPress={() => onRemove(player.id)}
-        activeOpacity={0.7}
-      >
-        <Typography variant="body" color={theme.colors.error} style={styles.removeButtonText}>
-          ✕
-        </Typography>
-      </TouchableOpacity>
+      {onRemove && (
+        <TouchableOpacity
+          style={styles.removeButton}
+          onPress={() => onRemove(player.id)}
+          activeOpacity={0.7}
+        >
+          <Typography variant="body" color={theme.colors.error} style={styles.removeButtonText}>
+            ✕
+          </Typography>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -142,8 +144,6 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.errorLight + '20',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
   },
   removeButtonText: {
     fontSize: 20,

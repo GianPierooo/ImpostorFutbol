@@ -196,6 +196,12 @@ class RoomService {
     const players = await redisService.getAllPlayersInfo(code);
     const gameState = await redisService.getGameState(code);
 
+    // Si no hay juego en curso y el estado no es lobby, resetear a lobby
+    if (!gameState && room.status !== constants.GAME_PHASES.LOBBY) {
+      await redisService.updateRoomStatus(code, constants.GAME_PHASES.LOBBY);
+      room.status = constants.GAME_PHASES.LOBBY;
+    }
+
     return {
       room,
       players,

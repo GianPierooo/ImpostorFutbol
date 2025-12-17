@@ -114,7 +114,7 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.playersSection}>
           <PlayerList
             players={players.map(p => ({ id: p.id, name: p.name }))}
-            onRemove={() => {}} // No se puede eliminar en modo online
+            onRemove={undefined} // No se puede eliminar en modo online
           />
           <Typography variant="caption" color={theme.colors.textSecondary} style={styles.playerCount}>
             {players.length} / 10 jugadores

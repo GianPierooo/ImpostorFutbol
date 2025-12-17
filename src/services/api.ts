@@ -10,11 +10,30 @@ const API_BASE_URL = API_CONFIG.BASE_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 15000, // Aumentado a 15 segundos
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Interceptor para manejar errores de red
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === 'ECONNABORTED') {
+      error.message = 'Tiempo de espera agotado. Verifica tu conexión a internet.';
+    } else if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+      error.message = `No se pudo conectar al servidor. Verifica que:\n1. Tienes conexión a internet\n2. El servidor está activo (163.192.223.30:3000)`;
+    } else if (error.response) {
+      // Error del servidor
+      error.message = error.response.data?.error || error.message;
+    } else if (error.request) {
+      // La petición se hizo pero no hubo respuesta
+      error.message = 'El servidor no respondió. Verifica que el backend esté corriendo.';
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Tipos
 export interface CreateRoomRequest {

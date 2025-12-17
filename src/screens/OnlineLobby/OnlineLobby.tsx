@@ -39,7 +39,27 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
         Alert.alert('Error', result.error || 'No se pudo crear la sala');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Error al crear la sala');
+      console.error('Error creating room:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Error al crear la sala';
+      Alert.alert(
+        'Error de Red',
+        errorMessage,
+        [
+          { text: 'OK' },
+          {
+            text: 'Verificar Conexión',
+            onPress: () => {
+              // Intentar health check
+              roomsAPI.get('test').catch(() => {
+                Alert.alert(
+                  'Servidor no disponible',
+                  'El servidor no está respondiendo. Verifica que:\n\n1. El backend esté corriendo\n2. Tengas conexión a internet\n3. La IP del servidor sea correcta'
+                );
+              });
+            },
+          },
+        ]
+      );
     } finally {
       setLoading(false);
     }
@@ -74,7 +94,27 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
         Alert.alert('Error', result.error || 'No se pudo unir a la sala');
       }
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Error al unirse a la sala');
+      console.error('Error joining room:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Error al unirse a la sala';
+      Alert.alert(
+        'Error de Red',
+        errorMessage,
+        [
+          { text: 'OK' },
+          {
+            text: 'Verificar Conexión',
+            onPress: () => {
+              // Intentar health check
+              roomsAPI.get('test').catch(() => {
+                Alert.alert(
+                  'Servidor no disponible',
+                  'El servidor no está respondiendo. Verifica que:\n\n1. El backend esté corriendo\n2. Tengas conexión a internet\n3. La IP del servidor sea correcta'
+                );
+              });
+            },
+          },
+        ]
+      );
     } finally {
       setLoading(false);
     }

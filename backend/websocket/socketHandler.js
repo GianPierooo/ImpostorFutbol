@@ -67,12 +67,23 @@ function setupSocketHandlers(io) {
         const { code, playerId } = data;
 
         if (code && playerId) {
-          await roomService.leaveRoom(code, playerId);
+          const result = await roomService.leaveRoom(code, playerId);
           
           socket.leave(`room:${code}`);
-          socket.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PLAYER_LEFT, {
-            playerId,
-          });
+          
+          // Si la sala fue eliminada (último jugador salió), notificar a todos
+          if (!result.room) {
+            io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.ROOM_UPDATED, {
+              roomState: null,
+            });
+          } else {
+            // Obtener estado actualizado y notificar a los demás jugadores
+            const roomState = await roomService.getRoomState(code);
+            socket.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PLAYER_LEFT, {
+              playerId,
+              roomState,
+            });
+          }
 
           console.log(`👋 ${playerId} salió de la sala ${code}`);
         }
@@ -214,10 +225,21 @@ function setupSocketHandlers(io) {
       // Si estaba en una sala, notificar
       if (currentRoomCode && currentPlayerId) {
         try {
-          await roomService.leaveRoom(currentRoomCode, currentPlayerId);
-          socket.to(`room:${currentRoomCode}`).emit(constants.SOCKET_EVENTS.PLAYER_LEFT, {
-            playerId: currentPlayerId,
-          });
+          const result = await roomService.leaveRoom(currentRoomCode, currentPlayerId);
+          
+          // Si la sala fue eliminada, notificar a todos
+          if (!result.room) {
+            io.to(`room:${currentRoomCode}`).emit(constants.SOCKET_EVENTS.ROOM_UPDATED, {
+              roomState: null,
+            });
+          } else {
+            // Obtener estado actualizado y notificar a los demás jugadores
+            const roomState = await roomService.getRoomState(currentRoomCode);
+            socket.to(`room:${currentRoomCode}`).emit(constants.SOCKET_EVENTS.PLAYER_LEFT, {
+              playerId: currentPlayerId,
+              roomState,
+            });
+          }
         } catch (error) {
           console.error('Error al manejar desconexión:', error);
         }
