@@ -53,9 +53,26 @@ export type VotingResult = {
   isTie: boolean;
 };
 
+export type GameMode = 'local' | 'online';
+
+export type OnlineRoom = {
+  code: string;
+  hostId: string;
+  status: GamePhase;
+  players: Player[];
+  config: GameConfig;
+  createdAt: number;
+};
+
 export type NavigationParamList = {
   Home: undefined;
   Lobby: undefined;
+  OnlineLobby: undefined;
+  OnlineRoom: {
+    code: string;
+    playerId: string;
+    playerName: string;
+  };
   RoleAssignment: {
     players: Player[];
     config: GameConfig;

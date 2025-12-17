@@ -6,6 +6,8 @@ import { NavigationParamList } from '../types';
 // Screens
 import { HomeScreen } from '../screens/Home';
 import { LobbyScreen } from '../screens/Lobby';
+import { OnlineLobbyScreen } from '../screens/OnlineLobby';
+import { OnlineRoomScreen } from '../screens/OnlineRoom';
 import { RoleAssignmentScreen } from '../screens/RoleAssignment';
 import { RoundScreen } from '../screens/Round';
 import { DiscussionScreen } from '../screens/Discussion';
@@ -29,6 +31,8 @@ export const AppNavigator: React.FC = () => {
       >
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Lobby" component={LobbyScreen} />
+        <Stack.Screen name="OnlineLobby" component={OnlineLobbyScreen} />
+        <Stack.Screen name="OnlineRoom" component={OnlineRoomScreen} />
         <Stack.Screen name="RoleAssignment" component={RoleAssignmentScreen} />
         <Stack.Screen name="Round" component={RoundScreen} />
         <Stack.Screen name="Discussion" component={DiscussionScreen} />

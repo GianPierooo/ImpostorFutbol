@@ -45,6 +45,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleStartGame}
             style={styles.startButton}
           />
+          <Button
+            title="🌐 Modo Online"
+            variant="secondary"
+            onPress={() => navigation.navigate('OnlineLobby')}
+            style={styles.onlineButton}
+          />
         </View>
       </View>
     </ScreenContainer>
@@ -102,8 +108,12 @@ const styles = StyleSheet.create({
   actions: {
     width: '100%',
     maxWidth: 300,
+    gap: theme.spacing.md,
   },
   startButton: {
+    width: '100%',
+  },
+  onlineButton: {
     width: '100%',
   },
 });
