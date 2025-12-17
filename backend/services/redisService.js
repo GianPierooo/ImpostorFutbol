@@ -215,6 +215,15 @@ class RedisService {
   }
 
   /**
+   * Obtiene todos los roles de una sala
+   * @param {string} code - Código de la sala
+   * @returns {object} Objeto { playerId: role }
+   */
+  async getRoles(code) {
+    return await redisClient.hGetAll(`roles:${code}`);
+  }
+
+  /**
    * Agrega una pista
    * @param {string} code - Código de la sala
    * @param {object} pista - Objeto pista

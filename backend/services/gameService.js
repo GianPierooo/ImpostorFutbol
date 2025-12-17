@@ -209,6 +209,19 @@ class GameService {
       throw new Error('Fase inválida');
     }
 
+    // Si se cambia a 'results', guardar la partida en PostgreSQL
+    if (phase === constants.GAME_PHASES.RESULTS) {
+      try {
+        const historyService = require('./historyService');
+        const gameData = await this.getGameDataForHistory(code);
+        await historyService.saveGame(gameData);
+        console.log(`✅ Partida ${code} guardada en historial`);
+      } catch (error) {
+        console.error(`⚠️ Error guardando partida ${code} en historial:`, error.message);
+        // Continuar aunque falle el guardado
+      }
+    }
+
     // Actualizar estado
     const gameState = await redisService.getGameState(code);
     if (gameState) {
@@ -343,6 +356,84 @@ class GameService {
       voteCounts,
       mostVoted: isTie ? null : mostVoted,
       isTie,
+    };
+  }
+
+  /**
+   * Obtiene todos los datos de la partida para guardar en historial
+   * @param {string} code - Código de la sala
+   * @returns {Promise<object>}
+   */
+  async getGameDataForHistory(code) {
+    const room = await redisService.getRoom(code);
+    if (!room) {
+      throw new Error('Sala no encontrada');
+    }
+
+    const gameState = await redisService.getGameState(code);
+    if (!gameState) {
+      throw new Error('Juego no encontrado');
+    }
+
+    const players = await redisService.getAllPlayersInfo(code);
+    const pistas = await redisService.getPistas(code);
+    const votes = await redisService.getVotes(code);
+    const roles = await redisService.getRoles(code);
+
+    // Obtener resultados de votación
+    const votingResults = await this.getVotingResults(code);
+
+    // Determinar ganador
+    const mostVotedId = votingResults.mostVoted;
+    const winner = mostVotedId === gameState.impostorId ? 'group' : 'impostor';
+
+    // Preparar datos de jugadores
+    const playersData = players.map(player => {
+      const role = roles[player.id] || 'normal';
+      const playerVote = votes[player.id];
+      const won = (role === 'impostor' && winner === 'impostor') ||
+                  (role === 'normal' && winner === 'group');
+
+      return {
+        id: player.id,
+        name: player.name,
+        role: role,
+        votedFor: playerVote || null,
+        won: won,
+      };
+    });
+
+    // Preparar datos de pistas (pistas es un array)
+    const pistasData = Array.isArray(pistas) 
+      ? pistas.map(pista => ({
+          playerId: pista.playerId,
+          playerName: pista.playerName,
+          text: pista.text,
+          round: pista.round,
+          turn: pista.turn,
+        }))
+      : Object.values(pistas).map(pista => ({
+          playerId: pista.playerId,
+          playerName: pista.playerName,
+          text: pista.text,
+          round: pista.round,
+          turn: pista.turn,
+        }));
+
+    // Preparar datos de votos
+    const votesData = votingResults.votes;
+
+    return {
+      roomCode: code,
+      secretWord: gameState.secretWord,
+      impostorId: gameState.impostorId,
+      winner: winner,
+      totalRounds: gameState.currentRound,
+      players: playersData,
+      pistas: pistasData,
+      votes: votesData,
+      startedAt: room.createdAt || Date.now(),
+      finishedAt: Date.now(),
     };
   }
 }

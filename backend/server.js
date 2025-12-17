@@ -13,6 +13,9 @@ const rateLimit = require('express-rate-limit');
 const healthRoutes = require('./routes/health');
 const roomsRoutes = require('./routes/rooms');
 const gamesRoutes = require('./routes/games');
+const usersRoutes = require('./routes/users');
+const historyRoutes = require('./routes/history');
+const rankingsRoutes = require('./routes/rankings');
 
 // WebSocket
 const setupSocketHandlers = require('./websocket/socketHandler');
@@ -61,6 +64,9 @@ app.use((req, res, next) => {
 app.use('/api/health', healthRoutes);
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/games', gamesRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/games/history', historyRoutes);
+app.use('/api/rankings', rankingsRoutes);
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -71,6 +77,9 @@ app.get('/', (req, res) => {
       health: '/api/health',
       rooms: '/api/rooms',
       games: '/api/games',
+      users: '/api/users',
+      history: '/api/games/history',
+      rankings: '/api/rankings',
     },
   });
 });

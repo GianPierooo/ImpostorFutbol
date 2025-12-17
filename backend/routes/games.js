@@ -210,5 +210,62 @@ router.get('/:code/voting-results', async (req, res) => {
   }
 });
 
+/**
+ * Finalizar y guardar partida en historial
+ * POST /api/games/:code/finish
+ * Body: { playerId } (debe ser el host)
+ */
+router.post('/:code/finish', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { playerId } = req.body;
+
+    if (!playerId) {
+      return res.status(400).json({
+        success: false,
+        error: 'playerId es requerido',
+      });
+    }
+
+    // Verificar que es el host
+    const playerInfo = await redisService.getPlayerInfo(code, playerId);
+    if (!playerInfo || !playerInfo.isHost) {
+      return res.status(403).json({
+        success: false,
+        error: 'Solo el host puede finalizar la partida',
+      });
+    }
+
+    // Obtener todos los datos de la partida
+    const gameData = await gameService.getGameDataForHistory(code);
+
+    // Guardar en PostgreSQL (si está disponible)
+    const historyService = require('../services/historyService');
+    let savedGame = null;
+    
+    try {
+      const saveResult = await historyService.saveGame(gameData);
+      savedGame = saveResult.data;
+    } catch (error) {
+      console.error('Error guardando partida en PostgreSQL:', error.message);
+      // Continuar aunque falle el guardado en PostgreSQL
+    }
+
+    res.json({
+      success: true,
+      data: {
+        gameData,
+        saved: savedGame !== null,
+        gameId: savedGame?.id || null,
+      },
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
 module.exports = router;
 
