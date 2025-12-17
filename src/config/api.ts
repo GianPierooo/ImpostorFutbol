@@ -1,17 +1,15 @@
 /**
  * Configuración de la API
- * TODO: Cambiar estas URLs por la IP de tu VM
+ * IP de la VM de Oracle Cloud
  */
 
+const VM_IP = '163.192.223.30';
+
 export const API_CONFIG = {
-  // URL del backend
-  BASE_URL: __DEV__
-    ? 'http://localhost:3000/api'
-    : 'http://163.192.223.30:3000/api',
+  // URL del backend (siempre usar IP de la VM, no localhost)
+  BASE_URL: `http://${VM_IP}:3000/api`,
   
   // URL del WebSocket
-  SOCKET_URL: __DEV__
-    ? 'http://localhost:3000'
-    : 'http://163.192.223.30:3000',
+  SOCKET_URL: `http://${VM_IP}:3000`,
 };
 
