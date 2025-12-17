@@ -7,10 +7,10 @@ require('dotenv').config();
 
 const pool = new Pool({
   host: process.env.POSTGRES_HOST || 'localhost',
-  port: process.env.POSTGRES_PORT || 5432,
+  port: parseInt(process.env.POSTGRES_PORT || '5432'),
   database: process.env.POSTGRES_DB || 'impostor_futbol',
   user: process.env.POSTGRES_USER || 'postgres',
-  password: process.env.POSTGRES_PASSWORD || '',
+  password: process.env.POSTGRES_PASSWORD || undefined, // undefined en lugar de string vacío
   max: 20, // Máximo de conexiones en el pool
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
