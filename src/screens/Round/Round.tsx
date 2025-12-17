@@ -2,28 +2,49 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { ScreenContainer, Typography, Button } from '../../components';
 import { useGame } from '../../game';
+import { useGameMode } from '../../hooks/useGameMode';
+import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme, getRoundColorScheme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Round'>;
 
-export const RoundScreen: React.FC<Props> = ({ navigation }) => {
-  const {
-    gameState,
-    roleAssignment,
-    pistas,
-    currentTurn,
-    currentPlayerIndex,
-    addPista,
-    nextTurn,
-    finishRound,
-    getPlayerInfo,
-    getCurrentPlayer,
-    getRoundPistas,
-    allPlayersGavePista,
-    canFinishRound,
-  } = useGame();
+export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { mode, isOnline, onlineGame, localGame } = useGameMode();
+  
+  // Usar navegación automática online
+  useOnlineNavigation();
+  
+  // Usar el contexto apropiado según el modo
+  const gameState = isOnline ? onlineGame?.gameState : localGame?.gameState;
+  const roleAssignment = isOnline ? onlineGame?.roleAssignment : localGame?.roleAssignment;
+  const pistas = isOnline ? onlineGame?.pistas || [] : localGame?.pistas || [];
+  const currentTurn = isOnline ? onlineGame?.gameState?.currentTurn : localGame?.currentTurn;
+  const currentPlayerIndex = isOnline ? onlineGame?.gameState?.currentPlayerIndex : localGame?.currentPlayerIndex;
+  const getPlayerInfo = isOnline 
+    ? (playerId: string) => onlineGame?.getPlayerInfo(playerId) || null
+    : (playerId: string) => localGame?.getPlayerInfo(playerId) || null;
+  const getCurrentPlayer = isOnline
+    ? () => onlineGame?.getCurrentPlayer() || null
+    : () => localGame?.getCurrentPlayer() || null;
+  const getRoundPistas = isOnline
+    ? (round: number) => onlineGame?.pistas.filter(p => p.round === round) || []
+    : (round: number) => localGame?.getRoundPistas(round) || [];
+  const allPlayersGavePista = isOnline
+    ? (round: number) => {
+        if (!onlineGame || !roleAssignment) return false;
+        const roundPistas = onlineGame.pistas.filter(p => p.round === round);
+        const playersWhoGavePista = new Set(roundPistas.map(p => p.playerId));
+        return roleAssignment.players.every(p => playersWhoGavePista.has(p.id));
+      }
+    : (round: number) => localGame?.allPlayersGavePista(round) || false;
+  const canFinishRound = isOnline
+    ? () => {
+        if (!gameState || !roleAssignment) return false;
+        return allPlayersGavePista(gameState.currentRound);
+      }
+    : () => localGame?.canFinishRound() || false;
 
   const [pistaText, setPistaText] = useState('');
   const [viewingPlayerId, setViewingPlayerId] = useState<string | null>(null);
@@ -71,7 +92,7 @@ export const RoundScreen: React.FC<Props> = ({ navigation }) => {
     );
   }
 
-  const handleAddPista = () => {
+  const handleAddPista = async () => {
     if (!pistaText.trim() || !currentPlayer || !gameState || !roleAssignment) return;
 
     // Verificar si este es el último jugador que falta dar pista
@@ -80,27 +101,32 @@ export const RoundScreen: React.FC<Props> = ({ navigation }) => {
     const missingPlayers = roleAssignment.players.filter((p) => !playersWhoGavePista.has(p.id));
     const isLastPlayer = missingPlayers.length === 1 && missingPlayers[0].id === currentPlayer.id;
     
-    addPista(pistaText, currentPlayer.id);
+    // Agregar pista según el modo
+    if (isOnline && onlineGame) {
+      await onlineGame.addPista(pistaText);
+    } else if (localGame) {
+      localGame.addPista(pistaText, currentPlayer.id);
+      localGame.nextTurn();
+    }
+    
     setPistaText('');
     
-    // Si todos dieron pista, avanzar automáticamente
-    if (isLastPlayer) {
+    // Si todos dieron pista, avanzar automáticamente (solo en modo local)
+    // En modo online, el host controla la navegación
+    if (!isOnline && isLastPlayer) {
       // Esperar un momento para que se actualice el estado
       setTimeout(() => {
         // Si es la última ronda configurada, ir directo a votación
         if (gameState.maxRounds !== null && gameState.currentRound === gameState.maxRounds) {
-          finishRound();
-          navigation.navigate('Voting');
+          localGame?.finishRound();
+          navigation.navigate('Voting', { mode: 'local' });
         } else {
           // SIEMPRE ir a Discussion después de cada ronda (excepto la última)
-          // No llamar finishRound aquí, se llamará desde Discussion cuando avancen
-          navigation.navigate('Discussion');
+          navigation.navigate('Discussion', { mode: 'local' });
         }
       }, 200);
       return;
     }
-    
-    nextTurn();
   };
 
   // Calcular esquema de colores según la ronda

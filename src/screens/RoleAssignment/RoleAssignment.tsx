@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { ScreenContainer, Typography, Button } from '../../components';
 import { useGame } from '../../game';
+import { useOnlineGame } from '../../contexts';
+import { useGameMode } from '../../hooks/useGameMode';
+import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList, Player } from '../../types';
@@ -9,7 +12,27 @@ import { NavigationParamList, Player } from '../../types';
 type Props = NativeStackScreenProps<NavigationParamList, 'RoleAssignment'>;
 
 export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { roleAssignment, getPlayerInfo, nextPhase } = useGame();
+  const { mode, isOnline, onlineGame, localGame } = useGameMode();
+  
+  // Usar navegación automática online
+  useOnlineNavigation();
+  
+  // Usar el contexto apropiado según el modo
+  const roleAssignment = isOnline ? onlineGame?.roleAssignment : localGame?.roleAssignment;
+  const getPlayerInfo = isOnline 
+    ? (playerId: string) => onlineGame?.getPlayerInfo(playerId) || null
+    : (playerId: string) => localGame?.getPlayerInfo(playerId) || null;
+  const nextPhase = isOnline
+    ? async () => {
+        if (onlineGame) {
+          await onlineGame.changePhase('round');
+        }
+      }
+    : () => {
+        if (localGame) {
+          localGame.nextPhase();
+        }
+      };
   
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const [showRole, setShowRole] = useState(false);
@@ -40,9 +63,14 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
     }
   };
 
-  const handleContinue = () => {
-    nextPhase();
-    navigation.navigate('Round');
+  const handleContinue = async () => {
+    if (isOnline) {
+      await nextPhase();
+      // La navegación se manejará automáticamente con useOnlineNavigation
+    } else {
+      nextPhase();
+      navigation.navigate('Round', { mode: 'local' });
+    }
   };
 
   // Si no hay asignación de roles, mostrar mensaje de error

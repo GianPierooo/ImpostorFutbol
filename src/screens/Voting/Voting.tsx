@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { ScreenContainer, Typography, Button } from '../../components';
 import { useGame } from '../../game';
+import { useGameMode } from '../../hooks/useGameMode';
+import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme, getRoundColorScheme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList, Player } from '../../types';
@@ -73,20 +75,38 @@ const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
   );
 };
 
-export const VotingScreen: React.FC<Props> = ({ navigation }) => {
-  const {
-    gameState,
-    roleAssignment,
-    votes,
-    currentVoterIndex,
-    addVote,
-    nextVoter,
-    finishVoting,
-    getVotingResults,
-    hasVoted,
-    getCurrentVoter,
-    allVotesComplete,
-  } = useGame();
+export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { mode, isOnline, onlineGame, localGame } = useGameMode();
+  
+  // Usar navegación automática online
+  useOnlineNavigation();
+  
+  // Usar el contexto apropiado según el modo
+  const gameState = isOnline ? onlineGame?.gameState : localGame?.gameState;
+  const roleAssignment = isOnline ? onlineGame?.roleAssignment : localGame?.roleAssignment;
+  const votes = isOnline ? onlineGame?.votes || [] : localGame?.votes || [];
+  const currentVoterIndex = isOnline ? onlineGame?.gameState?.currentVoterIndex : localGame?.currentVoterIndex;
+  const getVotingResults = isOnline
+    ? () => onlineGame?.getVotingResults() || null
+    : () => localGame?.getVotingResults() || null;
+  const hasVoted = isOnline
+    ? (playerId: string) => {
+        if (!onlineGame) return false;
+        return onlineGame.votes.some(v => v.voterId === playerId);
+      }
+    : (playerId: string) => localGame?.hasVoted(playerId) || false;
+  const getCurrentVoter = isOnline
+    ? () => {
+        if (!onlineGame || !roleAssignment || currentVoterIndex === undefined) return null;
+        return roleAssignment.players[currentVoterIndex] || null;
+      }
+    : () => localGame?.getCurrentVoter() || null;
+  const allVotesComplete = isOnline
+    ? () => {
+        if (!onlineGame || !roleAssignment) return false;
+        return roleAssignment.players.every(p => onlineGame.votes.some(v => v.voterId === p.id));
+      }
+    : () => localGame?.allVotesComplete() || false;
 
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
   const [viewingVoterId, setViewingVoterId] = useState<string | null>(null);
@@ -133,14 +153,20 @@ export const VotingScreen: React.FC<Props> = ({ navigation }) => {
     (p) => p.id !== (currentVoter?.id || '')
   );
 
-  const handleVote = (targetId: string) => {
+  const handleVote = async (targetId: string) => {
     if (!currentVoter) return;
 
     setSelectedTarget(targetId);
-    addVote(currentVoter.id, targetId);
+    
+    // Agregar voto según el modo
+    if (isOnline && onlineGame) {
+      await onlineGame.addVote(targetId);
+    } else if (localGame) {
+      localGame.addVote(currentVoter.id, targetId);
+    }
   };
 
-  const handleNextVoter = () => {
+  const handleNextVoter = async () => {
     // Solo avanzar si hay un voto seleccionado
     if (!selectedTarget) {
       return; // No permitir avanzar sin votar
@@ -148,13 +174,20 @@ export const VotingScreen: React.FC<Props> = ({ navigation }) => {
 
     if (allVotesComplete()) {
       // Todos votaron, ir a resultados
-      finishVoting();
-      navigation.navigate('Results');
+      if (isOnline && onlineGame) {
+        await onlineGame.changePhase('results');
+      } else if (localGame) {
+        localGame.finishVoting();
+      }
+      navigation.navigate('Results', { mode, roomCode: route.params?.roomCode });
     } else {
-      // Avanzar al siguiente votante
-      nextVoter();
-      setSelectedTarget(null);
-      setViewingVoterId(null);
+      // En modo online, el host controla la navegación
+      // En modo local, avanzar al siguiente votante
+      if (!isOnline && localGame) {
+        localGame.nextVoter();
+        setSelectedTarget(null);
+        setViewingVoterId(null);
+      }
     }
   };
 
@@ -305,9 +338,13 @@ export const VotingScreen: React.FC<Props> = ({ navigation }) => {
             <Button
               title="🏆 Ver Resultados Finales"
               variant="accent"
-              onPress={() => {
-                finishVoting();
-                navigation.navigate('Results');
+              onPress={async () => {
+                if (isOnline && onlineGame) {
+                  await onlineGame.changePhase('results');
+                } else if (localGame) {
+                  localGame.finishVoting();
+                }
+                navigation.navigate('Results', { mode, roomCode: route.params?.roomCode });
               }}
               style={[
                 styles.actionButton,

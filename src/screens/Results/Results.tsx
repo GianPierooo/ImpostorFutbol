@@ -2,33 +2,74 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { ScreenContainer, Typography, Button } from '../../components';
 import { useGame } from '../../game';
+import { useGameMode } from '../../hooks/useGameMode';
+import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Results'>;
 
-export const ResultsScreen: React.FC<Props> = ({ navigation }) => {
-  const {
-    gameState,
-    roleAssignment,
-    votes,
-    getVotingResults,
-    getGameWinner,
-    resetGame,
-  } = useGame();
+export const ResultsScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { mode, isOnline, onlineGame, localGame } = useGameMode();
+  
+  // Usar navegación automática online
+  useOnlineNavigation();
+  
+  // Usar el contexto apropiado según el modo
+  const gameState = isOnline ? onlineGame?.gameState : localGame?.gameState;
+  const roleAssignment = isOnline ? onlineGame?.roleAssignment : localGame?.roleAssignment;
+  const votes = isOnline ? onlineGame?.votes || [] : localGame?.votes || [];
+  const getVotingResults = isOnline
+    ? () => onlineGame?.getVotingResults() || null
+    : () => localGame?.getVotingResults() || null;
+  const getGameWinner = isOnline
+    ? () => {
+        if (!onlineGame || !roleAssignment) return null;
+        const votingResults = onlineGame.getVotingResults();
+        if (!votingResults) return null;
+        
+        const mostVotedId = votingResults.mostVoted;
+        const isImpostor = mostVotedId === roleAssignment.impostorId;
+        
+        return {
+          winner: isImpostor ? 'group' : 'impostor',
+          mostVotedId,
+        };
+      }
+    : () => localGame?.getGameWinner() || null;
+  const resetGame = isOnline
+    ? async () => {
+        if (onlineGame) {
+          await onlineGame.leaveRoom();
+        }
+      }
+    : () => {
+        if (localGame) {
+          localGame.resetGame();
+        }
+      };
 
   const votingResults = getVotingResults();
   const gameWinner = getGameWinner();
 
-  const handleNewGame = () => {
-    resetGame();
+  const handleNewGame = async () => {
+    if (isOnline) {
+      await resetGame();
+    } else {
+      resetGame();
+    }
     navigation.navigate('Home');
   };
 
-  const handlePlayAgain = () => {
-    resetGame();
-    navigation.navigate('Lobby');
+  const handlePlayAgain = async () => {
+    if (isOnline) {
+      await resetGame();
+      navigation.navigate('OnlineLobby');
+    } else {
+      resetGame();
+      navigation.navigate('Lobby');
+    }
   };
 
   // Si no hay estado del juego, mostrar error

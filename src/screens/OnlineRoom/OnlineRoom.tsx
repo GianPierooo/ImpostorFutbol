@@ -5,6 +5,7 @@ import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
 import { useOnlineGame } from '../../contexts';
+import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'OnlineRoom'>;
 
@@ -37,15 +38,8 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
     };
   }, [code, playerId, playerName]);
 
-  // Escuchar cuando el juego inicia
-  useEffect(() => {
-    if (roomState?.room?.status === 'roleAssignment') {
-      navigation.replace('RoleAssignment', {
-        players: players,
-        config: roomState.room.config || { rounds: 3 },
-      });
-    }
-  }, [roomState?.room?.status]);
+  // Usar navegación automática online
+  useOnlineNavigation();
 
   const handleStartGame = async () => {
     if (!isHost) {

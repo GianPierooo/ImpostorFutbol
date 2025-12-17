@@ -14,6 +14,7 @@ export type GamePhase =
   | 'lobby'
   | 'roleAssignment'
   | 'round'
+  | 'discussion'
   | 'voting'
   | 'results';
 
@@ -74,12 +75,26 @@ export type NavigationParamList = {
     playerName: string;
   };
   RoleAssignment: {
-    players: Player[];
-    config: GameConfig;
+    players?: Player[];
+    config?: GameConfig;
+    mode?: GameMode;
+    roomCode?: string;
   };
-  Round: undefined;
-  Discussion: undefined;
-  Voting: undefined;
-  Results: undefined;
+  Round: {
+    mode?: GameMode;
+    roomCode?: string;
+  };
+  Discussion: {
+    mode?: GameMode;
+    roomCode?: string;
+  };
+  Voting: {
+    mode?: GameMode;
+    roomCode?: string;
+  };
+  Results: {
+    mode?: GameMode;
+    roomCode?: string;
+  };
 };
 

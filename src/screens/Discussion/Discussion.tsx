@@ -2,20 +2,38 @@ import React, { useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { ScreenContainer, Typography, Button, PistaHistory } from '../../components';
 import { useGame } from '../../game';
+import { useGameMode } from '../../hooks/useGameMode';
+import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme, getRoundColorScheme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Discussion'>;
 
-export const DiscussionScreen: React.FC<Props> = ({ navigation }) => {
-  const {
-    gameState,
-    roleAssignment,
-    pistas,
-    getRoundPistas,
-    finishRound,
-  } = useGame();
+export const DiscussionScreen: React.FC<Props> = ({ navigation, route }) => {
+  const { mode, isOnline, onlineGame, localGame } = useGameMode();
+  
+  // Usar navegación automática online
+  useOnlineNavigation();
+  
+  // Usar el contexto apropiado según el modo
+  const gameState = isOnline ? onlineGame?.gameState : localGame?.gameState;
+  const roleAssignment = isOnline ? onlineGame?.roleAssignment : localGame?.roleAssignment;
+  const pistas = isOnline ? onlineGame?.pistas || [] : localGame?.pistas || [];
+  const getRoundPistas = isOnline
+    ? (round: number) => onlineGame?.pistas.filter(p => p.round === round) || []
+    : (round: number) => localGame?.getRoundPistas(round) || [];
+  const finishRound = isOnline
+    ? async () => {
+        if (onlineGame) {
+          await onlineGame.changePhase('voting');
+        }
+      }
+    : () => {
+        if (localGame) {
+          localGame.finishRound();
+        }
+      };
 
   if (!gameState) {
     return (
@@ -54,38 +72,54 @@ export const DiscussionScreen: React.FC<Props> = ({ navigation }) => {
     return getRoundColorScheme(roundToShow, gameState.maxRounds);
   }, [roundToShow, gameState.maxRounds]);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     // Si es la última ronda, ir a votación
     if (isLastRound) {
       // Llamar finishRound para cambiar la fase a voting
-      finishRound();
-      navigation.navigate('Voting');
+      if (isOnline) {
+        await finishRound();
+      } else {
+        finishRound();
+      }
+      navigation.navigate('Voting', { mode, roomCode: route.params?.roomCode });
     } else if (canFinish && gameState.maxRounds === null) {
       // Modo sin límite y pueden finalizar (3+ rondas), ir a votación
-      finishRound();
-      navigation.navigate('Voting');
+      if (isOnline) {
+        await finishRound();
+      } else {
+        finishRound();
+      }
+      navigation.navigate('Voting', { mode, roomCode: route.params?.roomCode });
     } else {
       // Avanzar a la siguiente ronda
       const hasMoreRounds = gameState.maxRounds === null || roundToShow < gameState.maxRounds;
       if (hasMoreRounds) {
         // Actualizar el estado para la siguiente ronda
-        finishRound();
+        if (isOnline && onlineGame) {
+          await onlineGame.changePhase('round');
+        } else {
+          finishRound();
+        }
         // Navegar a la siguiente ronda
         setTimeout(() => {
-          navigation.navigate('Round');
+          navigation.navigate('Round', { mode, roomCode: route.params?.roomCode });
         }, 100);
       }
     }
   };
 
-  const handleNextRound = () => {
+  const handleNextRound = async () => {
     // Solo disponible en modo sin límite
     if (gameState.maxRounds === null) {
       const hasMoreRounds = true; // Sin límite siempre tiene más rondas
       if (hasMoreRounds) {
-        finishRound();
+        if (isOnline && onlineGame) {
+          await onlineGame.changePhase('round');
+        } else {
+          finishRound();
+        }
         setTimeout(() => {
-          navigation.navigate('Round');
+          navigation.navigate('Round', { mode, roomCode: route.params?.roomCode });
         }, 100);
       }
     }

@@ -17,6 +17,9 @@ const gamesRoutes = require('./routes/games');
 // WebSocket
 const setupSocketHandlers = require('./websocket/socketHandler');
 
+// PostgreSQL
+const { testConnection } = require('./config/postgres');
+
 // Configuración
 const PORT = process.env.PORT || 3000;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
@@ -93,13 +96,21 @@ app.use((err, req, res, next) => {
 setupSocketHandlers(io);
 
 // Iniciar servidor
-server.listen(PORT, () => {
+server.listen(PORT, async () => {
   console.log(`
 🚀 Servidor iniciado en puerto ${PORT}
 📡 WebSocket disponible en ws://localhost:${PORT}
 🌐 API disponible en http://localhost:${PORT}
 📋 Health check: http://localhost:${PORT}/api/health
   `);
+  
+  // Probar conexión a PostgreSQL (no crítico si falla)
+  try {
+    await testConnection();
+  } catch (error) {
+    console.warn('⚠️ PostgreSQL no disponible. El servidor continuará sin historial de partidas.');
+    console.warn('   Para habilitar historial, instala PostgreSQL y configura las variables de entorno.');
+  }
 });
 
 // Manejo de errores no capturados
