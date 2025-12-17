@@ -5,7 +5,7 @@ import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
 import { roomsAPI } from '../../services';
-import { v4 as uuidv4 } from 'uuid';
+import { generateId } from '../../utils/generateId';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'OnlineLobby'>;
 
@@ -22,7 +22,7 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const playerId = uuidv4();
+      const playerId = generateId();
       const result = await roomsAPI.create({
         hostId: playerId,
         hostName: playerName.trim(),
@@ -58,7 +58,7 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
-      const playerId = uuidv4();
+      const playerId = generateId();
       const result = await roomsAPI.join(roomCode.trim().toUpperCase(), {
         playerId,
         playerName: playerName.trim(),
