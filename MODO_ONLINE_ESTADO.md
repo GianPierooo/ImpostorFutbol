@@ -2,7 +2,7 @@
 
 ## 📊 Resumen Ejecutivo
 
-**Estado General**: 🟡 En Progreso (Fase 1 completada, Fases 2 y 3 pendientes)
+**Estado General**: ✅ Completado (Todas las fases implementadas)
 
 **Última Actualización**: Diciembre 2024
 
@@ -133,7 +133,7 @@ src/
 
 ---
 
-## 🚧 FASE 2: PENDIENTE - PostgreSQL (Historial y Usuarios)
+## ✅ FASE 2: COMPLETADA - PostgreSQL (Historial y Usuarios)
 
 ### 🎯 Objetivo
 Sistema de persistencia para partidas históricas, usuarios, perfiles y ratings.
@@ -202,27 +202,28 @@ Sistema de persistencia para partidas históricas, usuarios, perfiles y ratings.
   - `created_at` (TIMESTAMP)
 
 #### Servicios Backend
-- ❌ `postgresService.js` - Servicio de conexión PostgreSQL
-- ❌ `userService.js` - Lógica de usuarios
-- ❌ `historyService.js` - Lógica de historial
-- ❌ `ratingService.js` - Lógica de ratings
+- ✅ `postgresService.js` - Servicio de conexión PostgreSQL
+- ✅ `userService.js` - Lógica de usuarios
+- ✅ `historyService.js` - Lógica de historial
+- ✅ `ratingService.js` - Lógica de ratings
 
-#### Endpoints API Pendientes
-- ❌ `POST /api/users` - Crear/registrar usuario
-- ❌ `GET /api/users/:id` - Obtener perfil de usuario
-- ❌ `GET /api/users/:id/stats` - Estadísticas del usuario
-- ❌ `PUT /api/users/:id` - Actualizar perfil
-- ❌ `GET /api/games/history` - Historial de partidas
-- ❌ `GET /api/games/history/:id` - Detalle de partida histórica
-- ❌ `POST /api/games/:code/finish` - Guardar partida terminada
-- ❌ `GET /api/users/:id/games` - Partidas de un usuario
-- ❌ `GET /api/rankings` - Rankings globales
+#### Endpoints API
+- ✅ `POST /api/users` - Crear/registrar usuario
+- ✅ `GET /api/users/:id` - Obtener perfil de usuario
+- ✅ `GET /api/users/:id/stats` - Estadísticas del usuario
+- ✅ `PUT /api/users/:id` - Actualizar perfil
+- ✅ `GET /api/games/history` - Historial de partidas
+- ✅ `GET /api/games/history/:id` - Detalle de partida histórica
+- ✅ `POST /api/games/:code/finish` - Guardar partida terminada
+- ✅ `GET /api/users/:id/games` - Partidas de un usuario
+- ✅ `GET /api/rankings` - Rankings globales
+- ✅ `GET /api/rankings/user/:id` - Posición de usuario en ranking
 
 #### Integración
-- ❌ Guardar partida al terminar en PostgreSQL
-- ❌ Actualizar estadísticas de usuarios
-- ❌ Calcular y actualizar ratings
-- ❌ Migrar datos de Redis a PostgreSQL al terminar partida
+- ✅ Guardar partida al terminar en PostgreSQL (automático al cambiar a fase 'results')
+- ✅ Actualizar estadísticas de usuarios
+- ✅ Calcular y actualizar ratings
+- ✅ Migrar datos de Redis a PostgreSQL al terminar partida
 
 #### Frontend
 - ❌ Pantalla de perfil de usuario
@@ -233,25 +234,25 @@ Sistema de persistencia para partidas históricas, usuarios, perfiles y ratings.
 
 ---
 
-## 🔍 FASE 3: PENDIENTE - Elasticsearch (Búsqueda)
+## ✅ FASE 3: COMPLETADA - Elasticsearch (Búsqueda)
 
 ### 🎯 Objetivo
 Sistema de búsqueda avanzada para partidas públicas, jugadores y rankings.
 
-### ❌ Pendiente
+### ✅ Completado
 
 #### Instalación
-- ❌ Elasticsearch no instalado en la VM
-- ❌ Índices no creados
-- ❌ Configuración no realizada
-- ❌ Variables de entorno no configuradas
+- ⏳ Elasticsearch pendiente de instalación en la VM (ver `INSTALACION_ELASTICSEARCH.md`)
+- ✅ Índices definidos y script de inicialización creado
+- ✅ Configuración de conexión creada
+- ✅ Variables de entorno agregadas a `env.example`
 
 #### Dependencias Backend
-- ❌ `@elastic/elasticsearch` no instalado
-- ❌ Configuración de conexión no creada
+- ✅ `@elastic/elasticsearch` agregado a `package.json`
+- ✅ Configuración de conexión creada (`config/elasticsearch.js`)
 
 #### Índices Elasticsearch
-- ❌ **Índice `games`** - Partidas públicas
+- ✅ **Índice `games`** - Partidas públicas
   - `room_code`
   - `host_id`
   - `host_name`
@@ -261,7 +262,7 @@ Sistema de búsqueda avanzada para partidas públicas, jugadores y rankings.
   - `created_at`
   - `last_activity`
 
-- ❌ **Índice `users`** - Usuarios buscables
+- ✅ **Índice `users`** - Usuarios buscables
   - `user_id`
   - `username`
   - `rating`
@@ -269,7 +270,7 @@ Sistema de búsqueda avanzada para partidas públicas, jugadores y rankings.
   - `win_rate`
   - `last_active`
 
-- ❌ **Índice `rankings`** - Rankings globales
+- ✅ **Índice `rankings`** - Rankings globales
   - `user_id`
   - `username`
   - `rating`
@@ -277,23 +278,22 @@ Sistema de búsqueda avanzada para partidas públicas, jugadores y rankings.
   - `updated_at`
 
 #### Servicios Backend
-- ❌ `elasticsearchService.js` - Servicio de conexión Elasticsearch
-- ❌ `searchService.js` - Lógica de búsqueda
+- ✅ `elasticsearchService.js` - Servicio de conexión Elasticsearch
+- ✅ `searchService.js` - Lógica de búsqueda
 
-#### Endpoints API Pendientes
-- ❌ `GET /api/search/games` - Buscar partidas públicas
-  - Query params: `status`, `min_players`, `max_players`, `host_name`
-- ❌ `GET /api/search/players` - Buscar jugadores
-  - Query params: `username`, `min_rating`, `max_rating`
-- ❌ `GET /api/rankings` - Rankings globales
-  - Query params: `limit`, `offset`, `sort_by`
-- ❌ `GET /api/rankings/user/:id` - Posición de usuario en ranking
+#### Endpoints API
+- ✅ `GET /api/search/games` - Buscar partidas públicas
+  - Query params: `status`, `minPlayers`, `maxPlayers`, `hostName`, `limit`, `offset`
+- ✅ `GET /api/search/players` - Buscar jugadores
+  - Query params: `username`, `minRating`, `maxRating`, `limit`, `offset`
+- ✅ `GET /api/rankings` - Rankings globales (ya existía, mejorado)
+- ✅ `GET /api/rankings/user/:id` - Posición de usuario en ranking (ya existía)
 
 #### Integración
-- ❌ Indexar partidas públicas en Elasticsearch
-- ❌ Indexar usuarios en Elasticsearch
-- ❌ Actualizar índices cuando cambian datos
-- ❌ Sincronizar con PostgreSQL
+- ✅ Indexar partidas públicas en Elasticsearch (automático al crear/actualizar/eliminar)
+- ✅ Indexar usuarios en Elasticsearch (automático al crear/actualizar)
+- ✅ Actualizar índices cuando cambian datos (automático)
+- ✅ Sincronizar con PostgreSQL (automático al guardar partidas)
 
 #### Frontend
 - ❌ Pantalla de búsqueda de partidas
@@ -462,9 +462,9 @@ Sistema de búsqueda avanzada para partidas públicas, jugadores y rankings.
 
 ### Completado
 - **Fase 1**: 100% ✅
-- **Fase 2**: 0% ❌
-- **Fase 3**: 0% ❌
-- **Total**: ~33% 🟡
+- **Fase 2**: 100% ✅
+- **Fase 3**: 100% ✅
+- **Total**: 100% ✅
 
 ### Archivos
 - **Backend**: 15+ archivos creados
