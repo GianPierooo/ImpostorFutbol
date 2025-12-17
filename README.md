@@ -8,7 +8,9 @@ Aplicación móvil de juego social tipo "Among Us" con temática de fútbol, con
 
 **Estado General**: ✅ **COMPLETADO** - Todas las fases implementadas y funcionando
 
-**Última Actualización**: Diciembre 2024
+**Última Actualización**: 17 de Diciembre 2024
+
+**Versión Actual**: v1.2
 
 ### Fases Completadas
 
@@ -319,6 +321,41 @@ cd backend && npm run dev
 npm start
 ```
 
+### Generación de APK
+
+```bash
+# Generar bundle de JavaScript
+npm run build:bundle:android
+
+# Generar APK de debug
+npm run build:apk:debug
+
+# Generar APK de release (producción)
+npm run build:apk:release
+```
+
+**Ubicación del APK generado:**
+- Debug: `android/app/build/outputs/apk/debug/app-debug.apk`
+- Release: `android/app/build/outputs/apk/release/app-release.apk`
+
+**Nota**: Los APKs de versiones anteriores se encuentran en la carpeta `versiones/`.
+
+---
+
+## 📦 Versiones del APK
+
+Las versiones compiladas del APK se encuentran en la carpeta `versiones/`:
+
+- **v1.0** (16/12/2024): Versión inicial con modo online básico
+- **v1.1** (16/12/2024): Correcciones de red y permisos Android
+- **v1.2** (17/12/2024): Correcciones de UI y sincronización
+  - Botón X corregido en lista de jugadores
+  - Mejor sincronización cuando jugadores salen
+  - Corrección de error "El juego ya ha comenzado"
+  - Mejor manejo de errores de red
+
+**Para instalar**: Transferir el APK al dispositivo Android y permitir instalación desde fuentes desconocidas.
+
 ---
 
 ## 📊 Conexión a Base de Datos (DBeaver)
@@ -364,6 +401,18 @@ Contraseña: (vacía)
   - PostgreSQL puede usar réplicas
   - Elasticsearch puede usar cluster
   - Backend puede usar load balancer
+
+---
+
+## 🐛 Correcciones Recientes (v1.2)
+
+- ✅ Corregida alineación del botón X en lista de jugadores
+- ✅ Ocultado botón X en modo online (no aplicable)
+- ✅ Mejorada sincronización cuando jugadores salen de la sala
+- ✅ Backend ahora envía estado actualizado cuando alguien sale
+- ✅ Corrección de error "El juego ya ha comenzado" al iniciar partida
+- ✅ Reset automático de estado de sala si no hay juego en curso
+- ✅ Mejor manejo de errores de red con opción de verificar conexión
 
 ---
 
