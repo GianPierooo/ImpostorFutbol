@@ -111,13 +111,13 @@ app.use((err, req, res, next) => {
 // Configurar WebSocket
 setupSocketHandlers(io);
 
-// Iniciar servidor
-server.listen(PORT, async () => {
+// Iniciar servidor (escuchar en todas las interfaces para conexiones externas)
+server.listen(PORT, '0.0.0.0', async () => {
   console.log(`
 🚀 Servidor iniciado en puerto ${PORT}
-📡 WebSocket disponible en ws://localhost:${PORT}
-🌐 API disponible en http://localhost:${PORT}
-📋 Health check: http://localhost:${PORT}/api/health
+📡 WebSocket disponible en ws://0.0.0.0:${PORT}
+🌐 API disponible en http://0.0.0.0:${PORT}
+📋 Health check: http://0.0.0.0:${PORT}/api/health
   `);
   
   // Probar conexión a PostgreSQL (no crítico si falla)
