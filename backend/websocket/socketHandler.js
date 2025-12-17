@@ -1,0 +1,230 @@
+/**
+ * Handler de WebSocket con Socket.io
+ */
+
+const constants = require('../config/constants');
+const roomService = require('../services/roomService');
+const gameService = require('../services/gameService');
+const redisService = require('../services/redisService');
+
+/**
+ * Configura los handlers de Socket.io
+ * @param {object} io - Instancia de Socket.io
+ */
+function setupSocketHandlers(io) {
+  io.on('connection', (socket) => {
+    console.log(`✅ Cliente conectado: ${socket.id}`);
+
+    let currentRoomCode = null;
+    let currentPlayerId = null;
+
+    /**
+     * Unirse a una sala
+     */
+    socket.on(constants.SOCKET_EVENTS.JOIN_ROOM, async (data) => {
+      try {
+        const { code, playerId } = data;
+
+        if (!code || !playerId) {
+          socket.emit(constants.SOCKET_EVENTS.ERROR, {
+            message: 'code y playerId son requeridos',
+          });
+          return;
+        }
+
+        // Unirse a la sala de Socket.io
+        socket.join(`room:${code}`);
+        currentRoomCode = code;
+        currentPlayerId = playerId;
+
+        // Obtener estado actual de la sala
+        const roomState = await roomService.getRoomState(code);
+
+        // Notificar al cliente
+        socket.emit(constants.SOCKET_EVENTS.ROOM_UPDATED, {
+          roomState,
+        });
+
+        // Notificar a otros jugadores
+        socket.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PLAYER_JOINED, {
+          playerId,
+          roomState,
+        });
+
+        console.log(`👤 ${playerId} se unió a la sala ${code}`);
+      } catch (error) {
+        socket.emit(constants.SOCKET_EVENTS.ERROR, {
+          message: error.message,
+        });
+      }
+    });
+
+    /**
+     * Salir de una sala
+     */
+    socket.on(constants.SOCKET_EVENTS.LEAVE_ROOM, async (data) => {
+      try {
+        const { code, playerId } = data;
+
+        if (code && playerId) {
+          await roomService.leaveRoom(code, playerId);
+          
+          socket.leave(`room:${code}`);
+          socket.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PLAYER_LEFT, {
+            playerId,
+          });
+
+          console.log(`👋 ${playerId} salió de la sala ${code}`);
+        }
+
+        currentRoomCode = null;
+        currentPlayerId = null;
+      } catch (error) {
+        socket.emit(constants.SOCKET_EVENTS.ERROR, {
+          message: error.message,
+        });
+      }
+    });
+
+    /**
+     * Iniciar juego
+     */
+    socket.on(constants.SOCKET_EVENTS.START_GAME, async (data) => {
+      try {
+        const { code, hostId } = data;
+
+        if (!code || !hostId) {
+          socket.emit(constants.SOCKET_EVENTS.ERROR, {
+            message: 'code y hostId son requeridos',
+          });
+          return;
+        }
+
+        const result = await gameService.startGame(code, hostId);
+
+        // Notificar a todos en la sala
+        io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.GAME_STATE_CHANGED, {
+          gameState: result.gameState,
+          roleAssignment: result.roleAssignment,
+        });
+
+        console.log(`🎮 Juego iniciado en sala ${code}`);
+      } catch (error) {
+        socket.emit(constants.SOCKET_EVENTS.ERROR, {
+          message: error.message,
+        });
+      }
+    });
+
+    /**
+     * Agregar pista
+     */
+    socket.on(constants.SOCKET_EVENTS.ADD_PISTA, async (data) => {
+      try {
+        const { code, playerId, text } = data;
+
+        if (!code || !playerId || !text) {
+          socket.emit(constants.SOCKET_EVENTS.ERROR, {
+            message: 'code, playerId y text son requeridos',
+          });
+          return;
+        }
+
+        const result = await gameService.addPista(code, playerId, text);
+
+        // Notificar a todos en la sala
+        io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PISTA_ADDED, {
+          pista: result.pista,
+          gameState: result.gameState,
+        });
+
+        console.log(`💬 Pista agregada en sala ${code} por ${playerId}`);
+      } catch (error) {
+        socket.emit(constants.SOCKET_EVENTS.ERROR, {
+          message: error.message,
+        });
+      }
+    });
+
+    /**
+     * Agregar voto
+     */
+    socket.on(constants.SOCKET_EVENTS.ADD_VOTE, async (data) => {
+      try {
+        const { code, voterId, targetId } = data;
+
+        if (!code || !voterId || !targetId) {
+          socket.emit(constants.SOCKET_EVENTS.ERROR, {
+            message: 'code, voterId y targetId son requeridos',
+          });
+          return;
+        }
+
+        const result = await gameService.addVote(code, voterId, targetId);
+
+        // Notificar a todos en la sala
+        io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.VOTE_ADDED, {
+          vote: result.vote,
+        });
+
+        console.log(`🗳️ Voto agregado en sala ${code}: ${voterId} vota por ${targetId}`);
+      } catch (error) {
+        socket.emit(constants.SOCKET_EVENTS.ERROR, {
+          message: error.message,
+        });
+      }
+    });
+
+    /**
+     * Cambiar fase
+     */
+    socket.on(constants.SOCKET_EVENTS.CHANGE_PHASE, async (data) => {
+      try {
+        const { code, playerId, phase } = data;
+
+        if (!code || !playerId || !phase) {
+          socket.emit(constants.SOCKET_EVENTS.ERROR, {
+            message: 'code, playerId y phase son requeridos',
+          });
+          return;
+        }
+
+        const result = await gameService.changePhase(code, phase, playerId);
+
+        // Notificar a todos en la sala
+        io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PHASE_CHANGED, {
+          phase: result.phase,
+          gameState: result.gameState,
+        });
+
+        console.log(`🔄 Fase cambiada a ${phase} en sala ${code}`);
+      } catch (error) {
+        socket.emit(constants.SOCKET_EVENTS.ERROR, {
+          message: error.message,
+        });
+      }
+    });
+
+    /**
+     * Desconexión
+     */
+    socket.on('disconnect', async () => {
+      console.log(`❌ Cliente desconectado: ${socket.id}`);
+
+      // Si estaba en una sala, notificar
+      if (currentRoomCode && currentPlayerId) {
+        try {
+          await roomService.leaveRoom(currentRoomCode, currentPlayerId);
+          socket.to(`room:${currentRoomCode}`).emit(constants.SOCKET_EVENTS.PLAYER_LEFT, {
+            playerId: currentPlayerId,
+          });
+        } catch (error) {
+          console.error('Error al manejar desconexión:', error);
+        }
+      }
+    });
+  });
+}
+
+module.exports = setupSocketHandlers;
+
