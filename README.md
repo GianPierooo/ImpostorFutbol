@@ -1,236 +1,381 @@
-# ⚽ Impostor Fútbol
+# 🎮 Impostor Fútbol - Modo Online
 
-Aplicación móvil tipo party game basada en la dinámica del "impostor futbolero" popularizada por creadores como Davoo Xeneize y La Cobra.
+Aplicación móvil de juego social tipo "Among Us" con temática de fútbol, con modo local y modo online multijugador.
 
-## 📊 Estado Actual del Proyecto
+---
 
-### ✅ Completado
+## 📊 Estado del Proyecto
 
-#### Fase 1: Setup Base
-- ✅ Estructura de carpetas modular
-- ✅ Tema global minimalista (colores, tipografía, espaciado)
-- ✅ Componentes base reutilizables (Button, Typography, Layout)
-- ✅ Navegación completa entre pantallas (React Navigation)
-- ✅ 6 pantallas con layout básico
+**Estado General**: ✅ **COMPLETADO** - Todas las fases implementadas y funcionando
 
-#### Fase 2: Lobby y Gestión de Jugadores
-- ✅ Input para añadir jugadores con validación
-- ✅ Lista de jugadores con avatares (iniciales)
-- ✅ Configuración de partida (rondas: 1-3, tiempo opcional)
-- ✅ Validaciones (mínimo 3, máximo 10 jugadores)
-- ✅ Hook personalizado `useLobby` para gestión de estado
+**Última Actualización**: Diciembre 2024
 
-#### Fase 3: Asignación de Roles
-- ✅ Mazo de palabras secretas (90+ palabras: jugadores y equipos)
-- ✅ Lógica de asignación de roles aleatorios
-- ✅ Context de estado del juego (GameContext)
-- ✅ Pantalla de asignación individual (uno por uno)
-- ✅ Visualización diferenciada para impostor vs normal
+### Fases Completadas
 
-### 🎯 Pendiente
+- ✅ **Fase 1**: Redis + Backend Básico (Partidas en tiempo real)
+- ✅ **Fase 2**: PostgreSQL (Historial y usuarios)
+- ✅ **Fase 3**: Elasticsearch (Búsqueda avanzada)
 
-#### Fase 4: Ronda de Pistas
-- [ ] Control de turnos
-- [ ] Interfaz de ronda
-- [ ] Historial de pistas
+---
 
-#### Fase 5: Sistema de Votación
-- [ ] Lógica de votación
-- [ ] Pantalla de votación
-- [ ] Conteo de votos
+## 🛠️ Tecnologías Utilizadas
 
-#### Fase 6: Resultados
-- [ ] Pantalla de resultados
-- [ ] Mostrar ganador
-- [ ] Opción de nueva partida
+### Frontend
+- **React Native** - Framework móvil
+- **TypeScript** - Tipado estático
+- **React Navigation** - Navegación
+- **Socket.io Client** - WebSocket para tiempo real
+- **Axios** - Cliente HTTP
 
-## 🛠️ Stack Técnico
+### Backend
+- **Node.js** - Runtime JavaScript
+- **Express** - Framework web
+- **Socket.io** - WebSocket server
+- **Redis** - Base de datos en memoria (partidas activas)
+- **PostgreSQL** - Base de datos relacional (historial, usuarios)
+- **Elasticsearch** - Motor de búsqueda (búsquedas avanzadas)
 
-- **React Native**: 0.74.5
-- **React**: 18.2.0
-- **TypeScript**: 5.3.3
-- **React Navigation**: 6.1.9 (native-stack: 6.9.17)
-- **React Native Gesture Handler**: ~2.18.0
-- **React Native Safe Area Context**: ~4.10.5
-- **React Native Screens**: ~3.31.1
+### Infraestructura
+- **Oracle Cloud VM** - Servidor (163.192.223.30)
+- **PM2** - Gestor de procesos Node.js
+- **UFW** - Firewall
 
-### Configuración Android
+---
 
-- **compileSdkVersion**: 34
-- **targetSdkVersion**: 34
-- **minSdkVersion**: 23
-- **buildToolsVersion**: 34.0.0
-- **Android Gradle Plugin**: 8.1.1
-- **Gradle**: 8.3
-- **Kotlin**: 1.9.0
-- **Java JDK**: 17
+## 🏗️ Arquitectura del Sistema
 
-## 🚀 Instalación en Nueva Computadora
+### Flujo de Datos
 
-### Prerrequisitos
+```
+Frontend (React Native)
+    ↓ HTTP/WebSocket
+Backend (Node.js + Express)
+    ↓
+    ├─→ Redis (Partidas activas, estado en tiempo real)
+    ├─→ PostgreSQL (Historial, usuarios, estadísticas)
+    └─→ Elasticsearch (Búsqueda de partidas y jugadores)
+```
 
-1. **Node.js** 18+ (recomendado 22+)
-   - Descargar desde: https://nodejs.org/
-   - Verificar: `node --version`
+### Componentes Principales
 
-2. **Java JDK 17**
-   - Descargar desde: https://adoptium.net/
-   - Configurar variable de entorno `JAVA_HOME`
+#### Backend
+- **Redis**: Almacena partidas activas, jugadores, pistas, votos
+- **PostgreSQL**: Almacena historial de partidas, usuarios, ratings
+- **Elasticsearch**: Índices para búsqueda de partidas públicas y jugadores
 
-3. **Android Studio**
-   - Descargar desde: https://developer.android.com/studio
-   - Instalar SDK Platform 34 (Android 14.0)
-   - Instalar Build Tools 34.0.0
-   - Configurar variable de entorno `ANDROID_HOME`
+#### Frontend
+- **GameContext**: Maneja estado del juego local
+- **OnlineGameContext**: Maneja estado del juego online, sincroniza con backend
+- **Hooks**: `useGameMode`, `useOnlineNavigation` para gestión automática
 
-4. **Git**
-   - Descargar desde: https://git-scm.com/
-
-### Pasos de Instalación
-
-1. **Clonar el repositorio**
-   ```bash
-   git clone https://github.com/TU_USUARIO/impostor-futbol.git
-   cd impostor-futbol
-   ```
-
-2. **Instalar dependencias**
-   ```bash
-   npm install
-   ```
-
-3. **Configurar Android**
-   - Verificar que `android/local.properties` tenga la ruta correcta del SDK:
-     ```
-     sdk.dir=C:\\Users\\TU_USUARIO\\AppData\\Local\\Android\\Sdk
-     ```
-   - Ajustar la ruta según tu sistema
-
-4. **Crear/Iniciar Emulador**
-   - Abrir Android Studio
-   - Tools > Device Manager
-   - Crear o iniciar un emulador con API 34
-
-5. **Verificar conexión del emulador**
-   ```bash
-   adb devices
-   ```
-   Debe mostrar el emulador como `device`
-
-6. **Ejecutar la aplicación**
-   ```bash
-   npm run android
-   ```
+---
 
 ## 📁 Estructura del Proyecto
 
 ```
-src/
-├── components/          # Componentes reutilizables
-│   ├── Button/         # Botón con variantes
-│   ├── Typography/     # Sistema de tipografía
-│   ├── Layout/         # Contenedores de pantalla
-│   ├── PlayerInput/    # Input para añadir jugadores
-│   ├── PlayerList/     # Lista de jugadores
-│   └── GameConfig/     # Configuración de partida
-├── screens/            # Pantallas de la aplicación
-│   ├── Home/           # Pantalla inicial ✅
-│   ├── Lobby/          # Gestión de jugadores ✅
-│   ├── RoleAssignment/ # Asignación de roles ✅
-│   ├── Round/          # Ronda de pistas (pendiente)
-│   ├── Voting/         # Votación (pendiente)
-│   └── Results/        # Resultados (pendiente)
-├── navigation/         # React Navigation
-├── theme/             # Tema global (colores, tipografía, espaciado)
-├── game/              # Lógica del juego
-│   ├── GameContext.tsx    # Context API para estado global
-│   ├── gameLogic.ts       # Lógica de asignación de roles
-│   └── secretWords.ts     # Mazo de palabras secretas
-├── hooks/             # Custom hooks
-│   └── useLobby.ts    # Hook para gestión de jugadores
-└── types/             # Tipos TypeScript globales
+ImpostorFutbol/
+├── src/                          # Frontend React Native
+│   ├── screens/                  # Pantallas de la app
+│   │   ├── Home/                 # Pantalla principal
+│   │   ├── OnlineLobby/          # Crear/unirse a partida online
+│   │   ├── OnlineRoom/           # Sala de espera online
+│   │   ├── RoleAssignment/      # Asignación de roles
+│   │   ├── Round/                # Ronda de pistas
+│   │   ├── Discussion/           # Discusión
+│   │   ├── Voting/               # Votación
+│   │   └── Results/              # Resultados
+│   ├── contexts/                 # Contextos React
+│   │   ├── GameContext.tsx       # Estado juego local
+│   │   └── OnlineGameContext.tsx # Estado juego online
+│   ├── services/                 # Servicios API
+│   │   ├── api.ts               # Cliente REST
+│   │   └── socket.ts            # Cliente WebSocket
+│   ├── hooks/                    # Custom hooks
+│   │   ├── useGameMode.ts       # Detector modo local/online
+│   │   └── useOnlineNavigation.ts # Navegación automática
+│   └── config/
+│       └── api.ts               # Configuración API (IP VM)
+│
+├── backend/                      # Backend Node.js
+│   ├── config/                   # Configuraciones
+│   │   ├── redis.js             # Config Redis
+│   │   ├── postgres.js          # Config PostgreSQL
+│   │   ├── elasticsearch.js     # Config Elasticsearch
+│   │   └── constants.js         # Constantes
+│   ├── routes/                   # Rutas API
+│   │   ├── health.js            # Health checks
+│   │   ├── rooms.js             # API salas
+│   │   ├── games.js             # API juegos
+│   │   ├── users.js             # API usuarios
+│   │   ├── history.js            # API historial
+│   │   ├── rankings.js          # API rankings
+│   │   └── search.js             # API búsqueda
+│   ├── services/                 # Lógica de negocio
+│   │   ├── redisService.js      # Operaciones Redis
+│   │   ├── postgresService.js   # Operaciones PostgreSQL
+│   │   ├── elasticsearchService.js # Operaciones Elasticsearch
+│   │   ├── roomService.js       # Lógica salas
+│   │   ├── gameService.js       # Lógica juegos
+│   │   ├── userService.js       # Lógica usuarios
+│   │   ├── historyService.js    # Lógica historial
+│   │   ├── ratingService.js     # Lógica ratings
+│   │   └── searchService.js     # Lógica búsqueda
+│   ├── database/                 # Scripts base de datos
+│   │   ├── migrations/          # Migraciones SQL
+│   │   └── elasticsearch/       # Scripts índices ES
+│   └── server.js                 # Servidor principal
+│
+└── README.md                     # Este archivo
 ```
-
-## 🎨 Diseño
-
-- **Estilo**: Minimalista, limpio, moderno
-- **Colores**: Blanco/negro + acento cyan (#00d4ff)
-- **Tipografía**: Clara y grande para máxima legibilidad
-- **Espaciado**: Generoso para claridad visual
-- **UX**: Flujo intuitivo, botones grandes, textos cortos
-
-## 📱 Flujo de Navegación
-
-```
-Home → Lobby → RoleAssignment → Round → Voting → Results → Home
-```
-
-## 🔧 Comandos Útiles
-
-```bash
-# Ejecutar en Android
-npm run android
-
-# Iniciar Metro Bundler
-npm start
-
-# Limpiar caché de Android
-cd android
-.\gradlew.bat clean
-cd ..
-
-# Limpiar todo y reinstalar
-Remove-Item -Recurse -Force node_modules
-Remove-Item -Force package-lock.json
-npm install
-```
-
-## ⚠️ Problemas Conocidos y Soluciones
-
-### Error: "BaseReactPackage not found"
-**Solución**: Actualizado a React Native 0.74.5 con versiones compatibles de librerías.
-
-### Error: "minSdkVersion 21 cannot be smaller than version 23"
-**Solución**: Actualizado minSdkVersion a 23 en `android/build.gradle`.
-
-### Error: CMake build failed para x86_64
-**Solución**: Limitadas arquitecturas a `armeabi-v7a` y `arm64-v8a` en `android/app/build.gradle`.
-
-### Error: "flipper-integration not found"
-**Solución**: Removida dependencia de Flipper (no disponible en RN 0.74).
-
-## 📝 Notas de Desarrollo
-
-- Desarrollo incremental con versiones jugables
-- Prioridad en UX intuitiva y diseño minimalista
-- Código limpio y bien documentado
-- TypeScript para type safety
-
-## 🎯 Próximos Pasos
-
-1. **Implementar Fase 4**: Ronda de Pistas
-   - Control de turnos
-   - Interfaz de ronda
-   - Historial de pistas
-
-2. **Implementar Fase 5**: Sistema de Votación
-   - Lógica de votación
-   - Pantalla de votación
-
-3. **Implementar Fase 6**: Resultados
-   - Pantalla de resultados
-   - Opción de nueva partida
-
-## 📄 Licencia
-
-Este proyecto es de código abierto y está disponible públicamente.
-
-## 👤 Autor
-
-Desarrollado como proyecto personal de aprendizaje.
 
 ---
 
-**Última actualización**: Diciembre 2024
-**Versión**: 0.1.0
+## 🔌 Endpoints API
 
+### Health Checks
+- `GET /api/health` - Health check básico
+- `GET /api/health/full` - Health check completo (Redis, PostgreSQL, Elasticsearch)
+
+### Salas
+- `POST /api/rooms` - Crear sala
+- `GET /api/rooms/:code` - Obtener sala
+- `POST /api/rooms/:code/join` - Unirse a sala
+- `POST /api/rooms/:code/leave` - Salir de sala
+
+### Juegos
+- `POST /api/games/:code/start` - Iniciar juego
+- `GET /api/games/:code/state` - Estado del juego
+- `POST /api/games/:code/pista` - Agregar pista
+- `POST /api/games/:code/vote` - Agregar voto
+- `POST /api/games/:code/phase` - Cambiar fase
+- `POST /api/games/:code/finish` - Finalizar y guardar partida
+- `GET /api/games/:code/role/:playerId` - Obtener rol
+- `GET /api/games/:code/voting-results` - Resultados votación
+
+### Usuarios
+- `POST /api/users` - Crear/obtener usuario
+- `GET /api/users/:id` - Obtener usuario
+- `GET /api/users/:id/stats` - Estadísticas usuario
+- `PUT /api/users/:id` - Actualizar perfil
+- `GET /api/users/:id/games` - Partidas del usuario
+
+### Historial
+- `GET /api/games/history` - Historial de partidas
+- `GET /api/games/history/:id` - Detalle de partida
+
+### Rankings
+- `GET /api/rankings` - Rankings globales
+- `GET /api/rankings/user/:id` - Posición de usuario
+
+### Búsqueda
+- `GET /api/search/games` - Buscar partidas públicas
+- `GET /api/search/players` - Buscar jugadores
+
+---
+
+## 🗄️ Base de Datos
+
+### PostgreSQL - Tablas
+
+#### `users`
+- Información de usuarios, ratings, estadísticas
+
+#### `game_history`
+- Partidas completadas con resultados
+
+#### `participations`
+- Participaciones de usuarios en partidas
+
+#### `pistas_history`
+- Historial de todas las pistas dadas
+
+#### `votes_history`
+- Historial de todos los votos
+
+### Redis - Estructuras
+
+- `room:{code}` - Información de sala
+- `players:{code}` - Set de jugadores
+- `player:{code}:{id}` - Info de jugador
+- `game:{code}` - Estado del juego
+- `roles:{code}` - Roles asignados
+- `pistas:{code}` - Lista de pistas
+- `votes:{code}` - Hash de votos
+
+### Elasticsearch - Índices
+
+- `games` - Partidas públicas (búsqueda)
+- `users` - Usuarios (búsqueda)
+- `rankings` - Rankings globales
+
+---
+
+## 🚀 Configuración y Despliegue
+
+### VM Oracle Cloud
+- **IP**: `163.192.223.30`
+- **Puerto Backend**: `3000`
+- **Puerto PostgreSQL**: `5432` (solo local)
+- **Puerto Elasticsearch**: `9200` (solo local)
+
+### Variables de Entorno (backend/.env)
+
+```env
+# Servidor
+NODE_ENV=development
+PORT=3000
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# PostgreSQL
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=impostor_futbol
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=
+
+# Elasticsearch
+ELASTICSEARCH_NODE=http://localhost:9200
+ELASTICSEARCH_USERNAME=
+ELASTICSEARCH_PASSWORD=
+
+# CORS
+CORS_ORIGIN=*
+
+# Room Configuration
+ROOM_CODE_LENGTH=6
+ROOM_EXPIRY_SECONDS=3600
+MAX_PLAYERS_PER_ROOM=10
+MIN_PLAYERS_TO_START=3
+```
+
+### Frontend (src/config/api.ts)
+
+```typescript
+const VM_IP = '163.192.223.30';
+
+export const API_CONFIG = {
+  BASE_URL: `http://${VM_IP}:3000/api`,
+  SOCKET_URL: `http://${VM_IP}:3000`,
+};
+```
+
+---
+
+## 📱 Funcionalidades
+
+### Modo Local
+- ✅ Crear partida local
+- ✅ Asignar roles
+- ✅ Jugar con amigos en el mismo dispositivo
+
+### Modo Online
+- ✅ Crear sala online
+- ✅ Unirse a sala con código
+- ✅ Partidas multijugador en tiempo real
+- ✅ Sincronización de pistas y votos
+- ✅ Guardado automático de historial
+- ✅ Sistema de usuarios y ratings
+- ✅ Rankings globales
+- ✅ Búsqueda de partidas y jugadores
+
+---
+
+## 🔧 Comandos Útiles
+
+### En la VM
+
+```bash
+# Verificar servicios
+curl http://163.192.223.30:3000/api/health/full
+
+# Ver estado PM2
+pm2 status
+pm2 logs impostor-backend
+
+# Reiniciar backend
+pm2 restart impostor-backend --update-env
+
+# Ver tablas PostgreSQL
+sudo -u postgres psql -d impostor_futbol -c "\dt"
+
+# Ver índices Elasticsearch
+curl http://localhost:9200/_cat/indices?v
+```
+
+### Desarrollo Local
+
+```bash
+# Instalar dependencias
+npm install
+
+# Iniciar backend (desarrollo)
+cd backend && npm run dev
+
+# Iniciar frontend
+npm start
+```
+
+---
+
+## 📊 Conexión a Base de Datos (DBeaver)
+
+### Configuración PostgreSQL
+
+```
+Host: 163.192.223.30
+Puerto: 5432
+Base de datos: impostor_futbol
+Usuario: postgres
+Contraseña: (vacía)
+```
+
+**Nota**: Para conectar desde DBeaver, PostgreSQL debe estar configurado para aceptar conexiones remotas (ver configuración en VM).
+
+---
+
+## ✅ Checklist de Verificación
+
+- [x] Redis instalado y funcionando
+- [x] PostgreSQL instalado y funcionando
+- [x] Elasticsearch instalado y funcionando
+- [x] Backend corriendo en PM2
+- [x] Firewall configurado (puertos 3000, 5432, 9200)
+- [x] Frontend configurado con IP de VM
+- [x] Health checks funcionando
+- [x] Base de datos conectada desde DBeaver
+
+---
+
+## 📝 Notas Importantes
+
+- **Seguridad**: Las configuraciones actuales son para desarrollo. Para producción, implementar:
+  - Autenticación de usuarios
+  - HTTPS/SSL
+  - Restricciones de IP en PostgreSQL
+  - Contraseñas seguras
+  - Rate limiting
+
+- **Escalabilidad**: El sistema está diseñado para escalar horizontalmente:
+  - Redis puede usar cluster
+  - PostgreSQL puede usar réplicas
+  - Elasticsearch puede usar cluster
+  - Backend puede usar load balancer
+
+---
+
+## 🎯 Próximos Pasos (Opcional)
+
+- [ ] Sistema de autenticación de usuarios
+- [ ] Pantallas de perfil y estadísticas en frontend
+- [ ] Notificaciones push
+- [ ] Chat en tiempo real
+- [ ] Modo torneo
+- [ ] Logros y badges
+
+---
+
+**Desarrollado con ❤️ para jugar con amigos**
