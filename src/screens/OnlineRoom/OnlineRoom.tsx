@@ -1,80 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { ScreenContainer, Typography, Button, PlayerList } from '../../components';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { NavigationParamList, Player } from '../../types';
-import { roomsAPI, gamesAPI, socketService } from '../../services';
-import { GameConfig } from '../../types';
+import { NavigationParamList } from '../../types';
+import { useOnlineGame } from '../../contexts';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'OnlineRoom'>;
 
 export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const { code, playerId, playerName } = route.params;
-  const [roomState, setRoomState] = useState<any>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isHost, setIsHost] = useState(false);
-  const [config, setConfig] = useState<GameConfig>({ rounds: 3 });
+  const {
+    players,
+    loading,
+    isHost,
+    roomState,
+    startGame,
+    leaveRoom,
+    joinRoom,
+  } = useOnlineGame();
 
-  // Cargar estado inicial
+  // Unirse a la sala cuando se monta
   useEffect(() => {
-    loadRoomState();
-    connectSocket();
-    
-    return () => {
-      socketService.leaveRoom(code, playerId);
+    const join = async () => {
+      try {
+        await joinRoom(code, playerId, playerName);
+      } catch (error: any) {
+        Alert.alert('Error', 'No se pudo unir a la sala');
+        navigation.goBack();
+      }
     };
-  }, []);
+    join();
 
-  const loadRoomState = async () => {
-    try {
-      const result = await roomsAPI.get(code);
-      if (result.success && result.data) {
-        setRoomState(result.data);
-        setPlayers(result.data.players || []);
-        setIsHost(result.data.room?.hostId === playerId);
-        if (result.data.room?.config) {
-          setConfig(result.data.room.config);
-        }
-      }
-    } catch (error: any) {
-      Alert.alert('Error', 'No se pudo cargar la sala');
-    }
-  };
+    return () => {
+      leaveRoom();
+    };
+  }, [code, playerId, playerName]);
 
-  const connectSocket = () => {
-    socketService.connect();
-    socketService.joinRoom(code, playerId);
-
-    // Escuchar eventos
-    socketService.on('room_updated', (data: any) => {
-      if (data.roomState) {
-        setRoomState(data.roomState);
-        setPlayers(data.roomState.players || []);
-      }
-    });
-
-    socketService.on('player_joined', (data: any) => {
-      loadRoomState();
-    });
-
-    socketService.on('player_left', (data: any) => {
-      loadRoomState();
-    });
-
-    socketService.on('game_state_changed', (data: any) => {
-      // El juego comenzó, navegar a RoleAssignment
+  // Escuchar cuando el juego inicia
+  useEffect(() => {
+    if (roomState?.room?.status === 'roleAssignment') {
       navigation.replace('RoleAssignment', {
-        players: data.roleAssignment?.players || [],
-        config: config,
+        players: players,
+        config: roomState.room.config || { rounds: 3 },
       });
-    });
-
-    socketService.on('error', (data: any) => {
-      Alert.alert('Error', data.message || 'Ocurrió un error');
-    });
-  };
+    }
+  }, [roomState?.room?.status]);
 
   const handleStartGame = async () => {
     if (!isHost) {
@@ -87,19 +58,10 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
       return;
     }
 
-    setLoading(true);
     try {
-      const result = await gamesAPI.start(code, playerId);
-      if (result.success) {
-        // El WebSocket notificará el cambio y navegará automáticamente
-        socketService.startGame(code, playerId);
-      } else {
-        Alert.alert('Error', result.error || 'No se pudo iniciar el juego');
-      }
+      await startGame();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Error al iniciar el juego');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -114,8 +76,7 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await roomsAPI.leave(code, playerId);
-              socketService.leaveRoom(code, playerId);
+              await leaveRoom();
               navigation.goBack();
             } catch (error: any) {
               Alert.alert('Error', 'Error al salir de la sala');
