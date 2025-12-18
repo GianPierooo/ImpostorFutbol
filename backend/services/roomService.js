@@ -45,6 +45,9 @@ class RoomService {
       throw new Error('No se pudo generar un código único. Intenta de nuevo.');
     }
 
+    // Limpiar cualquier estado previo de juego si existe (por si se reutiliza un código)
+    await redisService.deleteRoom(code);
+    
     // Crear sala
     const roomData = {
       code,
@@ -195,6 +198,17 @@ class RoomService {
 
     const players = await redisService.getAllPlayersInfo(code);
     const gameState = await redisService.getGameState(code);
+
+    // Si la sala está en lobby pero hay un estado de juego previo, limpiarlo
+    if (room.status === constants.GAME_PHASES.LOBBY && gameState) {
+      console.log(`⚠️ Limpiando estado de juego residual para sala ${code} en lobby`);
+      await redisService.deleteGameState(code);
+      return {
+        room,
+        players,
+        gameState: null,
+      };
+    }
 
     // Si no hay juego en curso y el estado no es lobby, resetear a lobby
     if (!gameState && room.status !== constants.GAME_PHASES.LOBBY) {

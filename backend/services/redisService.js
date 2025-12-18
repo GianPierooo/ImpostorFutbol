@@ -62,6 +62,7 @@ class RedisService {
     await redisClient.del(`pistas:${code}`);
     await redisClient.del(`votes:${code}`);
     await redisClient.del(`roles:${code}`);
+    await redisClient.del(`roles_seen:${code}`);
     
     // Eliminar información de jugadores individuales
     const players = await this.getPlayers(code);
@@ -205,6 +206,18 @@ class RedisService {
   }
 
   /**
+   * Elimina el estado del juego (sin eliminar la sala)
+   * @param {string} code - Código de la sala
+   */
+  async deleteGameState(code) {
+    await redisClient.del(`game:${code}`);
+    await redisClient.del(`pistas:${code}`);
+    await redisClient.del(`votes:${code}`);
+    await redisClient.del(`roles:${code}`);
+    await redisClient.del(`roles_seen:${code}`);
+  }
+
+  /**
    * Guarda los roles asignados
    * @param {string} code - Código de la sala
    * @param {object} roles - Objeto { playerId: role }
@@ -288,6 +301,42 @@ class RedisService {
    */
   async clearVotes(code) {
     await redisClient.del(`votes:${code}`);
+  }
+
+  /**
+   * Marca que un jugador ha visto su rol
+   * @param {string} code - Código de la sala
+   * @param {string} playerId - ID del jugador
+   */
+  async markRoleSeen(code, playerId) {
+    await redisClient.sAdd(`roles_seen:${code}`, playerId);
+  }
+
+  /**
+   * Verifica si un jugador ha visto su rol
+   * @param {string} code - Código de la sala
+   * @param {string} playerId - ID del jugador
+   * @returns {boolean}
+   */
+  async hasSeenRole(code, playerId) {
+    return await redisClient.sIsMember(`roles_seen:${code}`, playerId);
+  }
+
+  /**
+   * Obtiene todos los jugadores que han visto su rol
+   * @param {string} code - Código de la sala
+   * @returns {string[]} Array de playerIds
+   */
+  async getPlayersWhoSeenRole(code) {
+    return await redisClient.sMembers(`roles_seen:${code}`);
+  }
+
+  /**
+   * Limpia el tracking de roles vistos
+   * @param {string} code - Código de la sala
+   */
+  async clearRolesSeen(code) {
+    await redisClient.del(`roles_seen:${code}`);
   }
 
   /**

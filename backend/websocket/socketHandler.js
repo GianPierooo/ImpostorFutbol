@@ -113,13 +113,21 @@ function setupSocketHandlers(io) {
 
         const result = await gameService.startGame(code, hostId);
 
-        // Notificar a todos en la sala
+        // Obtener lista de sockets en la sala para debugging
+        const socketsInRoom = await io.in(`room:${code}`).fetchSockets();
+        console.log(`🎮 Juego iniciado en sala ${code} - ${socketsInRoom.length} jugadores conectados`);
+
+        // Notificar a todos en la sala (incluyendo al que inició)
         io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.GAME_STATE_CHANGED, {
           gameState: result.gameState,
           roleAssignment: result.roleAssignment,
         });
 
-        console.log(`🎮 Juego iniciado en sala ${code}`);
+        // También notificar cambio de fase
+        io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PHASE_CHANGED, {
+          phase: result.gameState.phase,
+          gameState: result.gameState,
+        });
       } catch (error) {
         socket.emit(constants.SOCKET_EVENTS.ERROR, {
           message: error.message,
@@ -176,7 +184,17 @@ function setupSocketHandlers(io) {
         // Notificar a todos en la sala
         io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.VOTE_ADDED, {
           vote: result.vote,
+          gameState: result.gameState,
+          allVotesComplete: result.allVotesComplete,
         });
+
+        // Si todos votaron, notificar cambio de fase
+        if (result.allVotesComplete) {
+          io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PHASE_CHANGED, {
+            phase: result.gameState.phase,
+            gameState: result.gameState,
+          });
+        }
 
         console.log(`🗳️ Voto agregado en sala ${code}: ${voterId} vota por ${targetId}`);
       } catch (error) {
