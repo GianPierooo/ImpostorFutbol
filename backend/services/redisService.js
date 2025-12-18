@@ -205,6 +205,17 @@ class RedisService {
   }
 
   /**
+   * Elimina el estado del juego (sin eliminar la sala)
+   * @param {string} code - Código de la sala
+   */
+  async deleteGameState(code) {
+    await redisClient.del(`game:${code}`);
+    await redisClient.del(`pistas:${code}`);
+    await redisClient.del(`votes:${code}`);
+    await redisClient.del(`roles:${code}`);
+  }
+
+  /**
    * Guarda los roles asignados
    * @param {string} code - Código de la sala
    * @param {object} roles - Objeto { playerId: role }

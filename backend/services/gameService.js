@@ -37,6 +37,14 @@ class GameService {
       throw new Error('El juego ya ha comenzado');
     }
 
+    // Verificar que no hay un estado de juego previo (limpiar si existe)
+    const existingGameState = await redisService.getGameState(code);
+    if (existingGameState) {
+      // Si hay un estado de juego pero la sala está en lobby, limpiarlo
+      console.log(`⚠️ Limpiando estado de juego previo para sala ${code}`);
+      await redisService.deleteGameState(code);
+    }
+
     // Convertir a formato Player para assignRoles
     const playersForRoles = players.map(p => ({
       id: p.id,

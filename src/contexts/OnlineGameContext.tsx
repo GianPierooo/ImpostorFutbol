@@ -146,7 +146,13 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
         setGameState(data.gameState);
       }
       if (data.phase) {
-        setRoomState((prev) => prev ? { ...prev, status: data.phase } : null);
+        setRoomState((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            room: prev.room ? { ...prev.room, status: data.phase } : { status: data.phase },
+          };
+        });
       }
     };
 
