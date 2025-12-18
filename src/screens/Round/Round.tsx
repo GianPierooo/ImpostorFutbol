@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { Text, Button, TextInput, Card, Chip, ProgressBar } from 'react-native-paper';
 import { ScreenContainer, AnimatedEmoji } from '../../components';
 import { useGame } from '../../game';
