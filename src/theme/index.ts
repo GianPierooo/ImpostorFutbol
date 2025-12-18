@@ -9,6 +9,7 @@ export { spacing } from './spacing';
 export { shadows } from './shadows';
 export { getRoundColorScheme } from './roundColors';
 export type { RoundColorScheme } from './roundColors';
+export { paperTheme } from './paperTheme';
 
 import { colors } from './colors';
 import { typography } from './typography';

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { ScreenContainer, Typography, Button } from '../../components';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated';
+import { Card, Avatar, Text, Button } from 'react-native-paper';
+import { ScreenContainer } from '../../components';
 import { useGame } from '../../game';
 import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
@@ -36,42 +38,52 @@ const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
 
   const initials = getInitials(player.name);
 
+  // Usar un delay fijo en lugar de Math.random() para evitar problemas con worklets
+  const delay = (player.name.charCodeAt(0) % 200);
+  
   return (
-    <TouchableOpacity
-      style={[
-        styles.playerCard,
-        isSelected && styles.playerCardSelected,
-        !canVote && styles.playerCardDisabled,
-      ]}
-      onPress={() => canVote && onVote(player.id)}
-      disabled={!canVote}
-      activeOpacity={0.7}
+    <Animated.View
+      entering={FadeInDown.delay(delay).springify()}
     >
-      <View style={styles.playerInfo}>
-        <View style={[styles.avatar, isSelected && styles.avatarSelected]}>
-          <Typography variant="body" color={theme.colors.textLight} style={styles.avatarText}>
-            {initials}
-          </Typography>
-        </View>
-        <View style={styles.playerDetails}>
-          <Typography variant="bodyLarge" style={styles.playerName}>
-            {player.name}
-          </Typography>
-          {voteCount > 0 && (
-            <Typography variant="caption" color={theme.colors.textSecondary}>
-              {voteCount} {voteCount === 1 ? 'voto' : 'votos'}
-            </Typography>
+      <Card
+        style={[
+          styles.playerCard,
+          isSelected && styles.playerCardSelected,
+          !canVote && styles.playerCardDisabled,
+        ]}
+        onPress={() => canVote && onVote(player.id)}
+        disabled={!canVote}
+        mode={isSelected ? "elevated" : "outlined"}
+      >
+        <Card.Content style={styles.cardContent}>
+          <Avatar.Text
+            size={56}
+            label={initials}
+            style={[
+              styles.avatar,
+              isSelected && styles.avatarSelected,
+            ]}
+          />
+          <View style={styles.playerDetails}>
+            <Text variant="titleMedium" style={styles.playerName}>
+              {player.name}
+            </Text>
+            {voteCount > 0 && (
+              <Text variant="bodySmall" style={styles.voteCount}>
+                {voteCount} {voteCount === 1 ? 'voto' : 'votos'}
+              </Text>
+            )}
+          </View>
+          {isSelected && (
+            <View style={styles.selectedBadge}>
+              <Text variant="titleLarge" style={styles.checkmark}>
+                ✓
+              </Text>
+            </View>
           )}
-        </View>
-      </View>
-      {isSelected && (
-        <View style={styles.selectedBadge}>
-          <Typography variant="caption" color={theme.colors.textLight}>
-            ✓
-          </Typography>
-        </View>
-      )}
-    </TouchableOpacity>
+        </Card.Content>
+      </Card>
+    </Animated.View>
   );
 };
 
@@ -131,18 +143,21 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <ScreenContainer>
         <View style={styles.content}>
-          <Typography variant="h2" style={styles.title}>
+          <Text variant="headlineSmall" style={styles.title}>
             Error
-          </Typography>
-          <Typography variant="body" color={theme.colors.error}>
+          </Text>
+          <Text variant="bodyLarge" style={styles.errorText}>
             No se pudo cargar el estado del juego. Vuelve al inicio.
-          </Typography>
+          </Text>
           <Button
-            title="Volver al Inicio"
-            variant="accent"
+            mode="contained"
             onPress={() => navigation.navigate('Home')}
             style={styles.button}
-          />
+            contentStyle={styles.buttonContent}
+            icon="home"
+          >
+            Volver al Inicio
+          </Button>
         </View>
       </ScreenContainer>
     );
@@ -210,42 +225,51 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Typography variant="h1" style={styles.emoji}>
+        <Animated.View
+          entering={FadeInDown.delay(200).springify()}
+          style={styles.header}
+        >
+          <Animated.View
+            entering={FadeInDown.delay(400).springify()}
+            style={styles.iconContainer}
+          >
+            <Text variant="displaySmall" style={styles.emoji}>
               🗳️
-            </Typography>
-          </View>
-          <Typography variant="h2" style={styles.title}>
+            </Text>
+          </Animated.View>
+          <Text variant="headlineMedium" style={styles.title}>
             Votación
-          </Typography>
+          </Text>
           {currentVoter ? (
-            <Typography variant="bodyLarge" color={theme.colors.textSecondary}>
+            <Text variant="titleMedium" style={styles.subtitle}>
               {allComplete ? 'Todos han votado' : `${currentVoter.name} está votando`}
-            </Typography>
+            </Text>
           ) : (
-            <Typography variant="body" color={theme.colors.textSecondary}>
+            <Text variant="bodyLarge" style={styles.subtitle}>
               Cargando...
-            </Typography>
+            </Text>
           )}
-        </View>
+        </Animated.View>
 
         {/* Información de votación */}
         {!allComplete && currentVoter && (
-          <View style={[
-            styles.infoSection,
-            roundColors && {
-              borderColor: roundColors.accent,
-              backgroundColor: roundColors.surface,
-            },
-          ]}>
-            <Typography variant="bodyLarge" color={theme.colors.text} style={styles.infoText}>
-              🎯 ¿Quién crees que es el impostor?
-            </Typography>
-            <Typography variant="caption" color={theme.colors.textSecondary} style={styles.helpText}>
+          <Animated.View
+            entering={FadeInUp.delay(600).springify()}
+            style={[
+              styles.infoSection,
+              roundColors && {
+                borderColor: roundColors.accent,
+                backgroundColor: roundColors.surface,
+              },
+            ]}
+          >
+            <Text variant="bodyLarge" style={styles.infoText}>
+              🎯 ¿Quién crees que es el <Text style={styles.impostorText}>impostor</Text>?
+            </Text>
+            <Text variant="bodySmall" style={styles.helpText}>
               Selecciona un jugador. No puedes votar por ti mismo.
-            </Typography>
-          </View>
+            </Text>
+          </Animated.View>
         )}
 
         {/* Lista de jugadores para votar */}
@@ -266,57 +290,72 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
 
         {/* Resumen de votos (si todos votaron) */}
         {allComplete && votingResults && (
-          <View style={styles.resultsSection}>
-            <Typography variant="h3" style={styles.resultsTitle}>
+          <Animated.View
+            entering={FadeInUp.delay(800).springify()}
+            style={styles.resultsSection}
+          >
+            <Text variant="headlineSmall" style={styles.resultsTitle}>
               Resultados de la Votación
-            </Typography>
+            </Text>
             <View style={styles.votesList}>
-              {roleAssignment.players.map((player) => {
+              {roleAssignment.players.map((player, index) => {
                 const count = votingResults.voteCounts[player.id] || 0;
                 const isMostVoted = votingResults.mostVoted === player.id;
                 
                 return (
-                  <View
+                  <Animated.View
                     key={player.id}
-                    style={[
-                      styles.voteResultCard,
-                      isMostVoted && styles.voteResultCardHighlighted,
-                    ]}
+                    entering={FadeInDown.delay(1000 + index * 100).springify()}
                   >
-                    <Typography variant="bodyLarge" style={styles.voteResultName}>
-                      {player.name}
-                    </Typography>
-                    <Typography
-                      variant="h4"
-                      color={isMostVoted ? theme.colors.accent : theme.colors.textSecondary}
+                    <Card
+                      style={[
+                        styles.voteResultCard,
+                        isMostVoted && styles.voteResultCardHighlighted,
+                      ]}
+                      mode={isMostVoted ? "elevated" : "outlined"}
                     >
-                      {count} {count === 1 ? 'voto' : 'votos'}
-                    </Typography>
-                    {isMostVoted && (
-                      <Typography variant="caption" color={theme.colors.accent}>
-                        Más votado
-                      </Typography>
-                    )}
-                  </View>
+                      <Card.Content style={styles.voteResultContent}>
+                        <Text variant="titleMedium" style={styles.voteResultName}>
+                          {player.name}
+                        </Text>
+                        <Text
+                          variant="headlineSmall"
+                          style={[
+                            styles.voteCount,
+                            isMostVoted && styles.voteCountHighlighted,
+                          ]}
+                        >
+                          {count} {count === 1 ? 'voto' : 'votos'}
+                        </Text>
+                        {isMostVoted && (
+                          <Text variant="bodySmall" style={styles.mostVotedText}>
+                            Más votado
+                          </Text>
+                        )}
+                      </Card.Content>
+                    </Card>
+                  </Animated.View>
                 );
               })}
             </View>
             {votingResults.isTie && (
-              <Typography variant="body" color={theme.colors.warning} style={styles.tieText}>
+              <Text variant="bodyMedium" style={styles.tieText}>
                 ¡Empate! Hay múltiples jugadores con la misma cantidad de votos.
-              </Typography>
+              </Text>
             )}
-          </View>
+          </Animated.View>
         )}
 
         {/* Botones de acción */}
-        <View style={styles.actions}>
+        <Animated.View
+          entering={FadeInUp.delay(1200).springify()}
+          style={styles.actions}
+        >
           {!allComplete && currentVoter && (
             <>
               {selectedTarget ? (
                 <Button
-                  title="✅ Confirmar Voto"
-                  variant="accent"
+                  mode="contained"
                   onPress={handleNextVoter}
                   style={[
                     styles.actionButton,
@@ -324,20 +363,24 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
                       backgroundColor: roundColors.accent,
                     },
                   ]}
-                />
+                  contentStyle={styles.buttonContent}
+                  labelStyle={styles.buttonLabel}
+                  icon="check"
+                >
+                  Confirmar Voto
+                </Button>
               ) : (
                 <View style={styles.requiredVoteContainer}>
-                  <Typography variant="body" color={theme.colors.warning} style={styles.requiredVoteText}>
+                  <Text variant="bodyMedium" style={styles.requiredVoteText}>
                     ⚠️ Debes seleccionar un jugador para continuar
-                  </Typography>
+                  </Text>
                 </View>
               )}
             </>
           )}
           {allComplete && (
             <Button
-              title="🏆 Ver Resultados Finales"
-              variant="accent"
+              mode="contained"
               onPress={async () => {
                 if (isOnline && onlineGame) {
                   await onlineGame.changePhase('results');
@@ -352,9 +395,14 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
                   backgroundColor: roundColors.accent,
                 },
               ]}
-            />
+              contentStyle={styles.buttonContent}
+              labelStyle={styles.buttonLabel}
+              icon="trophy"
+            >
+              Ver Resultados Finales
+            </Button>
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
     </ScreenContainer>
   );
@@ -485,22 +533,45 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   voteResultCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-    ...theme.shadows.small,
   },
   voteResultCardHighlighted: {
+    borderWidth: 2,
     borderColor: theme.colors.accent,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.accent + '20',
+  },
+  voteResultContent: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.md,
   },
   voteResultName: {
-    fontWeight: theme.typography.weights.semibold,
+    fontWeight: '600',
     marginBottom: theme.spacing.xs,
+    color: theme.colors.text,
+  },
+  voteCount: {
+    color: theme.colors.textSecondary,
+  },
+  voteCountHighlighted: {
+    color: theme.colors.accent,
+    fontWeight: '700',
+  },
+  mostVotedText: {
+    marginTop: theme.spacing.xs,
+    color: theme.colors.accent,
+    fontWeight: '600',
+  },
+  impostorText: {
+    color: theme.colors.impostor,
+    fontWeight: '700',
+  },
+  errorText: {
+    textAlign: 'center',
+    color: theme.colors.error,
+    marginBottom: theme.spacing.xl,
+  },
+  buttonContent: {
+    paddingVertical: theme.spacing.sm,
   },
   tieText: {
     textAlign: 'center',
@@ -508,6 +579,16 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     backgroundColor: theme.colors.surface,
     borderRadius: 12,
+    color: theme.colors.warning,
+    fontWeight: '600',
+  },
+  requiredVoteText: {
+    textAlign: 'center',
+    fontWeight: '600',
+    color: theme.colors.warning,
+  },
+  buttonLabel: {
+    fontWeight: '700',
   },
   actions: {
     width: '100%',

@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Button, Card, Chip } from 'react-native-paper';
 import {
   ScreenContainer,
-  Typography,
-  Button,
   PlayerInput,
   PlayerList,
-  GameConfig as GameConfigComponent,
 } from '../../components';
 import { useLobby } from '../../hooks';
 import { useGame } from '../../game';
@@ -48,12 +46,11 @@ export const LobbyScreen: React.FC<Props> = ({ navigation }) => {
     startGame(players, config);
 
     // Usar setTimeout para asegurar que el estado se actualice antes de navegar
-    // Esto evita race conditions donde RoleAssignment se monta antes de que roleAssignment esté disponible
     setTimeout(() => {
-    navigation.navigate('RoleAssignment', {
-      players,
-      config,
-    });
+      navigation.navigate('RoleAssignment', {
+        players,
+        config,
+      });
     }, 0);
   };
 
@@ -64,13 +61,14 @@ export const LobbyScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* Header */}
         <View style={styles.headerContainer}>
-        <Typography variant="h2" style={styles.title}>
-            🎮 Lobby
-          </Typography>
-          <Typography variant="caption" color={theme.colors.textSecondary} style={styles.subtitle}>
+          <Text variant="headlineMedium" style={styles.title}>
+            Lobby
+          </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
             Añade jugadores y configura la partida
-        </Typography>
+          </Text>
         </View>
 
         {/* Input para añadir jugadores */}
@@ -80,37 +78,77 @@ export const LobbyScreen: React.FC<Props> = ({ navigation }) => {
             existingNames={existingNames}
           />
           {isFull && (
-            <Typography variant="caption" color={theme.colors.warning} style={styles.warningText}>
+            <Text variant="bodySmall" style={styles.warningText}>
               Has alcanzado el máximo de jugadores
-            </Typography>
+            </Text>
           )}
         </View>
 
         {/* Lista de jugadores */}
-        <View style={styles.playersSection}>
-          <PlayerList players={players} onRemove={removePlayer} />
-        </View>
+        {playerCount > 0 && (
+          <View style={styles.playersSection}>
+            <PlayerList players={players} onRemove={removePlayer} />
+          </View>
+        )}
 
         {/* Configuración de partida */}
         {playerCount > 0 && (
-          <View style={styles.configSection}>
-            <GameConfigComponent config={config} onChange={setConfig} />
-          </View>
+          <Card style={styles.configCard} mode="elevated">
+            <Card.Content style={styles.configContent}>
+              <Text variant="titleMedium" style={styles.configTitle}>
+                Configuración
+              </Text>
+              <Text variant="bodySmall" style={styles.configLabel}>
+                Número de rondas
+              </Text>
+              <View style={styles.chipsContainer}>
+                <Chip
+                  selected={config.rounds === null}
+                  onPress={() => setConfig({ ...config, rounds: null })}
+                  style={styles.chip}
+                  selectedColor={theme.colors.textLight}
+                  mode={config.rounds === null ? 'flat' : 'outlined'}
+                  buttonColor={config.rounds === null ? theme.colors.primary : undefined}
+                >
+                  Sin límite
+                </Chip>
+                {[3, 4, 5, 6].map((rounds) => (
+                  <Chip
+                    key={rounds}
+                    selected={config.rounds === rounds}
+                    onPress={() => setConfig({ ...config, rounds })}
+                    style={styles.chip}
+                    selectedColor={theme.colors.textLight}
+                    mode={config.rounds === rounds ? 'flat' : 'outlined'}
+                    buttonColor={config.rounds === rounds ? theme.colors.primary : undefined}
+                  >
+                    {rounds}
+                  </Chip>
+                ))}
+              </View>
+            </Card.Content>
+          </Card>
         )}
 
         {/* Botón de iniciar */}
         <View style={styles.actions}>
           <Button
-            title="Iniciar Partida"
-            variant="accent"
+            mode="contained"
             onPress={handleStartGame}
             disabled={!canStart}
             style={styles.startButton}
-          />
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="play"
+            buttonColor={theme.colors.primary}
+            textColor={theme.colors.textLight}
+          >
+            Iniciar Partida
+          </Button>
           {!canStart && playerCount > 0 && (
-            <Typography variant="caption" color={theme.colors.textSecondary} style={styles.helpText}>
+            <Text variant="bodySmall" style={styles.helpText}>
               Necesitas al menos 3 jugadores para comenzar
-            </Typography>
+            </Text>
           )}
         </View>
       </ScrollView>
@@ -124,37 +162,72 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.lg,
   },
   headerContainer: {
     width: '100%',
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
     alignItems: 'center',
   },
   title: {
     marginBottom: theme.spacing.xs,
     textAlign: 'center',
-    fontWeight: theme.typography.weights.bold,
+    fontWeight: '700',
+    color: theme.colors.text,
+    fontSize: 28,
   },
   subtitle: {
     textAlign: 'center',
+    color: theme.colors.textSecondary,
+    fontSize: 14,
   },
   inputSection: {
     width: '100%',
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
   },
   warningText: {
     textAlign: 'center',
     marginTop: theme.spacing.xs,
+    color: theme.colors.warning,
+    fontSize: 12,
   },
   playersSection: {
-    flex: 1,
-    minHeight: 200,
-    marginBottom: theme.spacing.lg,
-  },
-  configSection: {
     width: '100%',
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+  },
+  configCard: {
+    width: '100%',
+    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+  },
+  configContent: {
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+  },
+  configTitle: {
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 18,
+    marginBottom: theme.spacing.sm,
+    color: theme.colors.text,
+  },
+  configLabel: {
+    textAlign: 'center',
+    color: theme.colors.textSecondary,
+    fontSize: 14,
+    marginBottom: theme.spacing.sm,
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
+  chip: {
+    marginHorizontal: theme.spacing.xs / 2,
   },
   actions: {
     width: '100%',
@@ -162,9 +235,21 @@ const styles = StyleSheet.create({
   },
   startButton: {
     width: '100%',
+    borderRadius: 12,
+    elevation: 4,
+  },
+  buttonContent: {
+    paddingVertical: theme.spacing.md,
+  },
+  buttonLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   helpText: {
     textAlign: 'center',
     marginTop: theme.spacing.sm,
+    color: theme.colors.textSecondary,
+    fontSize: 12,
   },
 });

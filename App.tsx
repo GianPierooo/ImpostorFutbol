@@ -1,7 +1,9 @@
 import React from 'react';
+import { PaperProvider, Portal } from 'react-native-paper';
 import { AppNavigator } from './src/navigation';
 import { GameProvider } from './src/game';
 import { OnlineGameProvider } from './src/contexts';
+import { paperTheme } from './src/theme/paperTheme';
 
 /**
  * App principal de Impostor Fútbol
@@ -16,11 +18,15 @@ import { OnlineGameProvider } from './src/contexts';
  */
 const App: React.FC = () => {
   return (
-    <GameProvider>
-      <OnlineGameProvider>
-        <AppNavigator />
-      </OnlineGameProvider>
-    </GameProvider>
+    <PaperProvider theme={paperTheme}>
+      <Portal.Host>
+        <GameProvider>
+          <OnlineGameProvider>
+            <AppNavigator />
+          </OnlineGameProvider>
+        </GameProvider>
+      </Portal.Host>
+    </PaperProvider>
   );
 };
 

@@ -1,0 +1,2 @@
+export { ImpostorText } from './ImpostorText';
+

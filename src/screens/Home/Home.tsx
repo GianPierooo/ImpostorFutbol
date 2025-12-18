@@ -1,6 +1,16 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { ScreenContainer, Typography, Button } from '../../components';
+import Animated, {
+  FadeInDown,
+  FadeInUp,
+  FadeIn,
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
+import { Button, Text } from 'react-native-paper';
+import { ScreenContainer } from '../../components';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
@@ -12,46 +22,91 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Lobby');
   };
 
+  // Animación de pulso para el icono
+  const pulse = useSharedValue(1);
+
+  React.useEffect(() => {
+    pulse.value = withRepeat(
+      withTiming(1.1, { duration: 2000 }),
+      -1,
+      true
+    );
+  }, []);
+
+  const iconAnimatedStyle = useAnimatedStyle(() => {
+    'worklet';
+    return {
+      transform: [{ scale: pulse.value }],
+    };
+  });
+
+  // Eliminamos la animación de glow problemática para evitar errores de worklet
+
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Typography variant="h1" style={styles.emoji}>
-              ⚽
-            </Typography>
-          </View>
-          <Typography variant="h1" style={styles.title}>
+        <Animated.View
+          entering={FadeInDown.delay(200).springify()}
+          style={styles.header}
+        >
+          <Animated.View style={[styles.iconContainer, iconAnimatedStyle]}>
+            <Text style={styles.emoji}>⚽</Text>
+          </Animated.View>
+          <Animated.Text
+            entering={FadeInDown.delay(400).springify()}
+            style={[styles.title, styles.titleImpostor]}
+          >
             Impostor
-          </Typography>
-          <Typography variant="h1" style={styles.titleAccent}>
+          </Animated.Text>
+          <Animated.Text
+            entering={FadeInDown.delay(600).springify()}
+            style={styles.titleAccent}
+          >
             Fútbol
-          </Typography>
-        </View>
+          </Animated.Text>
+        </Animated.View>
 
-        <View style={styles.description}>
-          <Typography variant="bodyLarge" color={theme.colors.textSecondary} style={styles.subtitle}>
-            🎮 El juego del impostor futbolero
-          </Typography>
-          <Typography variant="body" color={theme.colors.textMuted} style={styles.descriptionText}>
-            Descubre quién es el impostor mientras das pistas sobre jugadores y equipos de fútbol
-          </Typography>
-        </View>
+        <Animated.View
+          entering={FadeInUp.delay(800).springify()}
+          style={styles.description}
+        >
+          <Text variant="titleMedium" style={styles.subtitle}>
+            🎮 El juego del <Text style={styles.impostorText}>impostor</Text> futbolero
+          </Text>
+          <Text variant="bodyLarge" style={styles.descriptionText}>
+            Descubre quién es el <Text style={styles.impostorText}>impostor</Text> mientras das pistas sobre jugadores y equipos de fútbol
+          </Text>
+        </Animated.View>
 
-        <View style={styles.actions}>
+        <Animated.View
+          entering={FadeIn.delay(1000)}
+          style={styles.actions}
+        >
           <Button
-            title="🚀 Iniciar Partida"
-            variant="accent"
+            mode="contained"
             onPress={handleStartGame}
             style={styles.startButton}
-          />
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="play"
+            buttonColor={theme.colors.primary}
+            textColor={theme.colors.textLight}
+          >
+            Iniciar Partida
+          </Button>
           <Button
-            title="🌐 Modo Online"
-            variant="secondary"
+            mode="outlined"
             onPress={() => navigation.navigate('OnlineLobby')}
             style={styles.onlineButton}
-          />
-        </View>
+            contentStyle={styles.buttonContent}
+            labelStyle={[styles.buttonLabel, styles.onlineButtonLabel]}
+            icon="earth"
+            textColor={theme.colors.primary}
+            borderColor={theme.colors.primary}
+          >
+            Modo Online
+          </Button>
+        </Animated.View>
       </View>
     </ScreenContainer>
   );
@@ -73,10 +128,16 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: theme.colors.accent + '20',
+    backgroundColor: theme.colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
-    ...theme.shadows.medium,
+    borderWidth: 3,
+    borderColor: theme.colors.primary,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 20,
+    shadowOpacity: 0.6,
+    elevation: 10,
   },
   emoji: {
     fontSize: 64,
@@ -84,26 +145,40 @@ const styles = StyleSheet.create({
   title: {
     textAlign: 'center',
     marginBottom: theme.spacing.xs,
-    fontWeight: theme.typography.weights.bold,
+    fontWeight: '800',
+  },
+  titleImpostor: {
+    color: theme.colors.impostor, // Rojo fuerte para "Impostor"
+    textShadowColor: theme.colors.impostor,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 15,
+  },
+  impostorText: {
+    color: theme.colors.impostor, // Rojo fuerte
+    fontWeight: '700',
   },
   titleAccent: {
     textAlign: 'center',
-    color: theme.colors.accent,
-    fontWeight: theme.typography.weights.bold,
-    ...theme.shadows.small,
+    color: theme.colors.primary, // Índigo para "Fútbol" - combina mejor
+    fontWeight: '800',
+    textShadowColor: theme.colors.primary,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 15,
   },
   description: {
     marginBottom: theme.spacing['3xl'],
     alignItems: 'center',
-    maxWidth: 300,
+    maxWidth: 320,
   },
   subtitle: {
     marginBottom: theme.spacing.sm,
-    fontWeight: theme.typography.weights.semibold,
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
   },
   descriptionText: {
     textAlign: 'center',
     lineHeight: 24,
+    color: theme.colors.textSecondary,
   },
   actions: {
     width: '100%',
@@ -115,6 +190,17 @@ const styles = StyleSheet.create({
   },
   onlineButton: {
     width: '100%',
+  },
+  buttonContent: {
+    paddingVertical: theme.spacing.sm,
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  onlineButtonLabel: {
+    color: theme.colors.primary,
   },
 });
 

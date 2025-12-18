@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
-import { ScreenContainer, Typography, Button } from '../../components';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { Text, Button, TextInput, Card, Chip, ProgressBar } from 'react-native-paper';
+import { ScreenContainer } from '../../components';
 import { useGame } from '../../game';
 import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
-import { theme, getRoundColorScheme } from '../../theme';
+import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { NavigationParamList } from '../../types';
+import { NavigationParamList, Player } from '../../types';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Round'>;
 
@@ -34,9 +35,9 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
   const allPlayersGavePista = isOnline
     ? (round: number) => {
         if (!onlineGame || !roleAssignment) return false;
-        const roundPistas = onlineGame.pistas.filter(p => p.round === round);
-        const playersWhoGavePista = new Set(roundPistas.map(p => p.playerId));
-        return roleAssignment.players.every(p => playersWhoGavePista.has(p.id));
+        const roundPistas = onlineGame.pistas.filter((p) => p.round === round);
+        const playersWhoGavePista = new Set(roundPistas.map((p) => p.playerId));
+        return roleAssignment.players.every((p: Player) => playersWhoGavePista.has(p.id));
       }
     : (round: number) => localGame?.allPlayersGavePista(round) || false;
   const canFinishRound = isOnline
@@ -75,18 +76,21 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <ScreenContainer>
         <View style={styles.content}>
-          <Typography variant="h2" style={styles.title}>
+          <Text variant="headlineSmall" style={styles.title}>
             Error
-          </Typography>
-          <Typography variant="body" color={theme.colors.error}>
+          </Text>
+          <Text variant="bodyLarge" style={styles.errorText}>
             No se pudo cargar el estado del juego. Vuelve al inicio.
-          </Typography>
+          </Text>
           <Button
-            title="Volver al Inicio"
-            variant="accent"
+            mode="contained"
             onPress={() => navigation.navigate('Home')}
             style={styles.button}
-          />
+            contentStyle={styles.buttonContent}
+            icon="home"
+          >
+            Volver al Inicio
+          </Button>
         </View>
       </ScreenContainer>
     );
@@ -98,7 +102,7 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
     // Verificar si este es el último jugador que falta dar pista
     const roundPistasBefore = getRoundPistas(gameState.currentRound);
     const playersWhoGavePista = new Set(roundPistasBefore.map((p) => p.playerId));
-    const missingPlayers = roleAssignment.players.filter((p) => !playersWhoGavePista.has(p.id));
+    const missingPlayers = roleAssignment.players.filter((p: Player) => !playersWhoGavePista.has(p.id));
     const isLastPlayer = missingPlayers.length === 1 && missingPlayers[0].id === currentPlayer.id;
     
     // Agregar pista según el modo
@@ -129,14 +133,9 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  // Calcular esquema de colores según la ronda
-  const roundColors = useMemo(() => {
-    if (!gameState) return null;
-    return getRoundColorScheme(gameState.currentRound, gameState.maxRounds);
-  }, [gameState?.currentRound, gameState?.maxRounds]);
 
   return (
-    <ScreenContainer backgroundColor={roundColors?.background}>
+    <ScreenContainer>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -149,63 +148,78 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
         >
           {/* Header con información de ronda */}
           <View style={styles.header}>
-            <Typography variant="h2" style={styles.title}>
+            <Chip 
+              icon="timer" 
+              style={[styles.roundChip, { backgroundColor: theme.colors.primary }]}
+              textStyle={styles.chipText}
+            >
               Ronda {gameState.currentRound} {gameState.maxRounds ? `de ${gameState.maxRounds}` : '(sin límite)'}
-            </Typography>
-            <Typography variant="body" color={theme.colors.textSecondary}>
-              Turno - {currentPlayer?.name || 'Cargando...'}
-            </Typography>
+            </Chip>
+            <Text variant="headlineSmall" style={styles.title}>
+              Turno de {currentPlayer?.name || 'Cargando...'}
+            </Text>
+            <ProgressBar 
+              progress={roundPistas.length / (roleAssignment?.players.length || 1)} 
+              color={theme.colors.primary} 
+              style={styles.progressBar} 
+            />
           </View>
 
-          {/* Información del jugador actual - Anónimo */}
+          {/* Información del jugador actual */}
           {currentPlayerInfo && (
-            <View style={styles.playerInfoSection}>
-              <View style={[
-                styles.normalCard,
-                roundColors && {
-                  borderColor: roundColors.accent,
-                  backgroundColor: roundColors.surface,
-                },
-              ]}>
-                <Typography variant="h3" color={roundColors?.accent || theme.colors.accent} style={styles.instructionText}>
-                  🕵️ Busquemos al impostor
-                </Typography>
-                <Typography variant="bodyLarge" color={theme.colors.textSecondary} style={styles.instructionText}>
-                  Da pistas sobre la palabra secreta sin decirla directamente. Observa las pistas de los demás para descubrir quién es el impostor.
-                </Typography>
-              </View>
-            </View>
+            <Card style={styles.infoCard} mode="elevated">
+              <Card.Content style={styles.infoCardContent}>
+                <Text variant="titleLarge" style={styles.instructionTitle}>
+                  🕵️ Busquemos al <Text style={styles.impostorText}>impostor</Text>
+                </Text>
+                <Text variant="bodyMedium" style={styles.instructionText}>
+                  Da pistas sobre la palabra secreta sin decirla directamente. Observa las pistas de los demás para descubrir quién es el <Text style={styles.impostorText}>impostor</Text>.
+                </Text>
+              </Card.Content>
+            </Card>
           )}
 
           {/* Input para pista */}
           {currentPlayer && (
-            <View style={styles.inputSection}>
-              <Typography variant="body" color={theme.colors.textSecondary} style={styles.inputLabel}>
-                Tu pista:
-              </Typography>
-              <TextInput
-                style={styles.input}
-                placeholder="Escribe tu pista aquí..."
-                placeholderTextColor={theme.colors.textSecondary}
-                value={pistaText}
-                onChangeText={setPistaText}
-                multiline
-                maxLength={200}
-                editable={true}
-              />
-              <Button
-                title="Enviar Pista"
-                variant="accent"
-                onPress={handleAddPista}
-                disabled={!pistaText.trim()}
-                style={[
-                  styles.sendButton,
-                  roundColors && {
-                    backgroundColor: roundColors.accent,
-                  },
-                ]}
-              />
-            </View>
+            <Card style={styles.inputCard} mode="elevated">
+              <Card.Content style={styles.inputCardContent}>
+                <Text variant="titleMedium" style={styles.inputLabel}>
+                  Tu pista
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  placeholder="Escribe tu pista aquí..."
+                  placeholderTextColor={theme.colors.textSecondary}
+                  value={pistaText}
+                  onChangeText={setPistaText}
+                  multiline
+                  numberOfLines={4}
+                  maxLength={20}
+                  style={styles.input}
+                  outlineColor={theme.colors.border}
+                  activeOutlineColor={theme.colors.primary}
+                  theme={{ colors: { text: theme.colors.text } }}
+                />
+                <View style={styles.charCount}>
+                  <Text variant="bodySmall" style={styles.charCountText}>
+                    {pistaText.length} / 20
+                  </Text>
+                </View>
+                <Button
+                  mode="contained"
+                  onPress={handleAddPista}
+                  disabled={!pistaText.trim()}
+                  style={styles.sendButton}
+                  contentStyle={styles.buttonContent}
+                  labelStyle={styles.buttonLabel}
+                  icon="send"
+                  buttonColor={theme.colors.primary}
+                  textColor={theme.colors.textLight}
+                >
+                  Enviar Pista
+                </Button>
+              </Card.Content>
+            </Card>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -222,7 +236,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
   },
   content: {
     flex: 1,
@@ -231,74 +247,92 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
   },
   header: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
     alignItems: 'center',
+    width: '100%',
+  },
+  roundChip: {
+    marginBottom: theme.spacing.sm,
+  },
+  chipText: {
+    color: theme.colors.textLight,
+    fontWeight: '600',
   },
   title: {
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
     textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 18,
+    color: theme.colors.text,
   },
-  playerInfoSection: {
+  progressBar: {
     width: '100%',
-    marginBottom: theme.spacing.xl,
+    height: 6,
+    borderRadius: 3,
+    marginTop: theme.spacing.sm,
+    maxWidth: 300,
   },
-  impostorCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: theme.spacing.lg,
-    borderWidth: 2,
-    borderColor: theme.colors.error,
-    alignItems: 'center',
-  },
-  normalCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
-    padding: theme.spacing.xl,
-    borderWidth: 2,
-    borderColor: theme.colors.accent,
-    alignItems: 'center',
-    ...theme.shadows.medium,
-  },
-  impostorText: {
-    textAlign: 'center',
+  infoCard: {
+    width: '100%',
     marginBottom: theme.spacing.md,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
   },
-  labelText: {
+  infoCardContent: {
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+  },
+  instructionTitle: {
     textAlign: 'center',
     marginBottom: theme.spacing.sm,
-  },
-  secretWordText: {
-    textAlign: 'center',
-    marginBottom: theme.spacing.md,
-    fontWeight: theme.typography.weights.bold,
+    fontWeight: '600',
+    fontSize: 18,
+    color: theme.colors.text,
   },
   instructionText: {
     textAlign: 'center',
-    marginTop: theme.spacing.md,
+    color: theme.colors.text,
+    fontSize: 14,
+    lineHeight: 20,
   },
-  inputSection: {
+  inputCard: {
     width: '100%',
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+  },
+  inputCardContent: {
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
   },
   inputLabel: {
     marginBottom: theme.spacing.sm,
+    fontWeight: '600',
+    color: theme.colors.text,
+    fontSize: 16,
   },
   input: {
-    width: '100%',
-    minHeight: 120,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: theme.spacing.md,
-    fontSize: theme.typography.sizes.base,
-    color: theme.colors.text,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    textAlignVertical: 'top',
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.small,
+    marginBottom: theme.spacing.xs,
+  },
+  charCount: {
+    alignItems: 'flex-end',
+    marginBottom: theme.spacing.sm,
+  },
+  charCountText: {
+    color: theme.colors.textSecondary,
   },
   sendButton: {
     width: '100%',
+    marginTop: theme.spacing.sm,
+  },
+  buttonContent: {
+    paddingVertical: theme.spacing.sm,
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '700',
   },
   actions: {
     width: '100%',
@@ -310,5 +344,14 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     marginTop: theme.spacing.lg,
+  },
+  errorText: {
+    textAlign: 'center',
+    color: theme.colors.error,
+    marginBottom: theme.spacing.xl,
+  },
+  impostorText: {
+    color: theme.colors.impostor,
+    fontWeight: '700',
   },
 });

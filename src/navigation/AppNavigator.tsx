@@ -24,7 +24,7 @@ export const AppNavigator: React.FC = () => {
         screenOptions={{
           headerShown: false, // Pantallas fullscreen para mejor UX
           contentStyle: {
-            backgroundColor: theme.colors.background,
+            backgroundColor: theme.colors.background, // #111827 - Fondo gris oscuro elegante
           },
           animation: 'slide_from_right', // Transiciones suaves
         }}

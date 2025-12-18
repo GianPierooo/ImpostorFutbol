@@ -1,10 +1,12 @@
 import React, { useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { ScreenContainer, Typography, Button, PistaHistory } from '../../components';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { Text, Button, Card } from 'react-native-paper';
+import { ScreenContainer, PistaHistory } from '../../components';
 import { useGame } from '../../game';
 import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
-import { theme, getRoundColorScheme } from '../../theme';
+import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
 
@@ -39,18 +41,21 @@ export const DiscussionScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <ScreenContainer>
         <View style={styles.content}>
-          <Typography variant="h2" style={styles.title}>
+          <Text variant="headlineSmall" style={styles.title}>
             Error
-          </Typography>
-          <Typography variant="body" color={theme.colors.error}>
+          </Text>
+          <Text variant="bodyLarge" style={styles.errorText}>
             No se pudo cargar el estado del juego.
-          </Typography>
+          </Text>
           <Button
-            title="Volver"
-            variant="accent"
+            mode="contained"
             onPress={() => navigation.goBack()}
             style={styles.button}
-          />
+            contentStyle={styles.buttonContent}
+            icon="arrow-left"
+          >
+            Volver
+          </Button>
         </View>
       </ScreenContainer>
     );
@@ -67,10 +72,6 @@ export const DiscussionScreen: React.FC<Props> = ({ navigation, route }) => {
   const isLastRound = gameState.maxRounds !== null && roundToShow >= gameState.maxRounds;
   const canFinish = roundToShow >= 3; // Mínimo 3 rondas
 
-  // Calcular esquema de colores según la ronda (usar roundToShow para el color)
-  const roundColors = useMemo(() => {
-    return getRoundColorScheme(roundToShow, gameState.maxRounds);
-  }, [roundToShow, gameState.maxRounds]);
 
   const handleContinue = async () => {
     // Si es la última ronda, ir a votación
@@ -126,49 +127,51 @@ export const DiscussionScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   return (
-    <ScreenContainer backgroundColor={roundColors.background}>
+    <ScreenContainer>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Typography variant="h1" style={styles.emoji}>
+        <Animated.View
+          entering={FadeInDown.delay(200).springify()}
+          style={styles.header}
+        >
+          <Animated.View
+            entering={FadeInDown.delay(400).springify()}
+            style={styles.iconContainer}
+          >
+            <Text variant="displaySmall" style={styles.emoji}>
               💬
-            </Typography>
-          </View>
-          <Typography variant="h1" style={styles.title}>
+            </Text>
+          </Animated.View>
+          <Text variant="headlineMedium" style={styles.title}>
             Tiempo de Discusión
-          </Typography>
-          <Typography variant="h3" color={theme.colors.textSecondary} style={styles.subtitle}>
+          </Text>
+          <Text variant="titleLarge" style={styles.subtitle}>
             Ronda {roundToShow} Finalizada
-          </Typography>
-        </View>
+          </Text>
+        </Animated.View>
 
         {/* Información */}
-        <View style={[
-          styles.infoSection,
-          {
-            borderColor: roundColors.accent,
-            backgroundColor: roundColors.surface,
-          },
-        ]}>
-          <Typography variant="bodyLarge" color={theme.colors.text} style={styles.infoText}>
-            💭 Discutan las pistas dadas y analicen quién podría ser el impostor.
-          </Typography>
-          {isLastRound && (
-            <Typography variant="body" color={theme.colors.warning} style={styles.warningText}>
-              Esta fue la última ronda. Después de la discusión, procederán a votar.
-            </Typography>
-          )}
-          {canFinish && !isLastRound && (
-            <Typography variant="body" color={theme.colors.textSecondary} style={styles.helpText}>
-              Pueden finalizar después de esta ronda{gameState.maxRounds ? ` o continuar hasta la ronda ${gameState.maxRounds}` : ' o continuar sin límite'}.
-            </Typography>
-          )}
-        </View>
+        <Card style={styles.infoCard} mode="elevated">
+          <Card.Content style={styles.infoCardContent}>
+            <Text variant="bodyLarge" style={styles.infoText}>
+              💭 Discutan las pistas dadas y analicen quién podría ser el <Text style={styles.impostorText}>impostor</Text>.
+            </Text>
+            {isLastRound && (
+              <Text variant="bodyMedium" style={styles.warningText}>
+                Esta fue la última ronda. Después de la discusión, procederán a votar.
+              </Text>
+            )}
+            {canFinish && !isLastRound && (
+              <Text variant="bodyMedium" style={styles.helpText}>
+                Pueden finalizar después de esta ronda{gameState.maxRounds ? ` o continuar hasta la ronda ${gameState.maxRounds}` : ' o continuar sin límite'}.
+              </Text>
+            )}
+          </Card.Content>
+        </Card>
 
         {/* Historial de pistas de la ronda */}
         <View style={styles.historySection}>
@@ -176,27 +179,37 @@ export const DiscussionScreen: React.FC<Props> = ({ navigation, route }) => {
         </View>
 
         {/* Botones de acción */}
-        <View style={styles.actions}>
+        <Animated.View
+          entering={FadeInUp.delay(800).springify()}
+          style={styles.actions}
+        >
           <Button
-            title={isLastRound ? "Ir a Votación" : canFinish ? "Finalizar y Votar" : "Siguiente Ronda"}
-            variant="accent"
+            mode="contained"
             onPress={handleContinue}
-            style={[
-              styles.continueButton,
-              {
-                backgroundColor: roundColors.accent,
-              },
-            ]}
-          />
+            style={styles.continueButton}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon={isLastRound ? "vote" : "arrow-right"}
+            buttonColor={theme.colors.primary}
+            textColor={theme.colors.textLight}
+          >
+            {isLastRound ? "Ir a Votación" : canFinish ? "Finalizar y Votar" : "Siguiente Ronda"}
+          </Button>
           {canFinish && !isLastRound && gameState.maxRounds === null && (
             <Button
-              title="Continuar a Siguiente Ronda"
-              variant="secondary"
+              mode="outlined"
               onPress={handleNextRound}
               style={styles.nextRoundButton}
-            />
+              contentStyle={styles.buttonContent}
+              labelStyle={styles.buttonLabel}
+              icon="arrow-forward"
+              textColor={theme.colors.primary}
+              borderColor={theme.colors.primary}
+            >
+              Continuar a Siguiente Ronda
+            </Button>
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
     </ScreenContainer>
   );
@@ -208,7 +221,9 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
   },
   content: {
     flex: 1,
@@ -217,57 +232,84 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
   },
   header: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
     alignItems: 'center',
+    width: '100%',
   },
   iconContainer: {
-    marginBottom: theme.spacing.lg,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: theme.colors.accent + '20',
+    marginBottom: theme.spacing.md,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: theme.colors.primary + '20',
     justifyContent: 'center',
     alignItems: 'center',
-    ...theme.shadows.medium,
   },
   emoji: {
-    fontSize: 48,
+    fontSize: 40,
   },
   title: {
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
     textAlign: 'center',
-    fontWeight: theme.typography.weights.bold,
+    fontWeight: '700',
+    color: theme.colors.text,
+    fontSize: 24,
   },
   subtitle: {
     textAlign: 'center',
+    color: theme.colors.textSecondary,
+    fontSize: 16,
   },
-  infoSection: {
+  infoCard: {
     width: '100%',
-    marginBottom: theme.spacing.xl,
-    padding: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
     backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: theme.colors.accent,
-    ...theme.shadows.medium,
+    borderColor: theme.colors.primary,
+  },
+  infoCardContent: {
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
   },
   infoText: {
     textAlign: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    color: theme.colors.text,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  impostorText: {
+    color: theme.colors.impostor,
+    fontWeight: '700',
   },
   warningText: {
     textAlign: 'center',
-    marginTop: theme.spacing.md,
-    fontWeight: theme.typography.weights.semibold,
+    marginTop: theme.spacing.sm,
+    fontWeight: '600',
+    color: theme.colors.warning,
+    fontSize: 14,
   },
   helpText: {
     textAlign: 'center',
     marginTop: theme.spacing.sm,
+    color: theme.colors.textSecondary,
+    fontSize: 13,
+  },
+  errorText: {
+    textAlign: 'center',
+    color: theme.colors.error,
+    marginBottom: theme.spacing.xl,
+  },
+  buttonContent: {
+    paddingVertical: theme.spacing.sm,
+  },
+  buttonLabel: {
+    fontWeight: '700',
   },
   historySection: {
-    flex: 1,
-    minHeight: 200,
-    marginBottom: theme.spacing.xl,
+    width: '100%',
+    marginBottom: theme.spacing.lg,
   },
   actions: {
     width: '100%',
@@ -275,9 +317,11 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     width: '100%',
+    borderRadius: 12,
   },
   nextRoundButton: {
     width: '100%',
+    borderRadius: 12,
   },
   button: {
     width: '100%',

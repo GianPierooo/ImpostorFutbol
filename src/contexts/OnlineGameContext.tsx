@@ -71,9 +71,15 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Conectar WebSocket al montar
+  // Escuchar eventos del WebSocket (solo cuando hay una sala activa)
   useEffect(() => {
-    socketService.connect();
+    // No conectar automáticamente - solo cuando se une a una sala
+    if (!roomCode) return;
+
+    // Conectar solo si hay una sala activa
+    if (!socketService.connected()) {
+      socketService.connect();
+    }
     setIsConnected(socketService.connected());
 
     // Escuchar eventos
@@ -161,7 +167,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       socketService.off('vote_added', handleVoteAdded);
       socketService.off('phase_changed', handlePhaseChanged);
     };
-  }, [playerId, loadRoomState]);
+  }, [roomCode, playerId, loadRoomState]);
 
   const loadRoomState = useCallback(async () => {
     if (!roomCode) return;
@@ -216,6 +222,10 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       setPlayerId(pId);
       setPlayerName(pName);
 
+      // Conectar WebSocket antes de unirse a la sala
+      if (!socketService.connected()) {
+        socketService.connect();
+      }
       socketService.joinRoom(code, pId);
       
       // Cargar estado después de establecer roomCode

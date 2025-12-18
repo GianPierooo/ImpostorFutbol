@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { ScreenContainer, Typography, Button, PlayerList } from '../../components';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Button, Text, Chip, Portal, Dialog } from 'react-native-paper';
+import { ScreenContainer, PlayerList } from '../../components';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
@@ -21,13 +22,15 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
     joinRoom,
   } = useOnlineGame();
 
+  const [showLeaveDialog, setShowLeaveDialog] = React.useState(false);
+
   // Unirse a la sala cuando se monta
   useEffect(() => {
     const join = async () => {
       try {
         await joinRoom(code, playerId, playerName);
       } catch (error: any) {
-        Alert.alert('Error', 'No se pudo unir a la sala');
+        // Error manejado por el contexto
         navigation.goBack();
       }
     };
@@ -42,43 +45,23 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
   useOnlineNavigation();
 
   const handleStartGame = async () => {
-    if (!isHost) {
-      Alert.alert('Error', 'Solo el host puede iniciar el juego');
-      return;
-    }
-
-    if (players.length < 3) {
-      Alert.alert('Error', 'Se necesitan al menos 3 jugadores para iniciar');
-      return;
-    }
+    if (!isHost) return;
+    if (players.length < 3) return;
 
     try {
       await startGame();
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Error al iniciar el juego');
+      // Error manejado por el contexto
     }
   };
 
   const handleLeave = async () => {
-    Alert.alert(
-      'Salir de la sala',
-      '¿Estás seguro de que quieres salir?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Salir',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await leaveRoom();
-              navigation.goBack();
-            } catch (error: any) {
-              Alert.alert('Error', 'Error al salir de la sala');
-            }
-          },
-        },
-      ]
-    );
+    try {
+      await leaveRoom();
+      navigation.goBack();
+    } catch (error: any) {
+      // Error manejado
+    }
   };
 
   const canStart = isHost && players.length >= 3 && roomState?.room?.status === 'lobby';
@@ -92,21 +75,21 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Typography variant="h2" style={styles.title}>
-            🎮 Sala Online
-          </Typography>
+          <Text variant="headlineMedium" style={styles.title}>
+            Sala Online
+          </Text>
           <View style={styles.codeContainer}>
-            <Typography variant="caption" color={theme.colors.textSecondary} style={styles.codeLabel}>
-              Código de la sala:
-            </Typography>
-            <Typography variant="h1" color={theme.colors.accent} style={styles.code}>
+            <Text variant="bodySmall" style={styles.codeLabel}>
+              Código de la sala
+            </Text>
+            <Text variant="displaySmall" style={styles.code}>
               {code}
-            </Typography>
+            </Text>
           </View>
           {isHost && (
-            <Typography variant="caption" color={theme.colors.accent} style={styles.hostBadge}>
-              👑 Eres el host
-            </Typography>
+            <Chip icon="crown" style={styles.hostBadge} textStyle={styles.hostBadgeText}>
+              Eres el host
+            </Chip>
           )}
         </View>
 
@@ -114,46 +97,71 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.playersSection}>
           <PlayerList
             players={players.map(p => ({ id: p.id, name: p.name }))}
-            onRemove={undefined} // No se puede eliminar en modo online
+            onRemove={undefined}
           />
-          <Typography variant="caption" color={theme.colors.textSecondary} style={styles.playerCount}>
+          <Text variant="bodySmall" style={styles.playerCount}>
             {players.length} / 10 jugadores
-          </Typography>
+          </Text>
         </View>
 
         {/* Información */}
         <View style={styles.infoSection}>
-          <Typography variant="body" color={theme.colors.textSecondary} style={styles.infoText}>
+          <Text variant="bodyMedium" style={styles.infoText}>
             {players.length < 3
               ? `Esperando más jugadores... (${3 - players.length} más necesario${players.length === 2 ? '' : 's'})`
               : 'Listo para comenzar'}
-          </Typography>
+          </Text>
         </View>
 
         {/* Botón iniciar (solo host) */}
         {isHost && (
           <View style={styles.actions}>
             <Button
-              title="🚀 Iniciar Partida"
-              variant="accent"
+              mode="contained"
               onPress={handleStartGame}
               disabled={!canStart || loading}
               loading={loading}
               style={styles.startButton}
-            />
+              contentStyle={styles.buttonContent}
+              icon="play"
+            >
+              Iniciar Partida
+            </Button>
           </View>
         )}
 
         {/* Botón salir */}
         <View style={styles.footer}>
           <Button
-            title="Salir de la Sala"
-            variant="secondary"
-            onPress={handleLeave}
+            mode="outlined"
+            onPress={() => setShowLeaveDialog(true)}
             disabled={loading}
             style={styles.leaveButton}
-          />
+            contentStyle={styles.buttonContent}
+            icon="exit-to-app"
+          >
+            Salir de la Sala
+          </Button>
         </View>
+
+        {/* Dialog de confirmación */}
+        <Portal>
+          <Dialog visible={showLeaveDialog} onDismiss={() => setShowLeaveDialog(false)}>
+            <Dialog.Title>Salir de la sala</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium">¿Estás seguro de que quieres salir?</Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button onPress={() => setShowLeaveDialog(false)}>Cancelar</Button>
+              <Button onPress={() => {
+                setShowLeaveDialog(false);
+                handleLeave();
+              }} textColor={theme.colors.error}>
+                Salir
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       </ScrollView>
     </ScreenContainer>
   );
@@ -166,6 +174,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.lg,
   },
   header: {
     marginBottom: theme.spacing.xl,
@@ -174,7 +183,7 @@ const styles = StyleSheet.create({
   title: {
     marginBottom: theme.spacing.md,
     textAlign: 'center',
-    fontWeight: theme.typography.weights.bold,
+    fontWeight: '700',
   },
   codeContainer: {
     alignItems: 'center',
@@ -182,16 +191,20 @@ const styles = StyleSheet.create({
   },
   codeLabel: {
     marginBottom: theme.spacing.xs,
+    color: theme.colors.textSecondary,
   },
   code: {
-    fontSize: 48,
-    fontWeight: theme.typography.weights.bold,
+    fontWeight: '700',
     letterSpacing: 8,
-    ...theme.shadows.medium,
+    color: theme.colors.accent,
   },
   hostBadge: {
     marginTop: theme.spacing.sm,
-    fontWeight: theme.typography.weights.semibold,
+    backgroundColor: theme.colors.accent + '20',
+  },
+  hostBadgeText: {
+    color: theme.colors.accent,
+    fontWeight: '600',
   },
   playersSection: {
     flex: 1,
@@ -201,6 +214,7 @@ const styles = StyleSheet.create({
   playerCount: {
     textAlign: 'center',
     marginTop: theme.spacing.sm,
+    color: theme.colors.textSecondary,
   },
   infoSection: {
     width: '100%',
@@ -209,6 +223,7 @@ const styles = StyleSheet.create({
   },
   infoText: {
     textAlign: 'center',
+    color: theme.colors.textSecondary,
   },
   actions: {
     width: '100%',
@@ -223,6 +238,9 @@ const styles = StyleSheet.create({
   },
   leaveButton: {
     width: '100%',
+  },
+  buttonContent: {
+    paddingVertical: theme.spacing.sm,
   },
 });
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { ScreenContainer, Typography, Button } from '../../components';
+import { Text, Button, Card, ProgressBar, Chip } from 'react-native-paper';
+import { ScreenContainer } from '../../components';
 import { useGame } from '../../game';
 import { useOnlineGame } from '../../contexts';
 import { useGameMode } from '../../hooks/useGameMode';
@@ -78,18 +79,21 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
     return (
       <ScreenContainer>
         <View style={styles.content}>
-          <Typography variant="h2" style={styles.title}>
+          <Text variant="headlineSmall" style={styles.title}>
             Error
-          </Typography>
-          <Typography variant="body" color={theme.colors.error}>
+          </Text>
+          <Text variant="bodyLarge" style={styles.errorText}>
             No se pudo asignar los roles. Vuelve al lobby.
-          </Typography>
+          </Text>
           <Button
-            title="Volver al Lobby"
-            variant="accent"
+            mode="contained"
             onPress={() => navigation.navigate('Lobby')}
             style={styles.button}
-          />
+            contentStyle={styles.buttonContent}
+            icon="arrow-left"
+          >
+            Volver al Lobby
+          </Button>
         </View>
       </ScreenContainer>
     );
@@ -100,99 +104,135 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
     return (
       <ScreenContainer>
         <View style={styles.content}>
-          <Typography variant="h2" style={styles.title}>
-            ¡Todos han visto su rol!
-          </Typography>
-          <Typography variant="bodyLarge" color={theme.colors.textSecondary} style={styles.infoText}>
-            Ahora pueden comenzar las rondas de pistas
-          </Typography>
-          <View style={styles.actions}>
-            <Button
-              title="Continuar"
-              variant="accent"
-              onPress={handleContinue}
-              style={styles.button}
-            />
-          </View>
+          <Card style={styles.successCard} mode="elevated">
+            <Card.Content style={styles.successContent}>
+              <Text variant="displaySmall" style={styles.successEmoji}>
+                ✅
+              </Text>
+              <Text variant="headlineSmall" style={styles.title}>
+                ¡Todos han visto su rol!
+              </Text>
+              <Text variant="bodyLarge" style={styles.infoText}>
+                Ahora pueden comenzar las rondas de pistas
+              </Text>
+          <Button
+            mode="contained"
+            onPress={handleContinue}
+            style={styles.button}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="arrow-right"
+            buttonColor={theme.colors.primary}
+            textColor={theme.colors.textLight}
+          >
+            Continuar
+          </Button>
+            </Card.Content>
+          </Card>
         </View>
       </ScreenContainer>
     );
   }
 
   // Mostrar rol del jugador actual
+  const progress = (currentPlayerIndex + 1) / players.length;
+
   return (
     <ScreenContainer>
       <View style={styles.content}>
-        <Typography variant="h3" style={styles.title}>
-          {currentPlayer?.name}
-        </Typography>
-
-        <Typography variant="caption" color={theme.colors.textSecondary} style={styles.subtitle}>
-          Jugador {currentPlayerIndex + 1} de {players.length}
-        </Typography>
+        <View style={styles.header}>
+          <Text variant="headlineMedium" style={styles.playerName}>
+            {currentPlayer?.name}
+          </Text>
+          <Chip icon="account" style={styles.progressChip}>
+            Jugador {currentPlayerIndex + 1} de {players.length}
+          </Chip>
+          <ProgressBar progress={progress} color={theme.colors.accent} style={styles.progressBar} />
+        </View>
 
         {!showRole ? (
-          <View style={styles.roleSection}>
-            <View style={styles.iconContainer}>
-              <Typography variant="h1" style={styles.emoji}>
+          <Card style={styles.revealCard} mode="elevated">
+            <Card.Content style={styles.revealContent}>
+              <Text variant="displayMedium" style={styles.emoji}>
                 👀
-              </Typography>
-            </View>
-            <Typography variant="bodyLarge" color={theme.colors.textSecondary} style={styles.infoText}>
-              Presiona el botón para ver tu rol
-            </Typography>
-            <Button
-              title="🔍 Ver mi Rol"
-              variant="accent"
-              onPress={handleShowRole}
-              style={styles.button}
-            />
-          </View>
+              </Text>
+              <Text variant="titleMedium" style={styles.infoText}>
+                Presiona el botón para ver tu rol
+              </Text>
+              <Button
+                mode="contained"
+                onPress={handleShowRole}
+                style={styles.button}
+                contentStyle={styles.buttonContent}
+                labelStyle={styles.buttonLabel}
+                icon="eye"
+                buttonColor={theme.colors.primary}
+                textColor={theme.colors.textLight}
+              >
+                Ver mi Rol
+              </Button>
+            </Card.Content>
+          </Card>
         ) : (
           <View style={styles.roleSection}>
             {playerInfo?.isImpostor ? (
-              <>
-                <View style={styles.impostorCard}>
-                  <Typography variant="h1" style={styles.emoji}>
+              <Card style={styles.impostorCard} mode="elevated">
+                <Card.Content style={styles.cardContent}>
+                  <Text variant="displayMedium" style={styles.emoji}>
                     🎭
-                  </Typography>
-                <Typography variant="h1" color={theme.colors.error} style={styles.roleText}>
-                  Eres el
-                </Typography>
-                <Typography variant="h1" color={theme.colors.error} style={styles.roleText}>
-                  IMPOSTOR
-                </Typography>
-                <Typography variant="bodyLarge" color={theme.colors.textSecondary} style={styles.instructionText}>
-                  No sabes la palabra secreta. Tu objetivo es descubrirla o hacer que los demás no la descubran.
-                </Typography>
-                </View>
-              </>
+                  </Text>
+                  <Text variant="headlineMedium" style={styles.roleText}>
+                    Eres el
+                  </Text>
+                  <Chip 
+                    icon="alert" 
+                    style={[styles.roleChip, styles.impostorChip]}
+                    textStyle={styles.roleChipText}
+                    selectedColor={theme.colors.textLight}
+                  >
+                    IMPOSTOR
+                  </Chip>
+                  <Text variant="bodyLarge" style={styles.instructionText}>
+                    No sabes la palabra secreta. Tu objetivo es descubrirla o hacer que los demás no la descubran.
+                  </Text>
+                </Card.Content>
+              </Card>
             ) : (
-              <>
-                <View style={styles.normalCard}>
-                  <Typography variant="h1" style={styles.emoji}>
+              <Card style={styles.normalCard} mode="elevated">
+                <Card.Content style={styles.cardContent}>
+                  <Text variant="displayMedium" style={styles.emoji}>
                     ⚽
-                  </Typography>
-                <Typography variant="h4" color={theme.colors.textSecondary} style={styles.labelText}>
-                  La palabra secreta es:
-                </Typography>
-                <Typography variant="h1" color={theme.colors.accent} style={styles.secretWordText}>
-                  {playerInfo?.secretWord}
-                </Typography>
-                <Typography variant="bodyLarge" color={theme.colors.textSecondary} style={styles.instructionText}>
-                  Da pistas sobre esta palabra sin decirla directamente. Encuentra al impostor.
-                </Typography>
-                </View>
-              </>
+                  </Text>
+                  <Text variant="titleMedium" style={styles.labelText}>
+                    La palabra secreta es:
+                  </Text>
+                  <Chip 
+                    icon="lightbulb" 
+                    style={[styles.roleChip, styles.normalChip]}
+                    textStyle={styles.roleChipText}
+                  >
+                    {playerInfo?.secretWord}
+                  </Chip>
+                  <Text variant="bodyLarge" style={styles.instructionText}>
+                    Da pistas sobre esta palabra sin decirla directamente. Encuentra al impostor.
+                  </Text>
+                </Card.Content>
+              </Card>
             )}
 
             <View style={styles.actions}>
               <Button
-                title={currentPlayerIndex < players.length - 1 ? "Siguiente Jugador" : "Continuar"}
-                variant="accent"
+                mode="contained"
                 onPress={handleNextPlayer}
                 style={styles.button}
-              />
+                contentStyle={styles.buttonContent}
+                labelStyle={styles.buttonLabel}
+                icon={currentPlayerIndex < players.length - 1 ? "arrow-right" : "check"}
+                buttonColor={theme.colors.primary}
+                textColor={theme.colors.textLight}
+              >
+                {currentPlayerIndex < players.length - 1 ? "Siguiente Jugador" : "Continuar"}
+              </Button>
             </View>
           </View>
         )}
@@ -208,14 +248,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: theme.spacing.lg,
   },
+  header: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+  },
+  playerName: {
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
+    fontWeight: '700',
+    fontSize: 20,
+    color: theme.colors.text,
+  },
+  progressChip: {
+    marginBottom: theme.spacing.sm,
+  },
+  progressBar: {
+    width: '100%',
+    height: 8,
+    borderRadius: 4,
+    maxWidth: 300,
+  },
   title: {
     marginBottom: theme.spacing.md,
     textAlign: 'center',
-    fontWeight: theme.typography.weights.bold,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
-  subtitle: {
-    marginBottom: theme.spacing.xl,
+  errorText: {
     textAlign: 'center',
+    color: theme.colors.error,
+    marginBottom: theme.spacing.xl,
   },
   roleSection: {
     flex: 1,
@@ -223,69 +286,115 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
-  iconContainer: {
-    marginBottom: theme.spacing.lg,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: theme.colors.accent + '20',
-    justifyContent: 'center',
+  revealCard: {
+    width: '100%',
+    maxWidth: 400,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+  },
+  revealContent: {
     alignItems: 'center',
-    ...theme.shadows.medium,
+    paddingVertical: theme.spacing.md,
   },
   emoji: {
+    marginBottom: theme.spacing.md,
+    textAlign: 'center',
     fontSize: 48,
   },
   impostorCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 24,
-    padding: theme.spacing.xl,
-    borderWidth: 3,
-    borderColor: theme.colors.error,
-    alignItems: 'center',
     width: '100%',
-    maxWidth: 350,
-    ...theme.shadows.large,
+    maxWidth: 400,
+    borderWidth: 3,
+    borderColor: theme.colors.impostor,
+    backgroundColor: theme.colors.surface,
   },
   normalCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 24,
-    padding: theme.spacing.xl,
-    borderWidth: 3,
-    borderColor: theme.colors.accent,
-    alignItems: 'center',
     width: '100%',
-    maxWidth: 350,
-    ...theme.shadows.large,
+    maxWidth: 400,
+    borderWidth: 3,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surface,
+  },
+  cardContent: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xl,
   },
   roleText: {
     textAlign: 'center',
     marginBottom: theme.spacing.sm,
+    fontWeight: '600',
+    color: theme.colors.text,
+  },
+  roleChip: {
+    marginVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  impostorChip: {
+    backgroundColor: theme.colors.impostor, // Rojo fuerte
+    borderWidth: 2,
+    borderColor: theme.colors.impostor,
+  },
+  normalChip: {
+    backgroundColor: theme.colors.primary,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+  },
+  roleChipText: {
+    color: theme.colors.textLight,
+    fontSize: 18,
+    fontWeight: '700',
   },
   labelText: {
     textAlign: 'center',
     marginBottom: theme.spacing.md,
-  },
-  secretWordText: {
-    textAlign: 'center',
-    marginBottom: theme.spacing.xl,
-    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.text,
+    fontWeight: '600',
   },
   instructionText: {
     textAlign: 'center',
-    marginTop: theme.spacing.xl,
-    marginBottom: theme.spacing['2xl'],
-    paddingHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.lg,
+    color: theme.colors.text,
+    paddingHorizontal: theme.spacing.md,
+    lineHeight: 22,
+  },
+  impostorText: {
+    color: theme.colors.impostor,
+    fontWeight: '700',
   },
   infoText: {
     textAlign: 'center',
     marginBottom: theme.spacing.xl,
+    color: theme.colors.text,
+  },
+  successCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderWidth: 3,
+    borderColor: theme.colors.success,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+  },
+  successContent: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xl,
+  },
+  successEmoji: {
+    marginBottom: theme.spacing.md,
   },
   actions: {
     width: '100%',
     maxWidth: 300,
+    marginTop: theme.spacing.xl,
   },
   button: {
     width: '100%',
+    borderRadius: 12,
+  },
+  buttonContent: {
+    paddingVertical: theme.spacing.md,
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

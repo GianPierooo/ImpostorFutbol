@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Typography } from '../Typography';
+import { View, StyleSheet } from 'react-native';
+import { Card, Text, Chip } from 'react-native-paper';
 import { theme } from '../../theme';
 import { GameConfig as GameConfigType } from '../../types';
 
@@ -16,88 +16,71 @@ export const GameConfig: React.FC<GameConfigProps> = ({
   disabled = false,
 }) => {
   const handleRoundChange = (rounds: number | null) => {
-    onChange({ ...config, rounds });
+    if (!disabled) {
+      onChange({ ...config, rounds });
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Typography variant="h4" style={styles.title}>
-        Configuración
-      </Typography>
+    <Card style={styles.container} mode="elevated">
+      <Card.Content>
+        <Text variant="titleLarge" style={styles.title}>
+          Configuración
+        </Text>
 
-      {/* Selector de Rondas */}
-      <View style={styles.section}>
-        <Typography variant="body" color={theme.colors.textSecondary} style={styles.label}>
-          Número de rondas
-        </Typography>
-        <View style={styles.optionsRow}>
-          <TouchableOpacity
-            style={[
-              styles.option,
-              config.rounds === null && styles.optionSelected,
-              disabled && styles.optionDisabled,
-            ]}
-            onPress={() => !disabled && handleRoundChange(null)}
-            disabled={disabled}
-            activeOpacity={0.7}
-          >
-            <Typography
-              variant="body"
-              color={
-                config.rounds === null
-                  ? theme.colors.textLight
-                  : theme.colors.text
-              }
+        <View style={styles.section}>
+          <Text variant="bodyMedium" style={styles.label}>
+            Número de rondas
+          </Text>
+          <View style={styles.optionsRow}>
+            <Chip
+              selected={config.rounds === null}
+              onPress={() => handleRoundChange(null)}
+              disabled={disabled}
+              style={styles.chip}
+              selectedColor={theme.colors.textLight}
             >
               Sin límite
-            </Typography>
-          </TouchableOpacity>
-          {[3, 4, 5, 6].map((rounds) => (
-            <TouchableOpacity
-              key={rounds}
-              style={[
-                styles.option,
-                config.rounds === rounds && styles.optionSelected,
-                disabled && styles.optionDisabled,
-              ]}
-              onPress={() => !disabled && handleRoundChange(rounds)}
-              disabled={disabled}
-              activeOpacity={0.7}
-            >
-              <Typography
-                variant="bodyLarge"
-                color={
-                  config.rounds === rounds
-                    ? theme.colors.textLight
-                    : theme.colors.text
-                }
-                style={styles.optionText}
+            </Chip>
+            {[3, 4, 5, 6].map((rounds) => (
+              <Chip
+                key={rounds}
+                selected={config.rounds === rounds}
+                onPress={() => handleRoundChange(rounds)}
+                disabled={disabled}
+                style={styles.chip}
+                selectedColor={theme.colors.textLight}
               >
                 {rounds}
-              </Typography>
-            </TouchableOpacity>
-          ))}
+              </Chip>
+            ))}
+          </View>
         </View>
-      </View>
-    </View>
+      </Card.Content>
+    </Card>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+    backgroundColor: theme.colors.surface,
   },
   title: {
-    marginBottom: theme.spacing.md,
-    textAlign: 'center',
-  },
-  section: {
-    marginBottom: theme.spacing.lg,
-  },
-  label: {
     marginBottom: theme.spacing.sm,
     textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  section: {
+    marginTop: theme.spacing.sm,
+  },
+  label: {
+    marginBottom: theme.spacing.xs,
+    textAlign: 'center',
+    color: theme.colors.textSecondary,
+    fontSize: 13,
   },
   optionsRow: {
     flexDirection: 'row',
@@ -105,28 +88,8 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     flexWrap: 'wrap',
   },
-  option: {
-    minWidth: 80,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.lg,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...theme.shadows.small,
-  },
-  optionSelected: {
-    backgroundColor: theme.colors.accent,
-    borderColor: theme.colors.accent,
-    ...theme.shadows.accent,
-  },
-  optionDisabled: {
-    opacity: 0.5,
-  },
-  optionText: {
-    fontWeight: theme.typography.weights.semibold,
+  chip: {
+    margin: theme.spacing.xs,
   },
 });
 

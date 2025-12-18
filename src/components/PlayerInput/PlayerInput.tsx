@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
-import { Typography, Button } from '../index';
+import { View, StyleSheet } from 'react-native';
+import { TextInput, Button, HelperText } from 'react-native-paper';
 import { theme } from '../../theme';
 
 interface PlayerInputProps {
@@ -48,7 +48,6 @@ export const PlayerInput: React.FC<PlayerInputProps> = ({
 
   const handleChangeText = (text: string) => {
     setName(text);
-    // Limpiar error cuando el usuario empieza a escribir
     if (error) {
       setError(null);
     }
@@ -58,30 +57,30 @@ export const PlayerInput: React.FC<PlayerInputProps> = ({
     <View style={styles.container}>
       <View style={styles.inputContainer}>
         <TextInput
-          style={[styles.input, error && styles.inputError]}
-          placeholder="Nombre del jugador"
-          placeholderTextColor={theme.colors.textSecondary}
+          mode="outlined"
+          label="Nombre del jugador"
           value={name}
           onChangeText={handleChangeText}
           onSubmitEditing={handleAdd}
           maxLength={20}
           autoCapitalize="words"
           autoCorrect={false}
-        />
-        <Button
-          title="Añadir"
-          variant="accent"
-          onPress={handleAdd}
-          style={styles.addButton}
+          error={!!error}
+          style={styles.input}
+          right={
+            <TextInput.Icon
+              icon="account-plus"
+              onPress={handleAdd}
+              disabled={!name.trim()}
+            />
+          }
         />
       </View>
       
       {error && (
-        <View style={styles.errorContainer}>
-          <Typography variant="caption" color={theme.colors.error}>
-            {error}
-          </Typography>
-        </View>
+        <HelperText type="error" visible={!!error} style={styles.helperText}>
+          {error}
+        </HelperText>
       )}
     </View>
   );
@@ -90,35 +89,16 @@ export const PlayerInput: React.FC<PlayerInputProps> = ({
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    marginBottom: theme.spacing.md,
   },
   inputContainer: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-    alignItems: 'center',
+    width: '100%',
   },
   input: {
     flex: 1,
-    height: 56,
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    paddingHorizontal: theme.spacing.md,
-    fontSize: theme.typography.sizes.base,
-    color: theme.colors.text,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    ...theme.shadows.small,
   },
-  inputError: {
-    borderColor: theme.colors.error,
-  },
-  addButton: {
-    minWidth: 100,
-    paddingHorizontal: theme.spacing.lg,
-  },
-  errorContainer: {
+  helperText: {
     marginTop: theme.spacing.xs,
-    paddingLeft: theme.spacing.sm,
   },
 });
 

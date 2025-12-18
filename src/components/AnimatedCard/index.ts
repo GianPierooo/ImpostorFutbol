@@ -1,0 +1,2 @@
+export { AnimatedCard } from './AnimatedCard';
+

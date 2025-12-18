@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { ScreenContainer, Typography, Button } from '../../components';
+import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { Text, Button, Card, Avatar } from 'react-native-paper';
+import { ScreenContainer } from '../../components';
 import { useGame } from '../../game';
 import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
@@ -77,18 +79,21 @@ export const ResultsScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <ScreenContainer>
         <View style={styles.content}>
-          <Typography variant="h2" style={styles.title}>
+          <Text variant="headlineSmall" style={styles.title}>
             Error
-          </Typography>
-          <Typography variant="body" color={theme.colors.error}>
+          </Text>
+          <Text variant="bodyLarge" style={styles.errorText}>
             No se pudo cargar los resultados. Vuelve al inicio.
-          </Typography>
+          </Text>
           <Button
-            title="Volver al Inicio"
-            variant="accent"
+            mode="contained"
             onPress={handleNewGame}
             style={styles.button}
-          />
+            contentStyle={styles.buttonContent}
+            icon="home"
+          >
+            Volver al Inicio
+          </Button>
         </View>
       </ScreenContainer>
     );
@@ -115,181 +120,238 @@ export const ResultsScreen: React.FC<Props> = ({ navigation, route }) => {
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Typography variant="h1" style={styles.emoji}>
+        <Animated.View
+          entering={FadeInDown.delay(200).springify()}
+          style={styles.header}
+        >
+          <Animated.View
+            entering={FadeInDown.delay(400).springify()}
+            style={styles.iconContainer}
+          >
+            <Text variant="displaySmall" style={styles.emoji}>
               🏆
-            </Typography>
-          </View>
-          <Typography variant="h1" style={styles.title}>
+            </Text>
+          </Animated.View>
+          <Text variant="headlineMedium" style={styles.title}>
             Resultados
-          </Typography>
-        </View>
+          </Text>
+        </Animated.View>
 
         {/* Ganador */}
         {gameWinner && (
-          <View style={styles.winnerSection}>
+          <Animated.View
+            entering={FadeInUp.delay(600).springify()}
+            style={styles.winnerSection}
+          >
             {gameWinner.winner === 'group' ? (
-              <View style={[styles.winnerCard, styles.winnerCardGroup]}>
-                <Typography variant="h2" color={theme.colors.success} style={styles.winnerTitle}>
-                  ¡Ganan los Jugadores!
-                </Typography>
-                <Typography variant="bodyLarge" color={theme.colors.text} style={styles.winnerSubtitle}>
-                  Descubrieron al impostor correctamente
-                </Typography>
-              </View>
+              <Card style={[styles.winnerCard, styles.winnerCardGroup]} mode="elevated">
+                <Card.Content style={styles.winnerContent}>
+                  <Text variant="headlineSmall" style={[styles.winnerTitle, styles.winnerTitleSuccess]}>
+                    ¡Ganan los Jugadores!
+                  </Text>
+                  <Text variant="bodyLarge" style={styles.winnerSubtitle}>
+                    Descubrieron al <Text style={styles.impostorText}>impostor</Text> correctamente
+                  </Text>
+                </Card.Content>
+              </Card>
             ) : (
-              <View style={[styles.winnerCard, styles.winnerCardImpostor]}>
-                <Typography variant="h2" color={theme.colors.error} style={styles.winnerTitle}>
-                  ¡Gana el Impostor!
-                </Typography>
-                <Typography variant="bodyLarge" color={theme.colors.text} style={styles.winnerSubtitle}>
-                  El impostor logró engañar a todos
-                </Typography>
-              </View>
+              <Card style={[styles.winnerCard, styles.winnerCardImpostor]} mode="elevated">
+                <Card.Content style={styles.winnerContent}>
+                  <Text variant="headlineSmall" style={[styles.winnerTitle, styles.winnerTitleError]}>
+                    ¡Gana el <Text style={styles.impostorText}>Impostor</Text>!
+                  </Text>
+                  <Text variant="bodyLarge" style={styles.winnerSubtitle}>
+                    El <Text style={styles.impostorText}>impostor</Text> logró engañar a todos
+                  </Text>
+                </Card.Content>
+              </Card>
             )}
-          </View>
+          </Animated.View>
         )}
 
         {/* Información del Impostor */}
-        <View style={styles.infoSection}>
-          <Typography variant="h3" style={styles.sectionTitle}>
-            El Impostor era:
-          </Typography>
-          <View style={styles.impostorCard}>
-            <View style={styles.impostorAvatar}>
-              <Typography variant="h3" color={theme.colors.textLight} style={styles.impostorInitials}>
-                {getInitials(impostorName)}
-              </Typography>
-            </View>
-            <Typography variant="h2" color={theme.colors.error} style={styles.impostorName}>
-              {impostorName}
-            </Typography>
-          </View>
-        </View>
+        <Animated.View
+          entering={FadeInUp.delay(800).springify()}
+          style={styles.infoSection}
+        >
+          <Text variant="titleLarge" style={styles.sectionTitle}>
+            El <Text style={styles.impostorText}>Impostor</Text> era:
+          </Text>
+          <Card style={styles.impostorCard} mode="elevated">
+            <Card.Content style={styles.impostorCardContent}>
+              <Avatar.Text
+                size={80}
+                label={getInitials(impostorName)}
+                style={styles.impostorAvatar}
+              />
+              <Text variant="headlineSmall" style={[styles.impostorName, styles.impostorNameText]}>
+                {impostorName}
+              </Text>
+            </Card.Content>
+          </Card>
+        </Animated.View>
 
         {/* Palabra Secreta */}
-        <View style={styles.infoSection}>
-          <Typography variant="h3" style={styles.sectionTitle}>
+        <Animated.View
+          entering={FadeInUp.delay(1000).springify()}
+          style={styles.infoSection}
+        >
+          <Text variant="titleLarge" style={styles.sectionTitle}>
             La Palabra Secreta era:
-          </Typography>
-          <View style={styles.secretWordCard}>
-            <Typography variant="h1" color={theme.colors.accent} style={styles.secretWordText}>
-              {secretWord}
-            </Typography>
-          </View>
-        </View>
+          </Text>
+          <Card style={styles.secretWordCard} mode="elevated">
+            <Card.Content style={styles.secretWordContent}>
+              <Text variant="displaySmall" style={styles.secretWordText}>
+                {secretWord}
+              </Text>
+            </Card.Content>
+          </Card>
+        </Animated.View>
 
         {/* Resultados de Votación */}
         {votingResults && (
-          <View style={styles.infoSection}>
-            <Typography variant="h3" style={styles.sectionTitle}>
+          <Animated.View
+            entering={FadeInUp.delay(1200).springify()}
+            style={styles.infoSection}
+          >
+            <Text variant="titleLarge" style={styles.sectionTitle}>
               Resultados de la Votación
-            </Typography>
+            </Text>
             <View style={styles.votesList}>
-              {roleAssignment.players.map((player) => {
+              {roleAssignment.players.map((player, index) => {
                 const voteCount = votingResults.voteCounts[player.id] || 0;
                 const isMostVoted = votingResults.mostVoted === player.id;
                 const isImpostor = player.id === roleAssignment.impostorId;
 
                 return (
-                  <View
+                  <Animated.View
                     key={player.id}
-                    style={[
-                      styles.voteResultCard,
-                      isMostVoted && styles.voteResultCardHighlighted,
-                      isImpostor && styles.voteResultCardImpostor,
-                    ]}
+                    entering={FadeInDown.delay(1400 + index * 100).springify()}
                   >
-                    <View style={styles.voteResultHeader}>
-                      <View style={styles.voteResultInfo}>
-                        <View style={[styles.smallAvatar, isImpostor && styles.smallAvatarImpostor]}>
-                          <Typography variant="caption" color={theme.colors.textLight}>
-                            {getInitials(player.name)}
-                          </Typography>
+                    <Card
+                      style={[
+                        styles.voteResultCard,
+                        isMostVoted && styles.voteResultCardHighlighted,
+                        isImpostor && styles.voteResultCardImpostor,
+                      ]}
+                      mode={isMostVoted ? "elevated" : "outlined"}
+                    >
+                      <Card.Content style={styles.voteResultContent}>
+                        <View style={styles.voteResultHeader}>
+                          <View style={styles.voteResultInfo}>
+                            <Avatar.Text
+                              size={32}
+                              label={getInitials(player.name)}
+                              style={[styles.smallAvatar, isImpostor && styles.smallAvatarImpostor]}
+                            />
+                            <Text variant="titleMedium" style={styles.voteResultName}>
+                              {player.name}
+                            </Text>
+                            {isImpostor && (
+                              <Text variant="bodySmall" style={[styles.impostorBadge, styles.impostorBadgeText]}>
+                                IMPOSTOR
+                              </Text>
+                            )}
+                          </View>
+                          <Text
+                            variant="headlineSmall"
+                            style={[
+                              styles.voteCount,
+                              isMostVoted && styles.voteCountHighlighted,
+                            ]}
+                          >
+                            {voteCount}
+                          </Text>
                         </View>
-                        <Typography variant="bodyLarge" style={styles.voteResultName}>
-                          {player.name}
-                        </Typography>
-                        {isImpostor && (
-                          <Typography variant="caption" color={theme.colors.error} style={styles.impostorBadge}>
-                            IMPOSTOR
-                          </Typography>
+                        {isMostVoted && (
+                          <Text variant="bodySmall" style={styles.mostVotedLabel}>
+                            Más votado
+                          </Text>
                         )}
-                      </View>
-                      <Typography
-                        variant="h3"
-                        color={isMostVoted ? theme.colors.accent : theme.colors.textSecondary}
-                      >
-                        {voteCount}
-                      </Typography>
-                    </View>
-                    {isMostVoted && (
-                      <Typography variant="caption" color={theme.colors.accent} style={styles.mostVotedLabel}>
-                        Más votado
-                      </Typography>
-                    )}
-                  </View>
+                      </Card.Content>
+                    </Card>
+                  </Animated.View>
                 );
               })}
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {/* Detalle de Votos */}
         {votes.length > 0 && (
-          <View style={styles.infoSection}>
-            <Typography variant="h3" style={styles.sectionTitle}>
+          <Animated.View
+            entering={FadeInUp.delay(1600).springify()}
+            style={styles.infoSection}
+          >
+            <Text variant="titleLarge" style={styles.sectionTitle}>
               Detalle de Votos
-            </Typography>
+            </Text>
             <View style={styles.votesDetailList}>
-              {votes.map((vote) => {
+              {votes.map((vote, index) => {
                 const voter = roleAssignment.players.find((p) => p.id === vote.voterId);
                 const target = roleAssignment.players.find((p) => p.id === vote.targetId);
                 const isTargetImpostor = vote.targetId === roleAssignment.impostorId;
 
                 return (
-                  <View key={`${vote.voterId}-${vote.targetId}`} style={styles.voteDetailCard}>
-                    <Typography variant="body" style={styles.voteDetailText}>
-                      <Typography variant="body" style={styles.voteDetailName}>
-                        {vote.voterName}
-                      </Typography>
-                      {' votó por '}
-                      <Typography
-                        variant="body"
-                        color={isTargetImpostor ? theme.colors.error : theme.colors.accent}
-                        style={styles.voteDetailName}
-                      >
-                        {vote.targetName}
-                      </Typography>
-                      {isTargetImpostor && (
-                        <Typography variant="caption" color={theme.colors.error}>
-                          {' (Impostor)'}
-                        </Typography>
-                      )}
-                    </Typography>
-                  </View>
+                  <Animated.View
+                    key={`${vote.voterId}-${vote.targetId}`}
+                    entering={FadeInDown.delay(1800 + index * 50).springify()}
+                  >
+                    <Card style={styles.voteDetailCard} mode="outlined">
+                      <Card.Content>
+                        <Text variant="bodyMedium" style={styles.voteDetailText}>
+                          <Text style={styles.voteDetailName}>{vote.voterName}</Text>
+                          {' votó por '}
+                          <Text
+                            style={[
+                              styles.voteDetailName,
+                              isTargetImpostor ? styles.voteDetailImpostor : styles.voteDetailTarget,
+                            ]}
+                          >
+                            {vote.targetName}
+                          </Text>
+                          {isTargetImpostor && (
+                            <Text style={styles.impostorText}>
+                              {' (Impostor)'}
+                            </Text>
+                          )}
+                        </Text>
+                      </Card.Content>
+                    </Card>
+                  </Animated.View>
                 );
               })}
             </View>
-          </View>
+          </Animated.View>
         )}
 
         {/* Botones de Acción */}
-        <View style={styles.actions}>
+        <Animated.View
+          entering={FadeInUp.delay(2000).springify()}
+          style={styles.actions}
+        >
           <Button
-            title="Jugar Otra Vez"
-            variant="accent"
+            mode="contained"
             onPress={handlePlayAgain}
             style={styles.actionButton}
-          />
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="replay"
+            buttonColor={theme.colors.accent}
+          >
+            Jugar Otra Vez
+          </Button>
           <Button
-            title="Nueva Partida"
-            variant="secondary"
+            mode="outlined"
             onPress={handleNewGame}
             style={styles.actionButton}
-          />
-        </View>
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="home"
+          >
+            Nueva Partida
+          </Button>
+        </Animated.View>
       </ScrollView>
     </ScreenContainer>
   );
@@ -391,17 +453,37 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.weights.bold,
   },
   secretWordCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
-    padding: theme.spacing.xl,
-    alignItems: 'center',
-    borderWidth: 3,
+    marginTop: theme.spacing.md,
+    borderWidth: 2,
     borderColor: theme.colors.accent,
-    ...theme.shadows.large,
+  },
+  secretWordContent: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.lg,
   },
   secretWordText: {
     textAlign: 'center',
-    fontWeight: theme.typography.weights.bold,
+    color: theme.colors.accent,
+    fontWeight: '700',
+  },
+  winnerContent: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.lg,
+  },
+  winnerTitle: {
+    marginBottom: theme.spacing.sm,
+    textAlign: 'center',
+    fontWeight: '700',
+  },
+  winnerTitleSuccess: {
+    color: theme.colors.success,
+  },
+  winnerTitleError: {
+    color: theme.colors.impostor,
+  },
+  winnerSubtitle: {
+    textAlign: 'center',
+    color: theme.colors.text,
   },
   votesList: {
     width: '100%',
@@ -459,19 +541,31 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   voteDetailCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...theme.shadows.small,
   },
   voteDetailText: {
     textAlign: 'center',
+    color: theme.colors.text,
   },
   voteDetailName: {
-    fontWeight: theme.typography.weights.semibold,
+    fontWeight: '600',
+  },
+  voteDetailTarget: {
+    color: theme.colors.accent,
+  },
+  voteDetailImpostor: {
+    color: theme.colors.impostor,
+  },
+  errorText: {
+    textAlign: 'center',
+    color: theme.colors.error,
+    marginBottom: theme.spacing.xl,
+  },
+  buttonContent: {
+    paddingVertical: theme.spacing.sm,
+  },
+  buttonLabel: {
+    fontWeight: '700',
   },
   actions: {
     width: '100%',

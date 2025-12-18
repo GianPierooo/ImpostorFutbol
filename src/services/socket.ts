@@ -38,7 +38,10 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('❌ Error de conexión WebSocket:', error);
+      // Solo mostrar error en desarrollo, no en producción
+      if (__DEV__) {
+        console.warn('⚠️ Error de conexión WebSocket (esto es normal si el servidor no está corriendo):', error.message);
+      }
       this.isConnected = false;
     });
 

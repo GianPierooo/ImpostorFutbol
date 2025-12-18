@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Typography } from '../Typography';
+import { Card, Text, Chip } from 'react-native-paper';
 import { theme } from '../../theme';
 import { Pista } from '../../types';
 
@@ -15,19 +15,26 @@ interface PistaItemProps {
 
 const PistaItem: React.FC<PistaItemProps> = ({ pista }) => {
   return (
-    <View style={styles.pistaCard}>
-      <View style={styles.pistaHeader}>
-        <Typography variant="body" style={styles.playerName}>
-          {pista.playerName}
-        </Typography>
-        <Typography variant="caption" color={theme.colors.textSecondary}>
-          Turno {pista.turn}
-        </Typography>
-      </View>
-      <Typography variant="body" color={theme.colors.text} style={styles.pistaText}>
-        {pista.text}
-      </Typography>
-    </View>
+    <Card style={styles.pistaCard} mode="elevated">
+      <Card.Content>
+        <View style={styles.pistaHeader}>
+          <Text variant="titleMedium" style={styles.playerName}>
+            {pista.playerName}
+          </Text>
+          <Chip 
+            icon="clock" 
+            style={styles.turnChip} 
+            textStyle={styles.turnChipText}
+            compact
+          >
+            Turno {pista.turn}
+          </Chip>
+        </View>
+        <Text variant="bodyLarge" style={styles.pistaText}>
+          {pista.text}
+        </Text>
+      </Card.Content>
+    </Card>
   );
 };
 
@@ -37,21 +44,21 @@ export const PistaHistory: React.FC<PistaHistoryProps> = ({ pistas, currentRound
   if (roundPistas.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Typography variant="body" color={theme.colors.textSecondary} style={styles.emptyText}>
+        <Text variant="bodyLarge" style={styles.emptyText}>
           Aún no hay pistas en esta ronda
-        </Typography>
-        <Typography variant="caption" color={theme.colors.textSecondary}>
+        </Text>
+        <Text variant="bodySmall" style={styles.emptySubtext}>
           Los jugadores comenzarán a dar pistas
-        </Typography>
+        </Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Typography variant="h4" style={styles.title}>
+      <Text variant="titleLarge" style={styles.title}>
         Historial de Pistas
-      </Typography>
+      </Text>
       <View style={styles.listContent}>
         {roundPistas.map((pista) => (
           <PistaItem key={pista.id} pista={pista} />
@@ -69,20 +76,17 @@ const styles = StyleSheet.create({
   title: {
     marginBottom: theme.spacing.md,
     textAlign: 'center',
+    fontWeight: '600',
+    color: theme.colors.text,
+    fontSize: 20,
   },
   listContent: {
     gap: theme.spacing.sm,
   },
   pistaCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.borderLight,
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.accent,
-    ...theme.shadows.small,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
   },
   pistaHeader: {
     flexDirection: 'row',
@@ -91,10 +95,24 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
   },
   playerName: {
-    fontWeight: theme.typography.weights.semibold,
+    fontWeight: '600',
+    flex: 1,
+    color: theme.colors.text,
+    fontSize: 16,
+  },
+  turnChip: {
+    marginLeft: theme.spacing.sm,
+    backgroundColor: theme.colors.primary,
+  },
+  turnChipText: {
+    color: theme.colors.textLight,
+    fontWeight: '600',
   },
   pistaText: {
     marginTop: theme.spacing.xs,
+    color: theme.colors.text,
+    fontSize: 14,
+    lineHeight: 20,
   },
   emptyContainer: {
     flex: 1,
@@ -105,6 +123,11 @@ const styles = StyleSheet.create({
   emptyText: {
     marginBottom: theme.spacing.xs,
     textAlign: 'center',
+    color: theme.colors.textSecondary,
+  },
+  emptySubtext: {
+    textAlign: 'center',
+    color: theme.colors.textMuted,
   },
 });
 

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
-import { ScreenContainer, Typography, Button } from '../../components';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated';
+import { Text, Button, TextInput, Card, Dialog, Portal } from 'react-native-paper';
+import { ScreenContainer } from '../../components';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
@@ -13,10 +15,15 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errorDialog, setErrorDialog] = useState({ visible: false, title: '', message: '' });
+
+  const showError = (title: string, message: string) => {
+    setErrorDialog({ visible: true, title, message });
+  };
 
   const handleCreateRoom = async () => {
     if (!playerName.trim()) {
-      Alert.alert('Error', 'Por favor ingresa tu nombre');
+      showError('Error', 'Por favor ingresa tu nombre');
       return;
     }
 
@@ -36,29 +43,14 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
           playerName: playerName.trim(),
         });
       } else {
-        Alert.alert('Error', result.error || 'No se pudo crear la sala');
+        showError('Error', result.error || 'No se pudo crear la sala');
       }
     } catch (error: any) {
       console.error('Error creating room:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Error al crear la sala';
-      Alert.alert(
+      showError(
         'Error de Red',
-        errorMessage,
-        [
-          { text: 'OK' },
-          {
-            text: 'Verificar Conexión',
-            onPress: () => {
-              // Intentar health check
-              roomsAPI.get('test').catch(() => {
-                Alert.alert(
-                  'Servidor no disponible',
-                  'El servidor no está respondiendo. Verifica que:\n\n1. El backend esté corriendo\n2. Tengas conexión a internet\n3. La IP del servidor sea correcta'
-                );
-              });
-            },
-          },
-        ]
+        errorMessage + '\n\nVerifica que:\n1. El backend esté corriendo\n2. Tengas conexión a internet\n3. La IP del servidor sea correcta'
       );
     } finally {
       setLoading(false);
@@ -67,12 +59,12 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleJoinRoom = async () => {
     if (!playerName.trim()) {
-      Alert.alert('Error', 'Por favor ingresa tu nombre');
+      showError('Error', 'Por favor ingresa tu nombre');
       return;
     }
 
     if (!roomCode.trim()) {
-      Alert.alert('Error', 'Por favor ingresa el código de la sala');
+      showError('Error', 'Por favor ingresa el código de la sala');
       return;
     }
 
@@ -91,29 +83,14 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
           playerName: playerName.trim(),
         });
       } else {
-        Alert.alert('Error', result.error || 'No se pudo unir a la sala');
+        showError('Error', result.error || 'No se pudo unir a la sala');
       }
     } catch (error: any) {
       console.error('Error joining room:', error);
       const errorMessage = error.response?.data?.error || error.message || 'Error al unirse a la sala';
-      Alert.alert(
+      showError(
         'Error de Red',
-        errorMessage,
-        [
-          { text: 'OK' },
-          {
-            text: 'Verificar Conexión',
-            onPress: () => {
-              // Intentar health check
-              roomsAPI.get('test').catch(() => {
-                Alert.alert(
-                  'Servidor no disponible',
-                  'El servidor no está respondiendo. Verifica que:\n\n1. El backend esté corriendo\n2. Tengas conexión a internet\n3. La IP del servidor sea correcta'
-                );
-              });
-            },
-          },
-        ]
+        errorMessage + '\n\nVerifica que:\n1. El backend esté corriendo\n2. Tengas conexión a internet\n3. La IP del servidor sea correcta'
       );
     } finally {
       setLoading(false);
@@ -127,21 +104,28 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Typography variant="h2" style={styles.title}>
+        <Animated.View
+          entering={FadeInDown.delay(200).springify()}
+          style={styles.header}
+        >
+          <Text variant="headlineSmall" style={styles.title}>
             🌐 Modo Online
-          </Typography>
-          <Typography variant="body" color={theme.colors.textSecondary} style={styles.subtitle}>
+          </Text>
+          <Text variant="bodyLarge" style={styles.subtitle}>
             Crea o únete a una partida online
-          </Typography>
-        </View>
+          </Text>
+        </Animated.View>
 
         {/* Input de nombre */}
-        <View style={styles.section}>
-          <Typography variant="body" color={theme.colors.textSecondary} style={styles.label}>
+        <Animated.View
+          entering={FadeInUp.delay(400).springify()}
+          style={styles.section}
+        >
+          <Text variant="bodyMedium" style={styles.label}>
             Tu nombre:
-          </Typography>
+          </Text>
           <TextInput
+            mode="outlined"
             style={styles.input}
             placeholder="Ingresa tu nombre"
             placeholderTextColor={theme.colors.textSecondary}
@@ -150,42 +134,57 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
             maxLength={20}
             autoCapitalize="words"
             editable={!loading}
+            outlineColor={theme.colors.border}
+            activeOutlineColor={theme.colors.primary}
+            theme={{ colors: { text: theme.colors.text } }}
           />
-        </View>
+        </Animated.View>
 
-        {/* Crear sala */}
-        <View style={styles.section}>
-          <Typography variant="h4" style={styles.sectionTitle}>
-            Crear Partida
-          </Typography>
+        {/* Crear sala - Sin título, solo botón */}
+        <Animated.View
+          entering={FadeInUp.delay(600).springify()}
+          style={styles.section}
+        >
           <Button
-            title="🎮 Crear Nueva Partida"
-            variant="accent"
+            mode="contained"
             onPress={handleCreateRoom}
             disabled={loading || !playerName.trim()}
             loading={loading}
             style={styles.button}
-          />
-        </View>
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="gamepad-variant"
+            buttonColor={theme.colors.primary}
+          >
+            Crear Nueva Partida
+          </Button>
+        </Animated.View>
 
         {/* Separador */}
-        <View style={styles.separator}>
+        <Animated.View
+          entering={FadeIn.delay(800)}
+          style={styles.separator}
+        >
           <View style={styles.separatorLine} />
-          <Typography variant="caption" color={theme.colors.textSecondary} style={styles.separatorText}>
+          <Text variant="bodySmall" style={styles.separatorText}>
             O
-          </Typography>
+          </Text>
           <View style={styles.separatorLine} />
-        </View>
+        </Animated.View>
 
         {/* Unirse a sala */}
-        <View style={styles.section}>
-          <Typography variant="h4" style={styles.sectionTitle}>
+        <Animated.View
+          entering={FadeInUp.delay(1000).springify()}
+          style={styles.section}
+        >
+          <Text variant="titleMedium" style={styles.sectionTitle}>
             Unirse a Partida
-          </Typography>
-          <Typography variant="body" color={theme.colors.textSecondary} style={styles.label}>
+          </Text>
+          <Text variant="bodyMedium" style={styles.label}>
             Código de la sala:
-          </Typography>
+          </Text>
           <TextInput
+            mode="outlined"
             style={styles.input}
             placeholder="ABC123"
             placeholderTextColor={theme.colors.textSecondary}
@@ -194,27 +193,67 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
             maxLength={6}
             autoCapitalize="characters"
             editable={!loading}
+            outlineColor={theme.colors.border}
+            activeOutlineColor={theme.colors.primary}
+            theme={{ colors: { text: theme.colors.text } }}
           />
           <Button
-            title="🔗 Unirse"
-            variant="secondary"
+            mode="outlined"
             onPress={handleJoinRoom}
             disabled={loading || !playerName.trim() || !roomCode.trim()}
             loading={loading}
             style={styles.button}
-          />
-        </View>
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="login"
+            textColor={theme.colors.primary}
+            borderColor={theme.colors.primary}
+          >
+            Unirse
+          </Button>
+        </Animated.View>
 
-        {/* Botón volver */}
-        <View style={styles.footer}>
+        {/* Botón volver - Debajo del código de sala */}
+        <Animated.View
+          entering={FadeInUp.delay(1200).springify()}
+          style={styles.backButtonContainer}
+        >
           <Button
-            title="← Volver"
-            variant="secondary"
+            mode="text"
             onPress={() => navigation.goBack()}
             disabled={loading}
             style={styles.backButton}
-          />
-        </View>
+            contentStyle={styles.buttonContent}
+            icon="arrow-left"
+            textColor={theme.colors.textSecondary}
+          >
+            Volver
+          </Button>
+        </Animated.View>
+
+        {/* Dialog de error */}
+        <Portal>
+          <Dialog 
+            visible={errorDialog.visible} 
+            onDismiss={() => setErrorDialog({ ...errorDialog, visible: false })}
+            style={styles.dialog}
+          >
+            <Dialog.Title style={styles.dialogTitle}>{errorDialog.title}</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium" style={styles.dialogMessage}>
+                {errorDialog.message}
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button 
+                onPress={() => setErrorDialog({ ...errorDialog, visible: false })}
+                textColor={theme.colors.primary}
+              >
+                OK
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+        </Portal>
       </ScrollView>
     </ScreenContainer>
   );
@@ -226,66 +265,91 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.md,
   },
   header: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.lg,
     alignItems: 'center',
   },
   title: {
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
     textAlign: 'center',
-    fontWeight: theme.typography.weights.bold,
+    fontWeight: '700',
+    color: theme.colors.text,
+    fontSize: 24,
   },
   subtitle: {
     textAlign: 'center',
+    color: theme.colors.textSecondary,
+    fontSize: 14,
   },
   section: {
     width: '100%',
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
   },
   sectionTitle: {
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
     textAlign: 'center',
+    fontWeight: '600',
+    color: theme.colors.text,
+    fontSize: 18,
   },
   label: {
     marginBottom: theme.spacing.sm,
+    color: theme.colors.textSecondary,
   },
   input: {
     width: '100%',
-    height: 56,
+    marginBottom: theme.spacing.sm,
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    paddingHorizontal: theme.spacing.md,
-    fontSize: theme.typography.sizes.base,
-    color: theme.colors.text,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    marginBottom: theme.spacing.md,
-    ...theme.shadows.small,
   },
   button: {
     width: '100%',
+    borderRadius: 12,
+  },
+  buttonContent: {
+    paddingVertical: theme.spacing.sm,
+  },
+  buttonLabel: {
+    fontWeight: '700',
+    fontSize: 16,
+    letterSpacing: 0.5,
   },
   separator: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: theme.spacing.xl,
+    marginVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
   },
   separatorLine: {
     flex: 1,
     height: 1,
     backgroundColor: theme.colors.border,
+    opacity: 0.5,
   },
   separatorText: {
     marginHorizontal: theme.spacing.md,
+    color: theme.colors.textMuted,
+    fontSize: 14,
   },
-  footer: {
+  backButtonContainer: {
     width: '100%',
-    marginTop: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
+    alignItems: 'center',
   },
   backButton: {
-    width: '100%',
+    alignSelf: 'center',
+  },
+  dialog: {
+    backgroundColor: theme.colors.surface,
+  },
+  dialogTitle: {
+    color: theme.colors.text,
+  },
+  dialogMessage: {
+    color: theme.colors.textSecondary,
   },
 });
 
