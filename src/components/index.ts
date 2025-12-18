@@ -12,4 +12,5 @@ export { PistaHistory } from './PistaHistory';
 export { AnimatedIcon } from './AnimatedIcon';
 export { AnimatedEmoji } from './AnimatedEmoji';
 export { AnimatedButton } from './AnimatedButton';
+export { FlipCard } from './FlipCard';
 

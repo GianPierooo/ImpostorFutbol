@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button, Card, ProgressBar, Chip } from 'react-native-paper';
-import { ScreenContainer, AnimatedEmoji, AnimatedButton } from '../../components';
+import { ScreenContainer, AnimatedEmoji, AnimatedButton, FlipCard } from '../../components';
 import { useGame } from '../../game';
 import { useOnlineGame } from '../../contexts';
 import { useGameMode } from '../../hooks/useGameMode';
@@ -150,72 +150,89 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
           <ProgressBar progress={progress} color={theme.colors.accent} style={styles.progressBar} />
         </View>
 
-        {!showRole ? (
-          <Card style={styles.revealCard} mode="elevated">
-            <Card.Content style={styles.revealContent}>
-              <AnimatedEmoji emoji="👀" animation="pulse" size={48} duration={3500} />
-              <Text variant="titleMedium" style={styles.infoText}>
-                Presiona el botón para ver tu rol
-              </Text>
-              <AnimatedButton
-                mode="contained"
-                onPress={handleShowRole}
-                style={styles.button}
-                contentStyle={styles.buttonContent}
-                labelStyle={styles.buttonLabel}
-                icon="eye"
-                buttonColor={theme.colors.primary}
-                textColor={theme.colors.textLight}
-              >
-                Ver mi Rol
-              </AnimatedButton>
-            </Card.Content>
-          </Card>
-        ) : (
-          <View style={styles.roleSection}>
-            {playerInfo?.isImpostor ? (
-              <Card style={styles.impostorCard} mode="elevated">
-                <Card.Content style={styles.cardContent}>
-                  <AnimatedEmoji emoji="🎭" animation="pulse" size={48} duration={3500} />
-                  <Text variant="headlineMedium" style={styles.roleText}>
-                    Eres el
+        <View style={styles.roleSection}>
+          <FlipCard
+            flipped={showRole}
+            style={styles.flipCardContainer}
+            front={
+              <Card style={styles.revealCard} mode="elevated">
+                <Card.Content style={styles.revealContent}>
+                  <AnimatedEmoji emoji="👀" animation="pulse" size={48} duration={3500} />
+                  <Text variant="titleMedium" style={styles.infoText}>
+                    Presiona el botón para ver tu rol
                   </Text>
-                  <Chip 
-                    icon="alert" 
-                    style={[styles.roleChip, styles.impostorChip]}
-                    textStyle={styles.roleChipText}
-                    selectedColor={theme.colors.textLight}
+                  <AnimatedButton
+                    mode="contained"
+                    onPress={handleShowRole}
+                    style={styles.button}
+                    contentStyle={styles.buttonContent}
+                    labelStyle={styles.buttonLabel}
+                    icon="eye"
+                    buttonColor={theme.colors.primary}
+                    textColor={theme.colors.textLight}
                   >
-                    IMPOSTOR
-                  </Chip>
-                  <Text variant="bodyLarge" style={styles.instructionText}>
-                    No sabes la palabra secreta. Tu objetivo es descubrirla o hacer que los demás no la descubran.
-                  </Text>
+                    Ver mi Rol
+                  </AnimatedButton>
                 </Card.Content>
               </Card>
-            ) : (
-              <Card style={styles.normalCard} mode="elevated">
-                <Card.Content style={styles.cardContent}>
-                  <AnimatedEmoji emoji="⚽" animation="pulse" size={48} duration={3500} />
-                  <Text variant="titleMedium" style={styles.labelText}>
-                    La palabra secreta es:
-                  </Text>
-                  <View style={styles.chipContainer}>
-                    <Chip 
-                      icon="lightbulb" 
-                      style={[styles.roleChip, styles.normalChip]}
-                      textStyle={styles.roleChipText}
-                    >
-                      {playerInfo?.secretWord}
-                    </Chip>
-                  </View>
-                  <Text variant="bodyLarge" style={styles.instructionText}>
-                    Da pistas sobre esta palabra sin decirla directamente. Encuentra al impostor.
-                  </Text>
-                </Card.Content>
-              </Card>
-            )}
+            }
+            back={
+              playerInfo ? (
+                playerInfo.isImpostor ? (
+                  <Card style={styles.impostorCard} mode="elevated">
+                    <Card.Content style={styles.cardContent}>
+                      <AnimatedEmoji emoji="🎭" animation="pulse" size={48} duration={3500} />
+                      <Text variant="headlineMedium" style={styles.roleText}>
+                        Eres el
+                      </Text>
+                      <Chip 
+                        icon="alert" 
+                        style={[styles.roleChip, styles.impostorChip]}
+                        textStyle={styles.roleChipText}
+                        selectedColor={theme.colors.textLight}
+                      >
+                        IMPOSTOR
+                      </Chip>
+                      <Text variant="bodyLarge" style={styles.instructionText}>
+                        No sabes la palabra secreta. Tu objetivo es descubrirla o hacer que los demás no la descubran.
+                      </Text>
+                    </Card.Content>
+                  </Card>
+                ) : (
+                  <Card style={styles.normalCard} mode="elevated">
+                    <Card.Content style={styles.cardContent}>
+                      <AnimatedEmoji emoji="⚽" animation="pulse" size={48} duration={3500} />
+                      <Text variant="titleMedium" style={styles.labelText}>
+                        La palabra secreta es:
+                      </Text>
+                      <View style={styles.chipContainer}>
+                        <Chip 
+                          icon="lightbulb" 
+                          style={[styles.roleChip, styles.normalChip]}
+                          textStyle={styles.roleChipText}
+                        >
+                          {playerInfo.secretWord || 'Cargando...'}
+                        </Chip>
+                      </View>
+                      <Text variant="bodyLarge" style={styles.instructionText}>
+                        Da pistas sobre esta palabra sin decirla directamente. Encuentra al impostor.
+                      </Text>
+                    </Card.Content>
+                  </Card>
+                )
+              ) : (
+                <Card style={styles.revealCard} mode="elevated">
+                  <Card.Content style={styles.revealContent}>
+                    <Text variant="bodyLarge" style={styles.infoText}>
+                      Cargando información del rol...
+                    </Text>
+                  </Card.Content>
+                </Card>
+              )
+            }
+          />
 
+          {showRole && (
             <View style={styles.actions}>
               <AnimatedButton
                 mode="contained"
@@ -230,8 +247,8 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
                 {currentPlayerIndex < players.length - 1 ? "Siguiente Jugador" : "Continuar"}
               </AnimatedButton>
             </View>
-          </View>
-        )}
+          )}
+        </View>
       </View>
     </ScreenContainer>
   );
@@ -281,6 +298,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
+  },
+  flipCardContainer: {
+    width: '100%',
+    minHeight: 400,
+    marginBottom: theme.spacing.xl,
   },
   revealCard: {
     width: '100%',
