@@ -33,6 +33,8 @@ interface OnlineGameContextType {
   changePhase: (phase: GamePhase) => Promise<void>;
   getPlayerRole: (playerId: string) => Promise<any>;
   getVotingResults: () => Promise<VotingResult | null>;
+  markRoleSeen: () => Promise<{ allSeen: boolean }>;
+  getAllRolesSeen: () => Promise<{ allSeen: boolean; playersWhoSeen: number; totalPlayers: number }>;
   
   // Helpers
   getCurrentPlayer: () => Player | null;
@@ -91,8 +93,16 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       }
     };
 
-    const handlePlayerJoined = () => {
-      loadRoomState();
+    const handlePlayerJoined = async (data: any) => {
+      // Si se recibió el estado actualizado en el evento, usarlo directamente
+      if (data.roomState) {
+        setRoomState(data.roomState);
+        setPlayers(data.roomState.players || []);
+        setIsHost(data.roomState.room?.hostId === playerId);
+      } else {
+        // Si no, recargar estado de la sala
+        await loadRoomState();
+      }
     };
 
     const handlePlayerLeft = async (data: any) => {
@@ -149,6 +159,18 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
         setVotes((prev) => {
           const filtered = prev.filter((v) => v.voterId !== data.vote.voterId);
           return [...filtered, data.vote];
+        });
+      }
+      // Actualizar gameState si viene en el evento (para sincronizar currentVoterIndex)
+      if (data.gameState) {
+        setGameState(data.gameState);
+        // Actualizar también el status de la sala
+        setRoomState((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            room: prev.room ? { ...prev.room, status: data.gameState.phase } : { status: data.gameState.phase },
+          };
         });
       }
     };
@@ -386,6 +408,42 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     return null;
   }, [roomCode]);
 
+  const markRoleSeen = useCallback(async (): Promise<{ allSeen: boolean }> => {
+    if (!roomCode || !playerId) {
+      return { allSeen: false };
+    }
+
+    try {
+      const result = await gamesAPI.markRoleSeen(roomCode, playerId);
+      if (result.success) {
+        return { allSeen: result.data.allSeen };
+      }
+    } catch (error) {
+      console.error('Error marking role seen:', error);
+    }
+    return { allSeen: false };
+  }, [roomCode, playerId]);
+
+  const getAllRolesSeen = useCallback(async (): Promise<{ allSeen: boolean; playersWhoSeen: number; totalPlayers: number }> => {
+    if (!roomCode) {
+      return { allSeen: false, playersWhoSeen: 0, totalPlayers: 0 };
+    }
+
+    try {
+      const result = await gamesAPI.getAllRolesSeen(roomCode);
+      if (result.success) {
+        return {
+          allSeen: result.data.allSeen,
+          playersWhoSeen: result.data.playersWhoSeen,
+          totalPlayers: result.data.totalPlayers,
+        };
+      }
+    } catch (error) {
+      console.error('Error getting all roles seen:', error);
+    }
+    return { allSeen: false, playersWhoSeen: 0, totalPlayers: 0 };
+  }, [roomCode]);
+
   const getCurrentPlayer = useCallback((): Player | null => {
     if (!playerId) return null;
     return players.find((p) => p.id === playerId) || null;
@@ -413,6 +471,20 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     }
   }, [roomCode, roomState?.room?.status, loadGameState]);
 
+  // Verificar periódicamente el estado de la sala (solo en lobby para sincronizar jugadores)
+  useEffect(() => {
+    if (!roomCode || !isConnected) return;
+
+    // Solo hacer polling si estamos en lobby
+    if (roomState?.room?.status === 'lobby') {
+      const interval = setInterval(() => {
+        loadRoomState();
+      }, 3000); // Verificar cada 3 segundos
+
+      return () => clearInterval(interval);
+    }
+  }, [roomCode, isConnected, roomState?.room?.status, loadRoomState]);
+
   const value: OnlineGameContextType = {
     roomCode,
     playerId,
@@ -434,6 +506,8 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     changePhase,
     getPlayerRole,
     getVotingResults,
+    markRoleSeen,
+    getAllRolesSeen,
     getCurrentPlayer,
     getPlayerInfo,
   };

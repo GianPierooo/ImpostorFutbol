@@ -184,7 +184,17 @@ function setupSocketHandlers(io) {
         // Notificar a todos en la sala
         io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.VOTE_ADDED, {
           vote: result.vote,
+          gameState: result.gameState,
+          allVotesComplete: result.allVotesComplete,
         });
+
+        // Si todos votaron, notificar cambio de fase
+        if (result.allVotesComplete) {
+          io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PHASE_CHANGED, {
+            phase: result.gameState.phase,
+            gameState: result.gameState,
+          });
+        }
 
         console.log(`🗳️ Voto agregado en sala ${code}: ${voterId} vota por ${targetId}`);
       } catch (error) {

@@ -45,6 +45,9 @@ class GameService {
       await redisService.deleteGameState(code);
     }
 
+    // Limpiar tracking de roles vistos al iniciar un nuevo juego
+    await redisService.clearRolesSeen(code);
+
     // Convertir a formato Player para assignRoles
     const playersForRoles = players.map(p => ({
       id: p.id,
@@ -94,16 +97,16 @@ class GameService {
    * @returns {Promise<object>}
    */
   async addPista(code, playerId, text) {
-    // Validar pista
-    const validation = validatePista(text);
-    if (!validation.valid) {
-      throw new Error(validation.error);
-    }
-
     // Verificar que el juego está en fase de ronda
     const gameState = await redisService.getGameState(code);
     if (!gameState || gameState.phase !== constants.GAME_PHASES.ROUND) {
       throw new Error('No puedes agregar pistas en este momento');
+    }
+
+    // Validar pista (incluyendo validación de palabra secreta)
+    const validation = validatePista(text, gameState.secretWord);
+    if (!validation.valid) {
+      throw new Error(validation.error);
     }
 
     // Verificar que es el turno del jugador
@@ -162,6 +165,13 @@ class GameService {
       throw new Error('No puedes votar en este momento');
     }
 
+    // Verificar que es el turno del votante
+    const players = await redisService.getAllPlayersInfo(code);
+    const currentVoter = players[gameState.currentVoterIndex];
+    if (!currentVoter || currentVoter.id !== voterId) {
+      throw new Error('No es tu turno de votar');
+    }
+
     // Verificar que no se vote a uno mismo
     if (voterId === targetId) {
       throw new Error('No puedes votar por ti mismo');
@@ -182,6 +192,35 @@ class GameService {
     // Guardar voto
     await redisService.addVote(code, voterId, targetId);
 
+    // Verificar si todos los jugadores ya votaron
+    const allVotes = await redisService.getVotes(code);
+    const allPlayersVoted = players.every(player => 
+      Object.keys(allVotes).includes(player.id)
+    );
+
+    // Avanzar al siguiente votante
+    const totalPlayers = players.length;
+    gameState.currentVoterIndex = (gameState.currentVoterIndex + 1) % totalPlayers;
+
+    // Si todos votaron, cambiar a fase de resultados
+    if (allPlayersVoted) {
+      gameState.phase = constants.GAME_PHASES.RESULTS;
+      await redisService.updateRoomStatus(code, constants.GAME_PHASES.RESULTS);
+      
+      // Guardar la partida en PostgreSQL
+      try {
+        const historyService = require('./historyService');
+        const gameData = await this.getGameDataForHistory(code);
+        await historyService.saveGame(gameData);
+        console.log(`✅ Partida ${code} guardada en historial (todos votaron)`);
+      } catch (error) {
+        console.error(`⚠️ Error guardando partida ${code} en historial:`, error.message);
+        // Continuar aunque falle el guardado
+      }
+    }
+
+    await redisService.saveGameState(code, gameState);
+
     return {
       vote: {
         voterId,
@@ -189,6 +228,8 @@ class GameService {
         targetId,
         targetName: targetInfo.name,
       },
+      gameState: await redisService.getGameState(code),
+      allVotesComplete: allPlayersVoted,
     };
   }
 

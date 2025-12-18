@@ -19,7 +19,7 @@ export const useOnlineNavigation = () => {
   useEffect(() => {
     if (!roomCode) return;
 
-    const currentPhase = gameState?.phase || roomState?.status;
+    const currentPhase = gameState?.phase || roomState?.room?.status;
     
     // Solo navegar si la fase cambió
     if (currentPhase && currentPhase !== previousPhaseRef.current) {

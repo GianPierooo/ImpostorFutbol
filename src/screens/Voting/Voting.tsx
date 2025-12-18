@@ -126,6 +126,15 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
   const currentVoter = getCurrentVoter();
   const votingResults = getVotingResults();
 
+  // MODO ONLINE: Verificar si es el turno del jugador actual
+  const isMyTurn = isOnline && onlineGame 
+    ? (() => {
+        if (!gameState || !onlineGame.playerId || !roleAssignment) return false;
+        const currentVoterFromState = roleAssignment.players[gameState.currentVoterIndex];
+        return currentVoterFromState?.id === onlineGame.playerId;
+      })()
+    : true; // En modo local siempre es el turno del votante actual
+
   // Inicializar el votante actual
   useEffect(() => {
     if (currentVoter && !viewingVoterId) {
@@ -175,7 +184,15 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
     
     // Agregar voto según el modo
     if (isOnline && onlineGame) {
-      await onlineGame.addVote(targetId);
+      // En modo online, el voto se envía inmediatamente y el backend avanza automáticamente
+      try {
+        await onlineGame.addVote(targetId);
+        // Limpiar selección después de votar
+        setSelectedTarget(null);
+      } catch (error: any) {
+        // Si hay error, mantener la selección para que el usuario pueda intentar de nuevo
+        console.error('Error al votar:', error);
+      }
     } else if (localGame) {
       localGame.addVote(currentVoter.id, targetId);
     }
@@ -189,15 +206,18 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
 
     if (allVotesComplete()) {
       // Todos votaron, ir a resultados
-      if (isOnline && onlineGame) {
-        await onlineGame.changePhase('results');
+      // En modo online, el backend ya cambió automáticamente la fase a results
+      // La navegación se manejará automáticamente con useOnlineNavigation
+      if (isOnline) {
+        // No necesitamos hacer nada, el backend ya cambió la fase
+        // useOnlineNavigation navegará automáticamente cuando detecte el cambio
       } else if (localGame) {
         localGame.finishVoting();
+        navigation.navigate('Results', { mode, roomCode: route.params?.roomCode });
       }
-      navigation.navigate('Results', { mode, roomCode: route.params?.roomCode });
     } else {
-      // En modo online, el host controla la navegación
-      // En modo local, avanzar al siguiente votante
+      // En modo online, el avance es automático después de votar
+      // En modo local, avanzar al siguiente votante manualmente
       if (!isOnline && localGame) {
         localGame.nextVoter();
         setSelectedTarget(null);
@@ -274,18 +294,43 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
 
         {/* Lista de jugadores para votar */}
         {!allComplete && currentVoter && (
-          <View style={styles.playersSection}>
-            {availablePlayers.map((player) => (
-              <PlayerVoteItem
-                key={player.id}
-                player={player}
-                onVote={handleVote}
-                isSelected={selectedTarget === player.id}
-                voteCount={currentVoteCount[player.id] || 0}
-                canVote={true}
-              />
-            ))}
-          </View>
+          <>
+            {isOnline && !isMyTurn ? (
+              // MODO ONLINE: No es el turno del jugador
+              <Animated.View
+                entering={FadeInUp.delay(600).springify()}
+                style={styles.waitingSection}
+              >
+                <Card style={styles.waitingCard} mode="outlined">
+                  <Card.Content style={styles.waitingContent}>
+                    <Text variant="displaySmall" style={styles.waitingEmoji}>
+                      ⏳
+                    </Text>
+                    <Text variant="bodyLarge" style={styles.waitingText}>
+                      {currentVoter?.name} está votando...
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.waitingSubtext}>
+                      Espera tu turno para votar
+                    </Text>
+                  </Card.Content>
+                </Card>
+              </Animated.View>
+            ) : (
+              // Es el turno del jugador (modo local o online cuando es su turno)
+              <View style={styles.playersSection}>
+                {availablePlayers.map((player) => (
+                  <PlayerVoteItem
+                    key={player.id}
+                    player={player}
+                    onVote={handleVote}
+                    isSelected={selectedTarget === player.id}
+                    voteCount={currentVoteCount[player.id] || 0}
+                    canVote={isMyTurn || !isOnline}
+                  />
+                ))}
+              </View>
+            )}
+          </>
         )}
 
         {/* Resumen de votos (si todos votaron) */}
@@ -357,6 +402,7 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
                 <Button
                   mode="contained"
                   onPress={handleNextVoter}
+                  disabled={isOnline && !isMyTurn}
                   style={[
                     styles.actionButton,
                     roundColors && {
@@ -382,12 +428,16 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
             <Button
               mode="contained"
               onPress={async () => {
-                if (isOnline && onlineGame) {
-                  await onlineGame.changePhase('results');
+                // En modo online, el backend ya cambió automáticamente la fase a results
+                // La navegación se manejará automáticamente con useOnlineNavigation
+                // Solo necesitamos navegar manualmente en modo local
+                if (isOnline) {
+                  // No hacer nada, useOnlineNavigation navegará automáticamente
+                  // cuando detecte que gameState.phase === 'results'
                 } else if (localGame) {
                   localGame.finishVoting();
+                  navigation.navigate('Results', { mode, roomCode: route.params?.roomCode });
                 }
-                navigation.navigate('Results', { mode, roomCode: route.params?.roomCode });
               }}
               style={[
                 styles.actionButton,
@@ -614,5 +664,32 @@ const styles = StyleSheet.create({
   button: {
     width: '100%',
     marginTop: theme.spacing.lg,
+  },
+  waitingSection: {
+    width: '100%',
+    marginBottom: theme.spacing.lg,
+  },
+  waitingCard: {
+    backgroundColor: theme.colors.surface + '80',
+    borderColor: theme.colors.border,
+  },
+  waitingContent: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xl,
+  },
+  waitingEmoji: {
+    marginBottom: theme.spacing.md,
+    fontSize: 48,
+  },
+  waitingText: {
+    textAlign: 'center',
+    marginBottom: theme.spacing.sm,
+    color: theme.colors.text,
+    fontWeight: '600',
+  },
+  waitingSubtext: {
+    textAlign: 'center',
+    color: theme.colors.textSecondary,
+    fontStyle: 'italic',
   },
 });

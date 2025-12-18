@@ -8,7 +8,7 @@ import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { NavigationParamList, Player } from '../../types';
+import { NavigationParamList } from '../../types';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'RoleAssignment'>;
 
@@ -18,7 +18,14 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
   // Usar navegación automática online
   useOnlineNavigation();
   
-  // Usar el contexto apropiado según el modo
+  // Para modo ONLINE: cada jugador ve solo su propio rol
+  const [myRoleInfo, setMyRoleInfo] = useState<any | null>(null);
+  const [showRole, setShowRole] = useState(false);
+  const [hasMarkedSeen, setHasMarkedSeen] = useState(false);
+  const [allPlayersSeen, setAllPlayersSeen] = useState(false);
+  const [rolesSeenStatus, setRolesSeenStatus] = useState({ playersWhoSeen: 0, totalPlayers: 0 });
+
+  // Para modo LOCAL: usar la lógica original
   const roleAssignment = isOnline ? onlineGame?.roleAssignment : localGame?.roleAssignment;
   const getPlayerInfo = isOnline 
     ? (playerId: string) => onlineGame?.getPlayerInfo(playerId) || null
@@ -34,25 +41,74 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
           localGame.nextPhase();
         }
       };
-  
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-  const [showRole, setShowRole] = useState(false);
-  const [allPlayersSeen, setAllPlayersSeen] = useState(false);
 
-  // Usar players de roleAssignment en lugar de route.params para consistencia
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
   const players = roleAssignment?.players || [];
   const currentPlayer = players[currentPlayerIndex];
-  const playerInfo = currentPlayer ? getPlayerInfo(currentPlayer.id) : null;
 
-  // Verificar si todos los jugadores han visto su rol
+  // MODO ONLINE: Cargar el rol del jugador actual
   useEffect(() => {
-    if (players.length > 0 && currentPlayerIndex >= players.length) {
+    if (isOnline && onlineGame?.playerId && onlineGame?.roomCode && !myRoleInfo) {
+      const loadMyRole = async () => {
+        try {
+          const roleInfo = await onlineGame.getPlayerRole(onlineGame.playerId!);
+          if (roleInfo) {
+            setMyRoleInfo(roleInfo);
+          }
+        } catch (error) {
+          console.error('Error loading my role:', error);
+        }
+      };
+      loadMyRole();
+    }
+  }, [isOnline, onlineGame?.playerId, onlineGame?.roomCode, myRoleInfo]);
+
+  // MODO ONLINE: Verificar periódicamente si todos han visto su rol
+  useEffect(() => {
+    if (isOnline && onlineGame?.roomCode && hasMarkedSeen) {
+      const checkAllSeen = async () => {
+        try {
+          const status = await onlineGame.getAllRolesSeen();
+          setRolesSeenStatus({
+            playersWhoSeen: status.playersWhoSeen,
+            totalPlayers: status.totalPlayers,
+          });
+          setAllPlayersSeen(status.allSeen);
+        } catch (error) {
+          console.error('Error checking all roles seen:', error);
+        }
+      };
+
+      checkAllSeen();
+      const interval = setInterval(checkAllSeen, 2000); // Verificar cada 2 segundos
+      return () => clearInterval(interval);
+    }
+  }, [isOnline, onlineGame?.roomCode, hasMarkedSeen]);
+
+  // MODO LOCAL: Verificar si todos los jugadores han visto su rol
+  useEffect(() => {
+    if (!isOnline && players.length > 0 && currentPlayerIndex >= players.length) {
       setAllPlayersSeen(true);
     }
-  }, [currentPlayerIndex, players.length]);
+  }, [currentPlayerIndex, players.length, isOnline]);
 
-  const handleShowRole = () => {
-    setShowRole(true);
+  const handleShowRole = async () => {
+    if (isOnline && onlineGame) {
+      // En modo online, marcar que este jugador vio su rol
+      setShowRole(true);
+      try {
+        const result = await onlineGame.markRoleSeen();
+        setHasMarkedSeen(true);
+        if (result.allSeen) {
+          setAllPlayersSeen(true);
+        }
+      } catch (error) {
+        console.error('Error marking role seen:', error);
+      }
+    } else {
+      // Modo local
+      setShowRole(true);
+    }
   };
 
   const handleNextPlayer = () => {
@@ -75,7 +131,7 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
   };
 
   // Si no hay asignación de roles, mostrar mensaje de error
-  if (!roleAssignment) {
+  if (!roleAssignment && !isOnline) {
     return (
       <ScreenContainer>
         <View style={styles.content}>
@@ -99,7 +155,158 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
     );
   }
 
-  // Si todos los jugadores han visto su rol, mostrar botón de continuar
+  // MODO ONLINE: Mostrar confirmación cuando todos han visto su rol
+  if (isOnline && allPlayersSeen) {
+    return (
+      <ScreenContainer>
+        <View style={styles.content}>
+          <Card style={styles.successCard} mode="elevated">
+            <Card.Content style={styles.successContent}>
+              <Text variant="displaySmall" style={styles.successEmoji}>
+                ✅
+              </Text>
+              <Text variant="headlineSmall" style={styles.title}>
+                ¡Todos han visto su rol!
+              </Text>
+              <Text variant="bodyLarge" style={styles.infoText}>
+                Ahora pueden comenzar las rondas de pistas
+              </Text>
+              {onlineGame?.isHost && (
+                <Button
+                  mode="contained"
+                  onPress={handleContinue}
+                  style={styles.button}
+                  contentStyle={styles.buttonContent}
+                  labelStyle={styles.buttonLabel}
+                  icon="arrow-right"
+                  buttonColor={theme.colors.primary}
+                  textColor={theme.colors.textLight}
+                >
+                  Continuar
+                </Button>
+              )}
+              {!onlineGame?.isHost && (
+                <Text variant="bodyMedium" style={styles.waitingText}>
+                  Esperando a que el host continúe...
+                </Text>
+              )}
+            </Card.Content>
+          </Card>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // MODO ONLINE: Mostrar solo el rol del jugador actual
+  if (isOnline && onlineGame) {
+    const playerInfo = myRoleInfo;
+    
+    if (!showRole) {
+      return (
+        <ScreenContainer>
+          <View style={styles.content}>
+            <Card style={styles.revealCard} mode="elevated">
+              <Card.Content style={styles.revealContent}>
+                <Text variant="displayMedium" style={styles.emoji}>
+                  👀
+                </Text>
+                <Text variant="titleMedium" style={styles.infoText}>
+                  Presiona el botón para ver tu rol
+                </Text>
+                <Button
+                  mode="contained"
+                  onPress={handleShowRole}
+                  style={styles.button}
+                  contentStyle={styles.buttonContent}
+                  labelStyle={styles.buttonLabel}
+                  icon="eye"
+                  buttonColor={theme.colors.primary}
+                  textColor={theme.colors.textLight}
+                >
+                  Ver mi Rol
+                </Button>
+              </Card.Content>
+            </Card>
+          </View>
+        </ScreenContainer>
+      );
+    }
+
+    // Mostrar el rol del jugador
+    return (
+      <ScreenContainer>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text variant="headlineMedium" style={styles.playerName}>
+              {onlineGame.playerName}
+            </Text>
+            {hasMarkedSeen && (
+              <Chip icon="check" style={styles.seenChip}>
+                Has visto tu rol
+              </Chip>
+            )}
+            {hasMarkedSeen && (
+              <Text variant="bodySmall" style={styles.progressText}>
+                {rolesSeenStatus.playersWhoSeen} / {rolesSeenStatus.totalPlayers} jugadores han visto su rol
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.roleSection}>
+            {playerInfo?.isImpostor ? (
+              <Card style={styles.impostorCard} mode="elevated">
+                <Card.Content style={styles.cardContent}>
+                  <Text variant="displayMedium" style={styles.emoji}>
+                    🎭
+                  </Text>
+                  <Text variant="headlineMedium" style={styles.roleText}>
+                    Eres el
+                  </Text>
+                  <Chip 
+                    icon="alert" 
+                    style={[styles.roleChip, styles.impostorChip]}
+                    textStyle={styles.roleChipText}
+                    selectedColor={theme.colors.textLight}
+                  >
+                    IMPOSTOR
+                  </Chip>
+                  <Text variant="bodyLarge" style={styles.instructionText}>
+                    No sabes la palabra secreta. Tu objetivo es descubrirla o hacer que los demás no la descubran.
+                  </Text>
+                </Card.Content>
+              </Card>
+            ) : (
+              <Card style={styles.normalCard} mode="elevated">
+                <Card.Content style={styles.cardContent}>
+                  <Text variant="displayMedium" style={styles.emoji}>
+                    ⚽
+                  </Text>
+                  <Text variant="titleMedium" style={styles.labelText}>
+                    La palabra secreta es:
+                  </Text>
+                  <Chip 
+                    icon="lightbulb" 
+                    style={[styles.roleChip, styles.normalChip]}
+                    textStyle={styles.roleChipText}
+                  >
+                    {playerInfo?.secretWord}
+                  </Chip>
+                  <Text variant="bodyLarge" style={styles.instructionText}>
+                    Da pistas sobre esta palabra sin decirla directamente. Encuentra al impostor.
+                  </Text>
+                </Card.Content>
+              </Card>
+            )}
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // MODO LOCAL: Lógica original (mostrar roles uno por uno)
+  const playerInfo = currentPlayer ? getPlayerInfo(currentPlayer.id) : null;
+  const progress = (currentPlayerIndex + 1) / players.length;
+
   if (allPlayersSeen) {
     return (
       <ScreenContainer>
@@ -133,9 +340,6 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
       </ScreenContainer>
     );
   }
-
-  // Mostrar rol del jugador actual
-  const progress = (currentPlayerIndex + 1) / players.length;
 
   return (
     <ScreenContainer>
@@ -263,6 +467,15 @@ const styles = StyleSheet.create({
   progressChip: {
     marginBottom: theme.spacing.sm,
   },
+  seenChip: {
+    marginBottom: theme.spacing.xs,
+    backgroundColor: theme.colors.success + '20',
+  },
+  progressText: {
+    marginTop: theme.spacing.xs,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
   progressBar: {
     width: '100%',
     height: 8,
@@ -330,7 +543,7 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
   },
   impostorChip: {
-    backgroundColor: theme.colors.impostor, // Rojo fuerte
+    backgroundColor: theme.colors.impostor,
     borderWidth: 2,
     borderColor: theme.colors.impostor,
   },
@@ -365,6 +578,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: theme.spacing.xl,
     color: theme.colors.text,
+  },
+  waitingText: {
+    textAlign: 'center',
+    marginTop: theme.spacing.md,
+    color: theme.colors.textSecondary,
+    fontStyle: 'italic',
   },
   successCard: {
     width: '100%',

@@ -211,6 +211,75 @@ router.get('/:code/voting-results', async (req, res) => {
 });
 
 /**
+ * Marcar que un jugador ha visto su rol
+ * POST /api/games/:code/role-seen
+ * Body: { playerId }
+ */
+router.post('/:code/role-seen', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { playerId } = req.body;
+
+    if (!playerId) {
+      return res.status(400).json({
+        success: false,
+        error: 'playerId es requerido',
+      });
+    }
+
+    await redisService.markRoleSeen(code, playerId);
+
+    // Verificar si todos han visto su rol
+    const players = await redisService.getAllPlayersInfo(code);
+    const playersWhoSeen = await redisService.getPlayersWhoSeenRole(code);
+    const allSeen = players.length === playersWhoSeen.length;
+
+    res.json({
+      success: true,
+      data: {
+        allSeen,
+        playersWhoSeen: playersWhoSeen.length,
+        totalPlayers: players.length,
+      },
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
+ * Verificar si todos los jugadores han visto su rol
+ * GET /api/games/:code/all-roles-seen
+ */
+router.get('/:code/all-roles-seen', async (req, res) => {
+  try {
+    const { code } = req.params;
+
+    const players = await redisService.getAllPlayersInfo(code);
+    const playersWhoSeen = await redisService.getPlayersWhoSeenRole(code);
+    const allSeen = players.length === playersWhoSeen.length;
+
+    res.json({
+      success: true,
+      data: {
+        allSeen,
+        playersWhoSeen: playersWhoSeen.length,
+        totalPlayers: players.length,
+        playersWhoSeenIds: playersWhoSeen,
+      },
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
  * Finalizar y guardar partida en historial
  * POST /api/games/:code/finish
  * Body: { playerId } (debe ser el host)
