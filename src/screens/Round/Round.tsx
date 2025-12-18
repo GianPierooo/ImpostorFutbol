@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, Button, TextInput, Card, Chip, ProgressBar } from 'react-native-paper';
-import { ScreenContainer } from '../../components';
+import { ScreenContainer, AnimatedEmoji } from '../../components';
 import { useGame } from '../../game';
 import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
-import { theme } from '../../theme';
+import { theme, getRoundColorScheme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList, Player } from '../../types';
 
@@ -54,6 +54,12 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
   const currentPlayer = getCurrentPlayer();
   const currentPlayerInfo = viewingPlayerId ? getPlayerInfo(viewingPlayerId) : (currentPlayer ? getPlayerInfo(currentPlayer.id) : null);
   const roundPistas = gameState ? getRoundPistas(gameState.currentRound) : [];
+
+  // Calcular esquema de colores según la ronda
+  const roundColors = useMemo(() => {
+    if (!gameState) return null;
+    return getRoundColorScheme(gameState.currentRound, gameState.maxRounds);
+  }, [gameState?.currentRound, gameState?.maxRounds]);
 
   // Reiniciar cuando cambia la ronda
   useEffect(() => {
@@ -135,7 +141,7 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
 
 
   return (
-    <ScreenContainer>
+    <ScreenContainer backgroundColor={roundColors?.background}>
       <KeyboardAvoidingView
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -150,7 +156,10 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
           <View style={styles.header}>
             <Chip 
               icon="timer" 
-              style={[styles.roundChip, { backgroundColor: theme.colors.primary }]}
+              style={[
+                styles.roundChip,
+                { backgroundColor: roundColors?.accent || theme.colors.primary }
+              ]}
               textStyle={styles.chipText}
             >
               Ronda {gameState.currentRound} {gameState.maxRounds ? `de ${gameState.maxRounds}` : '(sin límite)'}
@@ -160,18 +169,30 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
             </Text>
             <ProgressBar 
               progress={roundPistas.length / (roleAssignment?.players.length || 1)} 
-              color={theme.colors.primary} 
+              color={roundColors?.accent || theme.colors.primary} 
               style={styles.progressBar} 
             />
           </View>
 
           {/* Información del jugador actual */}
           {currentPlayerInfo && (
-            <Card style={styles.infoCard} mode="elevated">
+            <Card 
+              style={[
+                styles.infoCard,
+                roundColors && {
+                  borderColor: roundColors.accent,
+                  backgroundColor: roundColors.surface,
+                }
+              ]} 
+              mode="elevated"
+            >
               <Card.Content style={styles.infoCardContent}>
-                <Text variant="titleLarge" style={styles.instructionTitle}>
-                  🕵️ Busquemos al <Text style={styles.impostorText}>impostor</Text>
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: theme.spacing.sm, flexWrap: 'wrap' }}>
+                  <AnimatedEmoji emoji="🕵️" animation="pulse" size={28} duration={3500} />
+                  <Text variant="titleLarge" style={styles.instructionTitle}>
+                    {' '}Busquemos al <Text style={styles.impostorText}>impostor</Text>
+                  </Text>
+                </View>
                 <Text variant="bodyMedium" style={styles.instructionText}>
                   Da pistas sobre la palabra secreta sin decirla directamente. Observa las pistas de los demás para descubrir quién es el <Text style={styles.impostorText}>impostor</Text>.
                 </Text>
@@ -196,8 +217,8 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
                   numberOfLines={4}
                   maxLength={20}
                   style={styles.input}
-                  outlineColor={theme.colors.border}
-                  activeOutlineColor={theme.colors.primary}
+                  outlineColor={roundColors?.border || theme.colors.border}
+                  activeOutlineColor={roundColors?.accent || theme.colors.primary}
                   theme={{ colors: { text: theme.colors.text } }}
                 />
                 <View style={styles.charCount}>
@@ -213,7 +234,7 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
                   contentStyle={styles.buttonContent}
                   labelStyle={styles.buttonLabel}
                   icon="send"
-                  buttonColor={theme.colors.primary}
+                  buttonColor={roundColors?.accent || theme.colors.primary}
                   textColor={theme.colors.textLight}
                 >
                   Enviar Pista

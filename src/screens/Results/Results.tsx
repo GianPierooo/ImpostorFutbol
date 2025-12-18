@@ -2,13 +2,14 @@ import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Text, Button, Card, Avatar } from 'react-native-paper';
-import { ScreenContainer } from '../../components';
+import { ScreenContainer, AnimatedEmoji } from '../../components';
 import { useGame } from '../../game';
 import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
+import { getPlayerColor } from '../../utils';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Results'>;
 
@@ -128,9 +129,7 @@ export const ResultsScreen: React.FC<Props> = ({ navigation, route }) => {
             entering={FadeInDown.delay(400).springify()}
             style={styles.iconContainer}
           >
-            <Text variant="displaySmall" style={styles.emoji}>
-              🏆
-            </Text>
+            <AnimatedEmoji emoji="🏆" animation="pulse" size={48} duration={3500} />
           </Animated.View>
           <Text variant="headlineMedium" style={styles.title}>
             Resultados
@@ -182,7 +181,10 @@ export const ResultsScreen: React.FC<Props> = ({ navigation, route }) => {
               <Avatar.Text
                 size={80}
                 label={getInitials(impostorName)}
-                style={styles.impostorAvatar}
+                style={[
+                  styles.impostorAvatar,
+                  impostor && { backgroundColor: getPlayerColor(impostor.id) }
+                ]}
               />
               <Text variant="headlineSmall" style={[styles.impostorName, styles.impostorNameText]}>
                 {impostorName}
@@ -242,7 +244,11 @@ export const ResultsScreen: React.FC<Props> = ({ navigation, route }) => {
                             <Avatar.Text
                               size={32}
                               label={getInitials(player.name)}
-                              style={[styles.smallAvatar, isImpostor && styles.smallAvatarImpostor]}
+                              style={[
+                                styles.smallAvatar,
+                                { backgroundColor: getPlayerColor(player.id) },
+                                isImpostor && styles.smallAvatarImpostor
+                              ]}
                             />
                             <Text variant="titleMedium" style={styles.voteResultName}>
                               {player.name}

@@ -71,6 +71,22 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Definir loadRoomState antes del useEffect que lo usa
+  const loadRoomState = useCallback(async () => {
+    if (!roomCode) return;
+
+    try {
+      const result = await roomsAPI.get(roomCode);
+      if (result.success && result.data) {
+        setRoomState(result.data);
+        setPlayers(result.data.players || []);
+        setIsHost(result.data.room?.hostId === playerId);
+      }
+    } catch (error) {
+      console.error('Error loading room state:', error);
+    }
+  }, [roomCode, playerId]);
+
   // Escuchar eventos del WebSocket (solo cuando hay una sala activa)
   useEffect(() => {
     // No conectar automáticamente - solo cuando se une a una sala
@@ -168,21 +184,6 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       socketService.off('phase_changed', handlePhaseChanged);
     };
   }, [roomCode, playerId, loadRoomState]);
-
-  const loadRoomState = useCallback(async () => {
-    if (!roomCode) return;
-
-    try {
-      const result = await roomsAPI.get(roomCode);
-      if (result.success && result.data) {
-        setRoomState(result.data);
-        setPlayers(result.data.players || []);
-        setIsHost(result.data.room?.hostId === playerId);
-      }
-    } catch (error) {
-      console.error('Error loading room state:', error);
-    }
-  }, [roomCode, playerId]);
 
   const loadGameState = useCallback(async () => {
     if (!roomCode) return;

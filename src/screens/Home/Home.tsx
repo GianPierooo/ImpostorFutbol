@@ -8,9 +8,10 @@ import Animated, {
   useAnimatedStyle,
   withRepeat,
   withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { Button, Text } from 'react-native-paper';
-import { ScreenContainer } from '../../components';
+import { ScreenContainer, AnimatedEmoji, AnimatedButton } from '../../components';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
@@ -27,7 +28,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   React.useEffect(() => {
     pulse.value = withRepeat(
-      withTiming(1.1, { duration: 2000 }),
+      withTiming(1.05, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
       -1,
       true
     );
@@ -50,7 +51,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           style={styles.header}
         >
           <Animated.View style={[styles.iconContainer, iconAnimatedStyle]}>
-            <Text style={styles.emoji}>⚽</Text>
+            <AnimatedEmoji emoji="⚽" animation="pulse" size={64} duration={4000} />
           </Animated.View>
           <Animated.Text
             entering={FadeInDown.delay(400).springify()}
@@ -82,7 +83,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           entering={FadeIn.delay(1000)}
           style={styles.actions}
         >
-          <Button
+          <AnimatedButton
             mode="contained"
             onPress={handleStartGame}
             style={styles.startButton}
@@ -93,8 +94,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             textColor={theme.colors.textLight}
           >
             Iniciar Partida
-          </Button>
-          <Button
+          </AnimatedButton>
+          <AnimatedButton
             mode="outlined"
             onPress={() => navigation.navigate('OnlineLobby')}
             style={styles.onlineButton}
@@ -105,7 +106,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             borderColor={theme.colors.primary}
           >
             Modo Online
-          </Button>
+          </AnimatedButton>
         </Animated.View>
       </View>
     </ScreenContainer>

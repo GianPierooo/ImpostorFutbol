@@ -28,7 +28,7 @@ export const useLobby = () => {
     }
 
     const newPlayer: Player = {
-      id: `player-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `player-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       name: trimmedName,
     };
 

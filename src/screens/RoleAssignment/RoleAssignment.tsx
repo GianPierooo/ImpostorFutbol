@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button, Card, ProgressBar, Chip } from 'react-native-paper';
-import { ScreenContainer } from '../../components';
+import { ScreenContainer, AnimatedEmoji, AnimatedButton } from '../../components';
 import { useGame } from '../../game';
 import { useOnlineGame } from '../../contexts';
 import { useGameMode } from '../../hooks/useGameMode';
@@ -153,13 +153,11 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
         {!showRole ? (
           <Card style={styles.revealCard} mode="elevated">
             <Card.Content style={styles.revealContent}>
-              <Text variant="displayMedium" style={styles.emoji}>
-                👀
-              </Text>
+              <AnimatedEmoji emoji="👀" animation="pulse" size={48} duration={3500} />
               <Text variant="titleMedium" style={styles.infoText}>
                 Presiona el botón para ver tu rol
               </Text>
-              <Button
+              <AnimatedButton
                 mode="contained"
                 onPress={handleShowRole}
                 style={styles.button}
@@ -170,7 +168,7 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
                 textColor={theme.colors.textLight}
               >
                 Ver mi Rol
-              </Button>
+              </AnimatedButton>
             </Card.Content>
           </Card>
         ) : (
@@ -178,9 +176,7 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
             {playerInfo?.isImpostor ? (
               <Card style={styles.impostorCard} mode="elevated">
                 <Card.Content style={styles.cardContent}>
-                  <Text variant="displayMedium" style={styles.emoji}>
-                    🎭
-                  </Text>
+                  <AnimatedEmoji emoji="🎭" animation="pulse" size={48} duration={3500} />
                   <Text variant="headlineMedium" style={styles.roleText}>
                     Eres el
                   </Text>
@@ -200,19 +196,19 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
             ) : (
               <Card style={styles.normalCard} mode="elevated">
                 <Card.Content style={styles.cardContent}>
-                  <Text variant="displayMedium" style={styles.emoji}>
-                    ⚽
-                  </Text>
+                  <AnimatedEmoji emoji="⚽" animation="pulse" size={48} duration={3500} />
                   <Text variant="titleMedium" style={styles.labelText}>
                     La palabra secreta es:
                   </Text>
-                  <Chip 
-                    icon="lightbulb" 
-                    style={[styles.roleChip, styles.normalChip]}
-                    textStyle={styles.roleChipText}
-                  >
-                    {playerInfo?.secretWord}
-                  </Chip>
+                  <View style={styles.chipContainer}>
+                    <Chip 
+                      icon="lightbulb" 
+                      style={[styles.roleChip, styles.normalChip]}
+                      textStyle={styles.roleChipText}
+                    >
+                      {playerInfo?.secretWord}
+                    </Chip>
+                  </View>
                   <Text variant="bodyLarge" style={styles.instructionText}>
                     Da pistas sobre esta palabra sin decirla directamente. Encuentra al impostor.
                   </Text>
@@ -221,7 +217,7 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
             )}
 
             <View style={styles.actions}>
-              <Button
+              <AnimatedButton
                 mode="contained"
                 onPress={handleNextPlayer}
                 style={styles.button}
@@ -232,7 +228,7 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
                 textColor={theme.colors.textLight}
               >
                 {currentPlayerIndex < players.length - 1 ? "Siguiente Jugador" : "Continuar"}
-              </Button>
+              </AnimatedButton>
             </View>
           </View>
         )}
@@ -349,6 +345,12 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     color: theme.colors.text,
     fontWeight: '600',
+  },
+  chipContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: theme.spacing.md,
   },
   instructionText: {
     textAlign: 'center',
