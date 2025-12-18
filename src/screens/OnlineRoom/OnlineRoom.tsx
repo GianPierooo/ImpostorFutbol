@@ -23,6 +23,7 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
   } = useOnlineGame();
 
   const [showLeaveDialog, setShowLeaveDialog] = React.useState(false);
+  const [errorDialog, setErrorDialog] = React.useState({ visible: false, message: '' });
 
   // Unirse a la sala cuando se monta
   useEffect(() => {
@@ -45,13 +46,36 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
   useOnlineNavigation();
 
   const handleStartGame = async () => {
-    if (!isHost) return;
-    if (players.length < 3) return;
+    if (!isHost) {
+      setErrorDialog({ visible: true, message: 'Solo el host puede iniciar la partida' });
+      return;
+    }
+    
+    if (players.length < 3) {
+      setErrorDialog({ 
+        visible: true, 
+        message: `Se necesitan al menos 3 jugadores para iniciar. Actualmente hay ${players.length} jugador${players.length === 1 ? '' : 'es'}.` 
+      });
+      return;
+    }
+
+    if (roomState?.room?.status !== 'lobby') {
+      setErrorDialog({ 
+        visible: true, 
+        message: `La sala no está en estado de lobby. Estado actual: ${roomState?.room?.status || 'desconocido'}` 
+      });
+      return;
+    }
 
     try {
       await startGame();
     } catch (error: any) {
-      // Error manejado por el contexto
+      console.error('Error starting game:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Error desconocido al iniciar la partida';
+      setErrorDialog({ 
+        visible: true, 
+        message: `No se pudo iniciar la partida:\n\n${errorMessage}` 
+      });
     }
   };
 
@@ -111,6 +135,13 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
               ? `Esperando más jugadores... (${3 - players.length} más necesario${players.length === 2 ? '' : 's'})`
               : 'Listo para comenzar'}
           </Text>
+          {isHost && (
+            <Text variant="bodySmall" style={[styles.infoText, { marginTop: theme.spacing.xs, fontSize: 12 }]}>
+              Estado: {roomState?.room?.status || 'cargando...'} | 
+              Jugadores: {players.length} | 
+              Host: {isHost ? 'Sí' : 'No'}
+            </Text>
+          )}
         </View>
 
         {/* Botón iniciar (solo host) */}
@@ -127,6 +158,17 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
             >
               Iniciar Partida
             </Button>
+            {!canStart && !loading && (
+              <Text variant="bodySmall" style={[styles.infoText, { marginTop: theme.spacing.xs, textAlign: 'center' }]}>
+                {!isHost 
+                  ? 'Solo el host puede iniciar'
+                  : players.length < 3
+                  ? `Se necesitan al menos 3 jugadores (${players.length}/3)`
+                  : roomState?.room?.status !== 'lobby'
+                  ? `La sala no está lista (estado: ${roomState?.room?.status || 'desconocido'})`
+                  : 'No se puede iniciar la partida'}
+              </Text>
+            )}
           </View>
         )}
 
@@ -158,6 +200,27 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
                 handleLeave();
               }} textColor={theme.colors.error}>
                 Salir
+              </Button>
+            </Dialog.Actions>
+          </Dialog>
+
+          {/* Dialog de error */}
+          <Dialog 
+            visible={errorDialog.visible} 
+            onDismiss={() => setErrorDialog({ ...errorDialog, visible: false })}
+          >
+            <Dialog.Title style={{ color: theme.colors.error }}>Error</Dialog.Title>
+            <Dialog.Content>
+              <Text variant="bodyMedium" style={{ color: theme.colors.text }}>
+                {errorDialog.message}
+              </Text>
+            </Dialog.Content>
+            <Dialog.Actions>
+              <Button 
+                onPress={() => setErrorDialog({ ...errorDialog, visible: false })}
+                textColor={theme.colors.primary}
+              >
+                OK
               </Button>
             </Dialog.Actions>
           </Dialog>

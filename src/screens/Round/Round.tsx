@@ -60,6 +60,19 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!gameState) return null;
     return getRoundColorScheme(gameState.currentRound, gameState.maxRounds);
   }, [gameState?.currentRound, gameState?.maxRounds]);
+  // MODO ONLINE: Verificar si es el turno del jugador actual
+  const isMyTurn = isOnline && onlineGame 
+    ? (() => {
+        if (!gameState || !onlineGame.playerId || !roleAssignment) return false;
+        const currentPlayerFromState = roleAssignment.players[gameState.currentPlayerIndex];
+        return currentPlayerFromState?.id === onlineGame.playerId;
+      })()
+    : true; // En modo local siempre es el turno del jugador actual
+
+  // MODO ONLINE: Obtener el jugador que está escribiendo actualmente
+  const playerWriting = isOnline && roleAssignment && gameState
+    ? roleAssignment.players[gameState.currentPlayerIndex]
+    : currentPlayer;
 
   // Reiniciar cuando cambia la ronda
   useEffect(() => {
@@ -165,7 +178,7 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
               Ronda {gameState.currentRound} {gameState.maxRounds ? `de ${gameState.maxRounds}` : '(sin límite)'}
             </Chip>
             <Text variant="headlineSmall" style={styles.title}>
-              Turno de {currentPlayer?.name || 'Cargando...'}
+              Turno de {playerWriting?.name || 'Cargando...'}
             </Text>
             <ProgressBar 
               progress={roundPistas.length / (roleAssignment?.players.length || 1)} 
@@ -201,11 +214,12 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
           )}
 
           {/* Input para pista */}
-          {currentPlayer && (
+          {isOnline && !isMyTurn ? (
+            // MODO ONLINE: No es el turno del jugador
             <Card style={styles.inputCard} mode="elevated">
               <Card.Content style={styles.inputCardContent}>
                 <Text variant="titleMedium" style={styles.inputLabel}>
-                  Tu pista
+                  Esperando turno
                 </Text>
                 <TextInput
                   mode="outlined"
@@ -239,8 +253,97 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
                 >
                   Enviar Pista
                 </Button>
+                <Card style={styles.waitingCard} mode="outlined">
+                  <Card.Content style={styles.waitingContent}>
+                    <Text variant="displaySmall" style={styles.waitingEmoji}>
+                      ⏳
+                    </Text>
+                    <Text variant="bodyLarge" style={styles.waitingText}>
+                      {playerWriting?.name} está escribiendo su pista...
+                    </Text>
+                    <Text variant="bodyMedium" style={styles.waitingSubtext}>
+                      Espera tu turno para escribir
+                    </Text>
+                  </Card.Content>
+                </Card>
               </Card.Content>
             </Card>
+          ) : (
+            // Es el turno del jugador (modo local o online cuando es su turno)
+            currentPlayer && (
+              <Card style={styles.inputCard} mode="elevated">
+                <Card.Content style={styles.inputCardContent}>
+                  <Text variant="titleMedium" style={styles.inputLabel}>
+                    Tu pista
+                  </Text>
+                  <TextInput
+                    mode="outlined"
+                    placeholder="Escribe tu pista aquí..."
+                    placeholderTextColor={theme.colors.textSecondary}
+                    value={pistaText}
+                    onChangeText={setPistaText}
+                    multiline
+                    numberOfLines={4}
+                    maxLength={20}
+                    style={styles.input}
+                    outlineColor={theme.colors.border}
+                    activeOutlineColor={theme.colors.primary}
+                    theme={{ colors: { text: theme.colors.text } }}
+                    editable={isMyTurn || !isOnline}
+                  />
+                  <View style={styles.charCount}>
+                    <Text variant="bodySmall" style={styles.charCountText}>
+                      {pistaText.length} / 20
+                    </Text>
+                  </View>
+                  <Button
+                    mode="contained"
+                    onPress={handleAddPista}
+                    disabled={!pistaText.trim() || (isOnline && !isMyTurn)}
+                    style={styles.sendButton}
+                    contentStyle={styles.buttonContent}
+                    labelStyle={styles.buttonLabel}
+                    icon="send"
+                    buttonColor={theme.colors.primary}
+                    textColor={theme.colors.textLight}
+                  >
+                    Enviar Pista
+                  </Button>
+                </Card.Content>
+              </Card>
+            )
+          )}
+
+          {/* Botón para host avanzar a Discussion cuando todos dieron pista (solo modo online) */}
+          {isOnline && onlineGame?.isHost && canFinishRound() && (
+            <View style={styles.hostActions}>
+              <Card style={styles.hostCard} mode="elevated">
+                <Card.Content style={styles.hostCardContent}>
+                  <Text variant="titleMedium" style={styles.hostCardTitle}>
+                    ✅ Todos los jugadores han dado su pista
+                  </Text>
+                  <Text variant="bodyMedium" style={styles.hostCardText}>
+                    Como host, puedes avanzar a la discusión
+                  </Text>
+                  <Button
+                    mode="contained"
+                    onPress={async () => {
+                      if (onlineGame) {
+                        await onlineGame.changePhase('discussion');
+                      }
+                    }}
+                    style={styles.continueButton}
+                    contentStyle={styles.buttonContent}
+                    labelStyle={styles.buttonLabel}
+                    icon="arrow-forward"
+                    buttonColor={theme.colors.primary}
+                    textColor={theme.colors.textLight}
+                  >
+                    Ir a Discusión
+                  </Button>
+                </Card.Content>
+              </Card>
+            </View>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -337,6 +440,30 @@ const styles = StyleSheet.create({
   input: {
     marginBottom: theme.spacing.xs,
   },
+  waitingCard: {
+    marginTop: theme.spacing.sm,
+    backgroundColor: theme.colors.surface + '80',
+    borderColor: theme.colors.border,
+  },
+  waitingContent: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.xl,
+  },
+  waitingEmoji: {
+    marginBottom: theme.spacing.md,
+    fontSize: 48,
+  },
+  waitingText: {
+    textAlign: 'center',
+    marginBottom: theme.spacing.sm,
+    color: theme.colors.text,
+    fontWeight: '600',
+  },
+  waitingSubtext: {
+    textAlign: 'center',
+    color: theme.colors.textSecondary,
+    fontStyle: 'italic',
+  },
   charCount: {
     alignItems: 'flex-end',
     marginBottom: theme.spacing.sm,
@@ -350,6 +477,34 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     paddingVertical: theme.spacing.sm,
+  },
+  hostActions: {
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+    paddingHorizontal: theme.spacing.md,
+  },
+  hostCard: {
+    backgroundColor: theme.colors.primaryContainer,
+    borderColor: theme.colors.primary,
+    borderWidth: 2,
+  },
+  hostCardContent: {
+    alignItems: 'center',
+  },
+  hostCardTitle: {
+    marginBottom: theme.spacing.sm,
+    color: theme.colors.primary,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  hostCardText: {
+    marginBottom: theme.spacing.md,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+  },
+  continueButton: {
+    width: '100%',
+    marginTop: theme.spacing.sm,
   },
   buttonLabel: {
     fontSize: 16,

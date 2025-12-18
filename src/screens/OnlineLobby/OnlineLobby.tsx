@@ -6,7 +6,7 @@ import { ScreenContainer } from '../../components';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
-import { roomsAPI } from '../../services';
+import { roomsAPI, healthAPI } from '../../services';
 import { generateId } from '../../utils/generateId';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'OnlineLobby'>;
@@ -29,6 +29,31 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
+      // Primero verificar que el servidor esté disponible
+      try {
+        const healthCheck = await healthAPI.check();
+        // El health check básico devuelve { status: 'ok' }, no { success: true }
+        if (!healthCheck || healthCheck.status !== 'ok') {
+          throw new Error('El servidor no está respondiendo correctamente');
+        }
+      } catch (healthError: any) {
+        console.error('Health check failed:', healthError);
+        showError(
+          'Servidor no disponible',
+          'No se pudo conectar al servidor.\n\n' +
+          'Posibles causas:\n' +
+          '1. El backend no está corriendo en la VM\n' +
+          '2. El servidor Redis no está disponible\n' +
+          '3. Problemas de firewall o red\n\n' +
+          'Verifica en la VM:\n' +
+          '• pm2 status (backend debe estar corriendo)\n' +
+          '• redis-cli ping (Redis debe responder PONG)\n' +
+          '• curl http://163.192.223.30:3000/api/health'
+        );
+        setLoading(false);
+        return;
+      }
+
       const playerId = generateId();
       const result = await roomsAPI.create({
         hostId: playerId,
@@ -47,11 +72,31 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
       }
     } catch (error: any) {
       console.error('Error creating room:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Error al crear la sala';
-      showError(
-        'Error de Red',
-        errorMessage + '\n\nVerifica que:\n1. El backend esté corriendo\n2. Tengas conexión a internet\n3. La IP del servidor sea correcta'
-      );
+      
+      // Mensaje de error más detallado
+      let errorMessage = 'Error al crear la sala';
+      
+      if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
+        errorMessage = 'No se pudo conectar al servidor.\n\n' +
+          'Verifica:\n' +
+          '1. El backend está corriendo (pm2 status)\n' +
+          '2. Redis está disponible (redis-cli ping)\n' +
+          '3. El firewall permite conexiones al puerto 3000\n' +
+          '4. Tienes conexión a internet\n\n' +
+          'IP del servidor: 163.192.223.30:3000';
+      } else if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Tiempo de espera agotado.\n\n' +
+          'El servidor no respondió a tiempo. Verifica que esté activo.';
+      } else if (error.response) {
+        errorMessage = error.response.data?.error || error.message;
+      } else if (error.request) {
+        errorMessage = 'El servidor no respondió.\n\n' +
+          'Verifica que el backend esté corriendo en la VM.';
+      } else {
+        errorMessage = error.message || 'Error desconocido';
+      }
+      
+      showError('Error de Red', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -202,12 +247,11 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
             onPress={handleJoinRoom}
             disabled={loading || !playerName.trim() || !roomCode.trim()}
             loading={loading}
-            style={styles.button}
+            style={[styles.button, { borderColor: theme.colors.primary }]}
             contentStyle={styles.buttonContent}
             labelStyle={styles.buttonLabel}
             icon="login"
             textColor={theme.colors.primary}
-            borderColor={theme.colors.primary}
           >
             Unirse
           </Button>

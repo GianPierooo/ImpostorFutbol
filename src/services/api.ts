@@ -178,6 +178,22 @@ export const gamesAPI = {
     const response = await api.get(`/games/${code}/voting-results`);
     return response.data;
   },
+
+  /**
+   * Marcar que un jugador ha visto su rol
+   */
+  markRoleSeen: async (code: string, playerId: string): Promise<any> => {
+    const response = await api.post(`/games/${code}/role-seen`, { playerId });
+    return response.data;
+  },
+
+  /**
+   * Verificar si todos los jugadores han visto su rol
+   */
+  getAllRolesSeen: async (code: string): Promise<any> => {
+    const response = await api.get(`/games/${code}/all-roles-seen`);
+    return response.data;
+  },
 };
 
 // Health check
