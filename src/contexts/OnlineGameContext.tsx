@@ -119,8 +119,20 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     };
 
     const handleGameStateChanged = (data: any) => {
-      setGameState(data.gameState);
-      setRoleAssignment(data.roleAssignment);
+      if (data.gameState) {
+        setGameState(data.gameState);
+        // Actualizar también el status de la sala cuando cambia el estado del juego
+        setRoomState((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            room: prev.room ? { ...prev.room, status: data.gameState.phase } : { status: data.gameState.phase },
+          };
+        });
+      }
+      if (data.roleAssignment) {
+        setRoleAssignment(data.roleAssignment);
+      }
     };
 
     const handlePistaAdded = (data: any) => {
@@ -282,6 +294,16 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
         socketService.startGame(roomCode, playerId);
         setGameState(result.data.gameState);
         setRoleAssignment(result.data.roleAssignment);
+        // Actualizar también el status de la sala
+        if (result.data.gameState?.phase) {
+          setRoomState((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              room: prev.room ? { ...prev.room, status: result.data.gameState.phase } : { status: result.data.gameState.phase },
+            };
+          });
+        }
       }
     } catch (error) {
       console.error('Error starting game:', error);

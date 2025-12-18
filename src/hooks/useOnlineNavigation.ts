@@ -13,11 +13,11 @@ type NavigationProp = NativeStackNavigationProp<NavigationParamList>;
 
 export const useOnlineNavigation = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { gameState, roomState, roomCode, isOnline } = useOnlineGame();
+  const { gameState, roomState, roomCode } = useOnlineGame();
   const previousPhaseRef = useRef<GamePhase | null>(null);
 
   useEffect(() => {
-    if (!isOnline || !roomCode) return;
+    if (!roomCode) return;
 
     const currentPhase = gameState?.phase || roomState?.status;
     
@@ -61,6 +61,6 @@ export const useOnlineNavigation = () => {
           break;
       }
     }
-  }, [gameState?.phase, roomState?.status, isOnline, roomCode, navigation]);
+  }, [gameState?.phase, roomState?.room?.status, roomCode, navigation]);
 };
 
