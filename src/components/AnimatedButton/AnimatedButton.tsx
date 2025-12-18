@@ -12,7 +12,6 @@ import Animated, {
   FadeIn,
 } from 'react-native-reanimated';
 import { Button, ButtonProps } from 'react-native-paper';
-import { soundService, SoundType } from '../../services';
 
 interface AnimatedButtonProps extends ButtonProps {
   animation?: 'pulse' | 'bounce' | 'glow' | 'none';
@@ -50,9 +49,6 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
   };
 
   const handlePress = (e: any) => {
-    // Reproducir sonido de click
-    soundService.play(SoundType.BUTTON_CLICK);
-    
     // Efecto de bounce al presionar
     scale.value = withSequence(
       withSpring(0.9, { damping: 10, stiffness: 400 }),

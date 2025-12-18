@@ -1,8 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../types';
-import { soundService, SoundType } from '../services';
 
 // Screens
 import { HomeScreen } from '../screens/Home';
@@ -19,20 +18,8 @@ import { theme } from '../theme';
 const Stack = createNativeStackNavigator<NavigationParamList>();
 
 export const AppNavigator: React.FC = () => {
-  const navigationRef = useRef<NavigationContainerRef<NavigationParamList>>(null);
-
-  // Agregar sonido a las transiciones de navegación
-  useEffect(() => {
-    const unsubscribe = navigationRef.current?.addListener('state', () => {
-      // Reproducir sonido de transición cuando cambia la pantalla
-      soundService.play(SoundType.TRANSITION);
-    });
-
-    return unsubscribe;
-  }, []);
-
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer>
       <Stack.Navigator
         screenOptions={{
           headerShown: false, // Pantallas fullscreen para mejor UX
