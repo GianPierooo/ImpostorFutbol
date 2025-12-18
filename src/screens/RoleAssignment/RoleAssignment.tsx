@@ -7,6 +7,7 @@ import { useOnlineGame } from '../../contexts';
 import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme } from '../../theme';
+import { soundService, SoundType } from '../../services';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList, Player } from '../../types';
 
@@ -52,6 +53,12 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
   }, [currentPlayerIndex, players.length]);
 
   const handleShowRole = () => {
+    // Reproducir sonido de revelación
+    soundService.play(SoundType.REVEAL);
+    // Reproducir sonido de flip después de un pequeño delay
+    setTimeout(() => {
+      soundService.play(SoundType.FLIP);
+    }, 200);
     setShowRole(true);
   };
 

@@ -7,6 +7,7 @@ import { useGame } from '../../game';
 import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme, getRoundColorScheme } from '../../theme';
+import { soundService, SoundType } from '../../services';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList, Player } from '../../types';
 import { getPlayerColor } from '../../utils';
@@ -173,6 +174,9 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleVote = async (targetId: string) => {
     if (!currentVoter) return;
+
+    // Reproducir sonido de voto
+    soundService.play(SoundType.VOTE);
 
     setSelectedTarget(targetId);
     
