@@ -111,8 +111,16 @@ class GameService {
 
     // Verificar que es el turno del jugador
     const players = await redisService.getAllPlayersInfo(code);
+    
+    // Validar que el índice esté dentro del rango
+    if (gameState.currentPlayerIndex >= players.length || gameState.currentPlayerIndex < 0) {
+      // Ajustar índice si está fuera de rango
+      gameState.currentPlayerIndex = 0;
+      await redisService.saveGameState(code, gameState);
+    }
+    
     const currentPlayer = players[gameState.currentPlayerIndex];
-    if (currentPlayer.id !== playerId) {
+    if (!currentPlayer || currentPlayer.id !== playerId) {
       throw new Error('No es tu turno');
     }
 
@@ -167,6 +175,14 @@ class GameService {
 
     // Verificar que es el turno del votante
     const players = await redisService.getAllPlayersInfo(code);
+    
+    // Validar que el índice esté dentro del rango
+    if (gameState.currentVoterIndex >= players.length || gameState.currentVoterIndex < 0) {
+      // Ajustar índice si está fuera de rango
+      gameState.currentVoterIndex = 0;
+      await redisService.saveGameState(code, gameState);
+    }
+    
     const currentVoter = players[gameState.currentVoterIndex];
     if (!currentVoter || currentVoter.id !== voterId) {
       throw new Error('No es tu turno de votar');

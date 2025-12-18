@@ -57,6 +57,24 @@ router.get('/:code/state', async (req, res) => {
     const players = await redisService.getAllPlayersInfo(code);
     const pistas = await redisService.getPistas(code);
     const votes = await redisService.getVotes(code);
+    
+    // Reconstruir roleAssignment desde los roles guardados en Redis
+    let roleAssignment = null;
+    if (gameState) {
+      const roles = await redisService.getRoles(code);
+      if (roles && Object.keys(roles).length > 0) {
+        // Construir roleAssignment con los roles y jugadores
+        roleAssignment = {
+          secretWord: gameState.secretWord,
+          impostorId: gameState.impostorId,
+          players: players.map(player => ({
+            id: player.id,
+            name: player.name,
+            role: roles[player.id] || 'normal',
+          })),
+        };
+      }
+    }
 
     res.json({
       success: true,
@@ -66,6 +84,7 @@ router.get('/:code/state', async (req, res) => {
         players,
         pistas,
         votes,
+        roleAssignment,
       },
     });
   } catch (error) {

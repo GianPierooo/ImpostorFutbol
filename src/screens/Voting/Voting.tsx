@@ -120,7 +120,10 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
   const allVotesComplete = isOnline
     ? () => {
         if (!onlineGame || !roleAssignment) return false;
-        return roleAssignment.players.every(p => onlineGame.votes.some(v => v.voterId === p.id));
+        // Usar la lista actual de jugadores en lugar de roleAssignment.players
+        // para evitar problemas si un jugador se desconectó
+        const currentPlayers = onlineGame.players || roleAssignment.players;
+        return currentPlayers.every(p => onlineGame.votes.some(v => v.voterId === p.id));
       }
     : () => localGame?.allVotesComplete() || false;
 
@@ -151,26 +154,36 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [currentVoter, viewingVoterId, votes]);
 
-  // Si no hay estado del juego, mostrar error
+  // MODO ONLINE: Intentar cargar el estado si no está disponible
+  const [loadingState, setLoadingState] = useState(false);
+  useEffect(() => {
+    if (isOnline && onlineGame?.roomCode && onlineGame?.loadGameState && (!gameState || !roleAssignment) && !loadingState) {
+      setLoadingState(true);
+      const loadState = async () => {
+        try {
+          await onlineGame.loadGameState();
+        } catch (error) {
+          console.error('Error loading game state in Voting:', error);
+        } finally {
+          setLoadingState(false);
+        }
+      };
+      loadState();
+    }
+  }, [isOnline, onlineGame?.roomCode, onlineGame?.loadGameState, gameState, roleAssignment, loadingState]);
+
+  // Si no hay estado del juego después de intentar cargarlo, mostrar loading
   if (!gameState || !roleAssignment) {
     return (
       <ScreenContainer>
         <View style={styles.content}>
           <Text variant="headlineSmall" style={styles.title}>
-            Error
+            Cargando...
           </Text>
           <Text variant="bodyLarge" style={styles.errorText}>
-            No se pudo cargar el estado del juego. Vuelve al inicio.
+            Cargando estado del juego...
           </Text>
-          <Button
-            mode="contained"
-            onPress={() => navigation.navigate('Home')}
-            style={styles.button}
-            contentStyle={styles.buttonContent}
-            icon="home"
-          >
-            Volver al Inicio
-          </Button>
+          <ActivityIndicator size="large" style={{ marginTop: 20 }} />
         </View>
       </ScreenContainer>
     );

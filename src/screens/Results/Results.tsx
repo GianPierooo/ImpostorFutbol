@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Text, Button, Card, Avatar } from 'react-native-paper';
 import { ScreenContainer, AnimatedEmoji } from '../../components';
@@ -75,26 +75,36 @@ export const ResultsScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
-  // Si no hay estado del juego, mostrar error
+  // MODO ONLINE: Intentar cargar el estado si no está disponible
+  const [loadingState, setLoadingState] = useState(false);
+  useEffect(() => {
+    if (isOnline && onlineGame?.roomCode && onlineGame?.loadGameState && (!gameState || !roleAssignment) && !loadingState) {
+      setLoadingState(true);
+      const loadState = async () => {
+        try {
+          await onlineGame.loadGameState();
+        } catch (error) {
+          console.error('Error loading game state in Results:', error);
+        } finally {
+          setLoadingState(false);
+        }
+      };
+      loadState();
+    }
+  }, [isOnline, onlineGame?.roomCode, onlineGame?.loadGameState, gameState, roleAssignment, loadingState]);
+
+  // Si no hay estado del juego después de intentar cargarlo, mostrar loading
   if (!gameState || !roleAssignment) {
     return (
       <ScreenContainer>
         <View style={styles.content}>
           <Text variant="headlineSmall" style={styles.title}>
-            Error
+            Cargando...
           </Text>
           <Text variant="bodyLarge" style={styles.errorText}>
-            No se pudo cargar los resultados. Vuelve al inicio.
+            Cargando resultados del juego...
           </Text>
-          <Button
-            mode="contained"
-            onPress={handleNewGame}
-            style={styles.button}
-            contentStyle={styles.buttonContent}
-            icon="home"
-          >
-            Volver al Inicio
-          </Button>
+          <ActivityIndicator size="large" style={{ marginTop: 20 }} />
         </View>
       </ScreenContainer>
     );
