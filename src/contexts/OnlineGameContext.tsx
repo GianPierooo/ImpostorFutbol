@@ -35,6 +35,7 @@ interface OnlineGameContextType {
   getVotingResults: () => Promise<VotingResult | null>;
   markRoleSeen: () => Promise<{ allSeen: boolean }>;
   getAllRolesSeen: () => Promise<{ allSeen: boolean; playersWhoSeen: number; totalPlayers: number }>;
+  loadGameState: () => Promise<void>;
   
   // Helpers
   getCurrentPlayer: () => Player | null;
@@ -233,12 +234,23 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
         setGameState(result.data.gameState);
         setPistas(result.data.pistas || []);
         
+        // Cargar roleAssignment si viene en la respuesta
+        if (result.data.roleAssignment) {
+          setRoleAssignment(result.data.roleAssignment);
+        }
+        
+        // Actualizar players si vienen en la respuesta
+        if (result.data.players) {
+          setPlayers(result.data.players);
+        }
+        
         // Convertir votos del formato del backend
         const votesData = result.data.votes || {};
         const votesArray: Voto[] = [];
+        const currentPlayers = result.data.players || players;
         Object.entries(votesData).forEach(([voterId, targetId]) => {
-          const voter = players.find((p) => p.id === voterId);
-          const target = players.find((p) => p.id === targetId as string);
+          const voter = currentPlayers.find((p: Player) => p.id === voterId);
+          const target = currentPlayers.find((p: Player) => p.id === targetId as string);
           if (voter && target) {
             votesArray.push({
               voterId,
@@ -508,6 +520,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     getVotingResults,
     markRoleSeen,
     getAllRolesSeen,
+    loadGameState,
     getCurrentPlayer,
     getPlayerInfo,
   };
