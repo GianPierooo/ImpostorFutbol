@@ -13,4 +13,5 @@ export { AnimatedIcon } from './AnimatedIcon';
 export { AnimatedEmoji } from './AnimatedEmoji';
 export { AnimatedButton } from './AnimatedButton';
 export { FlipCard } from './FlipCard';
+export { BubbleEffect } from './BubbleEffect';
 

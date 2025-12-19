@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Button, Text, Chip, Portal, Dialog } from 'react-native-paper';
-import { ScreenContainer, PlayerList } from '../../components';
+import { ScreenContainer, PlayerList, BubbleEffect } from '../../components';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
@@ -24,6 +24,37 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const [showLeaveDialog, setShowLeaveDialog] = React.useState(false);
   const [errorDialog, setErrorDialog] = React.useState({ visible: false, message: '' });
+  const [showBubble, setShowBubble] = useState(false);
+  const [bubblePosition, setBubblePosition] = useState<{ x: number; y: number } | undefined>();
+  const [newPlayerId, setNewPlayerId] = useState<string | undefined>();
+  const prevPlayerCountRef = useRef(players.length);
+  const prevPlayersRef = useRef<typeof players>([]);
+  const effectTriggeredRef = useRef<string | null>(null);
+
+  // Detectar cuando se agrega un nuevo jugador (solo una vez por jugador)
+  useEffect(() => {
+    if (players.length > prevPlayerCountRef.current) {
+      // Encontrar el nuevo jugador
+      const newPlayer = players.find(p => !prevPlayersRef.current.some(pp => pp.id === p.id));
+      if (newPlayer && effectTriggeredRef.current !== newPlayer.id) {
+        // Resetear estado del efecto
+        setShowBubble(false);
+        setBubblePosition(undefined);
+        effectTriggeredRef.current = newPlayer.id;
+        setNewPlayerId(newPlayer.id);
+      }
+    }
+    prevPlayerCountRef.current = players.length;
+    prevPlayersRef.current = players;
+  }, [players]);
+
+  const handlePlayerLayout = React.useCallback((playerId: string, x: number, y: number) => {
+    // Solo activar si es el jugador nuevo y el efecto no está ya visible
+    if (playerId === newPlayerId && !showBubble && effectTriggeredRef.current === playerId) {
+      setBubblePosition({ x, y });
+      setShowBubble(true);
+    }
+  }, [newPlayerId, showBubble]);
 
   // Unirse a la sala cuando se monta
   useEffect(() => {
@@ -92,6 +123,19 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <ScreenContainer>
+      <BubbleEffect 
+        visible={showBubble} 
+        position={bubblePosition}
+        onComplete={() => {
+          setShowBubble(false);
+          setBubblePosition(undefined);
+          // Limpiar después de un pequeño delay para evitar re-triggers
+          setTimeout(() => {
+            setNewPlayerId(undefined);
+            effectTriggeredRef.current = null;
+          }, 100);
+        }} 
+      />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -122,6 +166,8 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
           <PlayerList
             players={players.map(p => ({ id: p.id, name: p.name }))}
             onRemove={undefined}
+            onPlayerLayout={handlePlayerLayout}
+            newPlayerId={newPlayerId}
           />
           <Text variant="bodySmall" style={styles.playerCount}>
             {players.length} / 10 jugadores

@@ -592,6 +592,7 @@ const styles = StyleSheet.create({
   roleChip: {
     marginVertical: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
+    alignSelf: 'center',
   },
   impostorChip: {
     backgroundColor: theme.colors.impostor,
@@ -619,6 +620,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
   },
   instructionText: {
     textAlign: 'center',

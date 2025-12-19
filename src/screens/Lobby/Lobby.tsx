@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Button, Card, Chip } from 'react-native-paper';
 import {
   ScreenContainer,
   PlayerInput,
   PlayerList,
+  BubbleEffect,
 } from '../../components';
 import { useLobby } from '../../hooks';
 import { useGame } from '../../game';
@@ -30,8 +31,39 @@ export const LobbyScreen: React.FC<Props> = ({ navigation }) => {
 
   const { startGame } = useGame();
   const [config, setConfig] = useState<GameConfig>(DEFAULT_CONFIG);
+  const [showBubble, setShowBubble] = useState(false);
+  const [bubblePosition, setBubblePosition] = useState<{ x: number; y: number } | undefined>();
+  const [newPlayerId, setNewPlayerId] = useState<string | undefined>();
+  const prevPlayerCountRef = useRef(players.length);
+  const prevPlayersRef = useRef<typeof players>([]);
+  const effectTriggeredRef = useRef<string | null>(null);
 
   const existingNames = players.map(p => p.name);
+
+  // Detectar cuando se agrega un nuevo jugador (solo una vez por jugador)
+  useEffect(() => {
+    if (players.length > prevPlayerCountRef.current) {
+      // Encontrar el nuevo jugador
+      const newPlayer = players.find(p => !prevPlayersRef.current.some(pp => pp.id === p.id));
+      if (newPlayer && effectTriggeredRef.current !== newPlayer.id) {
+        // Resetear estado del efecto
+        setShowBubble(false);
+        setBubblePosition(undefined);
+        effectTriggeredRef.current = newPlayer.id;
+        setNewPlayerId(newPlayer.id);
+      }
+    }
+    prevPlayerCountRef.current = players.length;
+    prevPlayersRef.current = players;
+  }, [players]);
+
+  const handlePlayerLayout = React.useCallback((playerId: string, x: number, y: number) => {
+    // Solo activar si es el jugador nuevo y el efecto no está ya visible
+    if (playerId === newPlayerId && !showBubble && effectTriggeredRef.current === playerId) {
+      setBubblePosition({ x, y });
+      setShowBubble(true);
+    }
+  }, [newPlayerId, showBubble]);
 
   const handleAddPlayer = (name: string) => {
     addPlayer(name);
@@ -56,6 +88,19 @@ export const LobbyScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScreenContainer>
+      <BubbleEffect 
+        visible={showBubble} 
+        position={bubblePosition}
+        onComplete={() => {
+          setShowBubble(false);
+          setBubblePosition(undefined);
+          // Limpiar después de un pequeño delay para evitar re-triggers
+          setTimeout(() => {
+            setNewPlayerId(undefined);
+            effectTriggeredRef.current = null;
+          }, 100);
+        }} 
+      />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -87,7 +132,12 @@ export const LobbyScreen: React.FC<Props> = ({ navigation }) => {
         {/* Lista de jugadores */}
         {playerCount > 0 && (
           <View style={styles.playersSection}>
-            <PlayerList players={players} onRemove={removePlayer} />
+            <PlayerList 
+              players={players} 
+              onRemove={removePlayer}
+              onPlayerLayout={handlePlayerLayout}
+              newPlayerId={newPlayerId}
+            />
           </View>
         )}
 
