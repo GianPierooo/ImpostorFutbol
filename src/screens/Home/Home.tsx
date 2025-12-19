@@ -13,7 +13,7 @@ import Animated, {
   interpolate,
 } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
-import { Button, Text, Divider } from 'react-native-paper';
+import { Button, Text, Divider, IconButton, Portal, Dialog } from 'react-native-paper';
 import { ScreenContainer, AnimatedEmoji, AnimatedButton } from '../../components';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -44,9 +44,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   
 
   React.useEffect(() => {
-    // Pulso suave y elegante del balón
+    // Pulso suave y elegante del balón - más visible
     pulse.value = withRepeat(
-      withTiming(1.05, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
+      withSequence(
+        withTiming(1.08, { duration: 2000, easing: Easing.out(Easing.ease) }),
+        withTiming(1, { duration: 2000, easing: Easing.in(Easing.ease) })
+      ),
       -1,
       true
     );
@@ -142,6 +145,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   });
 
 
+  const [showInfo, setShowInfo] = React.useState(false);
+
   return (
     <ScreenContainer>
       {/* Efecto de respiración muy sutil en el fondo */}
@@ -175,7 +180,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           entering={FadeInDown.delay(200).springify()}
           style={styles.header}
         >
-          {/* Contenedor del icono mejorado */}
+          {/* Contenedor del icono mejorado - Reducido */}
           <View style={styles.iconWrapper}>
             {/* Glow exterior profesional con animación mejorada */}
             <Animated.View style={[styles.iconGlow, iconAnimatedStyle]} />
@@ -186,12 +191,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 colors={['#10B98150', '#16A34A40', '#10B98130']}
                 style={styles.iconGradient}
               >
-                <AnimatedEmoji emoji="⚽" animation="pulse" size={60} duration={4000} />
+                <AnimatedEmoji emoji="⚽" animation="pulse" size={50} duration={4000} />
               </LinearGradient>
             </Animated.View>
           </View>
 
-          {/* Títulos con mejor espaciado */}
+          {/* Títulos con mejor espaciado y contraste mejorado */}
           <Animated.Text
             entering={FadeInDown.delay(400).springify()}
             style={[styles.title, styles.titleImpostor]}
@@ -205,29 +210,27 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             Fútbol
           </Animated.Text>
           
-          {/* Tagline profesional */}
+          {/* Tagline mejorado */}
           <Animated.Text
             entering={FadeInDown.delay(800).springify()}
             style={styles.tagline}
           >
-            El juego de deducción futbolera
+            EL JUEGO DE DEDUCCIÓN FUTBOLERA
           </Animated.Text>
         </Animated.View>
 
-        {/* Descripción mejorada */}
+        {/* Botón de información en esquina */}
         <Animated.View
-          entering={FadeInUp.delay(1000).springify()}
-          style={styles.description}
+          entering={FadeIn.delay(1000)}
+          style={styles.infoButtonContainer}
         >
-          <View style={styles.descriptionCard}>
-            <Text variant="titleMedium" style={styles.subtitle}>
-              ¿Quién es el <Text style={styles.impostorText}>impostor</Text>?
-            </Text>
-            <Text variant="bodyLarge" style={styles.descriptionText}>
-              Da pistas sobre jugadores y equipos de fútbol. El <Text style={styles.impostorText}>impostor</Text> no conoce la palabra secreta. 
-              Descúbrelo antes de que sea demasiado tarde.
-            </Text>
-          </View>
+          <IconButton
+            icon="information-outline"
+            size={24}
+            iconColor={theme.colors.textSecondary}
+            onPress={() => setShowInfo(true)}
+            style={styles.infoButton}
+          />
         </Animated.View>
 
         {/* Botones de acción */}
@@ -235,25 +238,34 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           entering={FadeIn.delay(1200)}
           style={styles.actions}
         >
-          <AnimatedButton
-            mode="contained"
-            onPress={handleStartGame}
-            style={styles.startButton}
-            contentStyle={styles.buttonContent}
-            labelStyle={styles.buttonLabel}
-            icon="play-circle"
-            buttonColor={theme.colors.primary}
-            textColor={theme.colors.textLight}
-          >
-            Iniciar Partida Local
-          </AnimatedButton>
+          <View style={styles.startButtonWrapper}>
+            <LinearGradient
+              colors={[theme.colors.primary, theme.colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.startButtonGradient}
+            >
+              <AnimatedButton
+                mode="contained"
+                onPress={handleStartGame}
+                style={styles.startButton}
+                contentStyle={styles.buttonContent}
+                labelStyle={styles.buttonLabel}
+                icon="whistle-outline"
+                buttonColor="transparent"
+                textColor={theme.colors.textLight}
+              >
+                Iniciar Partida Local
+              </AnimatedButton>
+            </LinearGradient>
+          </View>
           <AnimatedButton
             mode="outlined"
             onPress={() => navigation.navigate('OnlineLobby')}
             style={styles.onlineButton}
             contentStyle={styles.buttonContent}
             labelStyle={[styles.buttonLabel, styles.onlineButtonLabel]}
-            icon="earth"
+            icon="web"
             textColor={theme.colors.primary}
             borderColor={theme.colors.primary}
           >
@@ -304,6 +316,30 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </View>
         </Animated.View>
       </ScrollView>
+
+      {/* Dialog de información */}
+      <Portal>
+        <Dialog 
+          visible={showInfo} 
+          onDismiss={() => setShowInfo(false)}
+          style={styles.dialog}
+        >
+          <Dialog.Title style={styles.dialogTitle}>
+            ¿Quién es el <Text style={styles.impostorText}>impostor</Text>?
+          </Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyLarge" style={styles.dialogText}>
+              Da pistas sobre jugadores y equipos de fútbol. El <Text style={styles.impostorText}>impostor</Text> no conoce la palabra secreta. 
+              Descúbrelo antes de que sea demasiado tarde.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowInfo(false)} textColor={theme.colors.primary}>
+              Entendido
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </ScreenContainer>
   );
 };
@@ -333,19 +369,19 @@ const styles = StyleSheet.create({
     left: 0,
   },
   header: {
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
     alignItems: 'center',
   },
   iconWrapper: {
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconGlow: {
     position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
     backgroundColor: theme.colors.primary + '20',
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 0 },
@@ -355,9 +391,9 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   iconContainer: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -384,14 +420,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: theme.spacing.xs,
     fontWeight: '900',
-    fontSize: 36,
+    fontSize: 32,
     letterSpacing: 1,
   },
   titleImpostor: {
     color: theme.colors.impostor,
-    textShadowColor: theme.colors.impostor + '80',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 25,
+    // Borde blanco sutil para mejor contraste
+    textShadowColor: '#FFFFFF40',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
+    // Glow adicional
+    shadowColor: theme.colors.impostor + '80',
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 20,
   },
   impostorText: {
     color: theme.colors.impostor,
@@ -401,36 +442,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: theme.colors.primary,
     fontWeight: '900',
-    fontSize: 38,
+    fontSize: 34,
     letterSpacing: 1.5,
-    textShadowColor: theme.colors.primary + '80',
-    textShadowOffset: { width: 0, height: 3 },
-    textShadowRadius: 25,
+    // Borde blanco sutil para mejor contraste
+    textShadowColor: '#FFFFFF40',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 12,
+    // Glow adicional
+    shadowColor: theme.colors.primary + '80',
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 20,
     marginBottom: theme.spacing.xs,
   },
   tagline: {
     textAlign: 'center',
     color: theme.colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '500',
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 2, // Tracking más amplio
     marginTop: theme.spacing.xs,
-    fontStyle: 'italic',
+    textTransform: 'uppercase', // Small caps effect
   },
-  description: {
-    marginBottom: theme.spacing.md,
-    alignItems: 'center',
-    width: '100%',
+  infoButtonContainer: {
+    position: 'absolute',
+    top: theme.spacing.md,
+    right: theme.spacing.md,
+    zIndex: 10,
   },
-  descriptionCard: {
+  infoButton: {
     backgroundColor: theme.colors.surface + 'CC',
-    borderRadius: 16,
-    padding: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '30',
-    maxWidth: 380,
-    width: '100%',
-    ...theme.shadows.medium,
+    margin: 0,
   },
   subtitleContainer: {
     marginBottom: theme.spacing.md,
@@ -455,21 +496,32 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     alignSelf: 'center',
   },
-  startButton: {
+  startButtonWrapper: {
     width: '100%',
     borderRadius: 18,
     shadowColor: theme.colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 16,
-    shadowOpacity: 0.5,
-    elevation: 10,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '40',
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 20,
+    shadowOpacity: 0.6,
+    elevation: 12,
+    overflow: 'hidden',
+  },
+  startButtonGradient: {
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  startButton: {
+    width: '100%',
+    borderRadius: 18,
+    borderWidth: 0,
+    elevation: 0,
   },
   onlineButton: {
     width: '100%',
     borderRadius: 16,
     borderWidth: 2,
+    backgroundColor: 'transparent',
+    // Texto más brillante para mejor contraste
   },
   buttonContent: {
     paddingVertical: theme.spacing.sm,
@@ -483,6 +535,20 @@ const styles = StyleSheet.create({
   onlineButtonLabel: {
     color: theme.colors.primary,
     fontWeight: '800',
+    // Texto más brillante
+    opacity: 1,
+  },
+  dialog: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+  },
+  dialogTitle: {
+    color: theme.colors.text,
+    fontWeight: '700',
+  },
+  dialogText: {
+    color: theme.colors.textSecondary,
+    lineHeight: 22,
   },
   footer: {
     width: '100%',
