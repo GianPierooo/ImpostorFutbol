@@ -14,7 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import { Button, Text, Divider, IconButton, Portal, Dialog } from 'react-native-paper';
-import { ScreenContainer, AnimatedEmoji, AnimatedButton } from '../../components';
+import { ScreenContainer, AnimatedButton, AppLogo } from '../../components';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
@@ -187,12 +187,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             
             {/* Contenedor principal con animaciones profesionales */}
             <Animated.View style={[styles.iconContainer, iconAnimatedStyle, iconContainerAnimatedStyle]}>
-              <LinearGradient
-                colors={['#10B98150', '#16A34A40', '#10B98130']}
-                style={styles.iconGradient}
-              >
-                <AnimatedEmoji emoji="⚽" animation="pulse" size={50} duration={4000} />
-              </LinearGradient>
+              <AppLogo 
+                style={styles.logoImage}
+                animatedStyle={iconAnimatedStyle}
+                size={100}
+              />
             </Animated.View>
           </View>
 
@@ -396,10 +395,9 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: theme.colors.primary + 'CC',
-    overflow: 'hidden',
-    backgroundColor: theme.colors.surface + '95',
+    borderWidth: 0,
+    overflow: 'visible',
+    backgroundColor: 'transparent',
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 10 },
     shadowRadius: 40,
@@ -413,8 +411,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  emoji: {
-    fontSize: 48,
+  logoImage: {
+    width: 100,
+    height: 100,
   },
   title: {
     textAlign: 'center',
