@@ -1,4 +1,5 @@
 import React from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider, Portal } from 'react-native-paper';
 import { AppNavigator } from './src/navigation';
 import { GameProvider } from './src/game';
@@ -18,15 +19,17 @@ import { paperTheme } from './src/theme/paperTheme';
  */
 const App: React.FC = () => {
   return (
-    <PaperProvider theme={paperTheme}>
-      <Portal.Host>
-        <GameProvider>
-          <OnlineGameProvider>
-            <AppNavigator />
-          </OnlineGameProvider>
-        </GameProvider>
-      </Portal.Host>
-    </PaperProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <PaperProvider theme={paperTheme}>
+        <Portal.Host>
+          <GameProvider>
+            <OnlineGameProvider>
+              <AppNavigator />
+            </OnlineGameProvider>
+          </GameProvider>
+        </Portal.Host>
+      </PaperProvider>
+    </GestureHandlerRootView>
   );
 };
 
