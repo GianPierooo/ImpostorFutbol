@@ -1,74 +1,74 @@
 /**
- * Paleta de colores moderna y armoniosa
- * Inspirada en juegos modernos de fútbol y sociales
- * Colores que combinan perfectamente entre sí
+ * Paleta de colores moderna y sofisticada
+ * Inspirada en diseño moderno con colores vibrantes pero elegantes
+ * Mejor contraste y profundidad visual
  */
 
 export const colors = {
-  // Colores principales - Verde fútbol vibrante
-  primary: '#22C55E', // Verde esmeralda brillante (fútbol)
-  secondary: '#3B82F6', // Azul vibrante
+  // Colores principales - Verde césped de fútbol
+  primary: '#16A34A', // Verde césped vibrante (más temático de fútbol)
+  secondary: '#22C55E', // Verde esmeralda brillante
   
-  // Color de acento principal - Rojo fuerte para impostor
-  accent: '#DC2626', // Rojo fuerte pero elegante
-  accentLight: '#EF4444', // Rojo claro
-  accentDark: '#B91C1C', // Rojo oscuro
+  // Color de acento principal - Rojo elegante para impostor
+  accent: '#EF4444', // Rojo coral vibrante pero elegante
+  accentLight: '#F87171', // Rojo claro suave
+  accentDark: '#DC2626', // Rojo oscuro profundo
   
-  // Gradientes armoniosos
-  gradientStart: '#22C55E', // Verde
-  gradientEnd: '#3B82F6', // Azul
-  gradientAccent: ['#DC2626', '#EF4444'], // Rojo gradiente
-  gradientGreen: ['#22C55E', '#4ADE80'], // Verde gradiente
-  gradientBlue: ['#3B82F6', '#60A5FA'], // Azul gradiente
-  gradientNeon: ['#22C55E', '#3B82F6', '#8B5CF6'], // Gradiente armonioso
+  // Gradientes armoniosos mejorados
+  gradientStart: '#10B981', // Verde esmeralda
+  gradientEnd: '#6366F1', // Índigo
+  gradientAccent: ['#EF4444', '#F87171'], // Rojo gradiente suave
+  gradientGreen: ['#10B981', '#34D399'], // Verde gradiente más vibrante
+  gradientBlue: ['#6366F1', '#818CF8'], // Índigo gradiente
+  gradientNeon: ['#10B981', '#6366F1', '#A78BFA'], // Gradiente armonioso mejorado
   
-  // Fondos y superficies - Oscuros elegantes con buen contraste
-  background: '#111827', // Gris muy oscuro (gray-900) - elegante
-  backgroundDark: '#030712', // Casi negro
-  surface: '#1F2937', // Gris oscuro para tarjetas (gray-800)
-  surfaceLight: '#374151', // Gris medio (gray-700)
-  surfaceDark: '#111827', // Superficie oscura
-  surfaceNeon: '#1F2937', // Con borde neón
+  // Fondos y superficies - Con más profundidad y elegancia
+  background: '#0F172A', // Azul oscuro profundo (slate-900) - más sofisticado
+  backgroundDark: '#020617', // Casi negro con tinte azul
+  surface: '#1E293B', // Slate-800 - más elegante que gris
+  surfaceLight: '#334155', // Slate-700 - con tinte azul
+  surfaceDark: '#0F172A', // Superficie oscura
+  surfaceNeon: '#1E293B', // Con borde neón
   
-  // Textos - Claros sobre fondo oscuro
-  text: '#F9FAFB', // Blanco suave (gray-50)
-  textSecondary: '#D1D5DB', // Gris claro (gray-300)
+  // Textos - Claros con mejor contraste
+  text: '#F8FAFC', // Blanco casi puro (slate-50)
+  textSecondary: '#CBD5E1', // Gris claro con tinte azul (slate-300)
   textLight: '#FFFFFF', // Blanco puro
-  textMuted: '#9CA3AF', // Gris medio (gray-400)
-  textAccent: '#22C55E', // Verde para acentos
-  textNeon: '#DC2626', // Rojo para destacados
+  textMuted: '#94A3B8', // Gris medio (slate-400)
+  textAccent: '#10B981', // Verde para acentos
+  textNeon: '#EF4444', // Rojo para destacados
   
-  // Estados y acentos - Vibrantes pero armoniosos
-  success: '#22C55E', // Verde esmeralda
-  successLight: '#4ADE80', // Verde claro
-  error: '#FF0000', // Rojo fuerte (impostor)
-  errorLight: '#FF3333', // Rojo claro
+  // Estados y acentos - Más vibrantes y elegantes
+  success: '#10B981', // Verde esmeralda
+  successLight: '#34D399', // Verde claro vibrante
+  error: '#EF4444', // Rojo coral (impostor) - más elegante que #FF0000
+  errorLight: '#F87171', // Rojo claro suave
   warning: '#F59E0B', // Ámbar
   warningLight: '#FBBF24', // Ámbar claro
-  info: '#3B82F6', // Azul
-  impostor: '#FF0000', // Rojo fuerte específico para impostor
+  info: '#6366F1', // Índigo
+  impostor: '#EF4444', // Rojo coral específico para impostor
   
   // Colores especiales del juego
-  normal: '#22C55E', // Verde esmeralda para jugadores normales
-  normalLight: '#4ADE80',
+  normal: '#10B981', // Verde esmeralda para jugadores normales
+  normalLight: '#34D399',
   
-  // Bordes y divisores - Armoniosos
-  border: '#4B5563', // Gris azulado (gray-600)
-  borderLight: '#6B7280', // Gris claro (gray-500)
-  borderNeon: '#22C55E', // Verde para bordes destacados
-  divider: '#374151', // Gris medio (gray-700)
+  // Bordes y divisores - Más elegantes
+  border: '#475569', // Slate-600 - con tinte azul
+  borderLight: '#64748B', // Slate-500
+  borderNeon: '#10B981', // Verde para bordes destacados
+  divider: '#334155', // Slate-700
   
-  // Sombras y efectos - Glow suave
-  shadow: 'rgba(0, 0, 0, 0.3)', // Sombra suave
-  shadowMedium: 'rgba(0, 0, 0, 0.4)', // Sombra media
-  shadowStrong: 'rgba(0, 0, 0, 0.6)', // Sombra fuerte
-  shadowAccent: 'rgba(220, 38, 38, 0.4)', // Sombra roja
-  shadowGlow: 'rgba(34, 197, 94, 0.3)', // Brillo verde
-  shadowNeon: 'rgba(59, 130, 246, 0.4)', // Brillo azul
+  // Sombras y efectos - Glow más sofisticado
+  shadow: 'rgba(15, 23, 42, 0.4)', // Sombra suave con tinte azul
+  shadowMedium: 'rgba(15, 23, 42, 0.5)', // Sombra media
+  shadowStrong: 'rgba(15, 23, 42, 0.7)', // Sombra fuerte
+  shadowAccent: 'rgba(239, 68, 68, 0.4)', // Sombra roja suave
+  shadowGlow: 'rgba(16, 185, 129, 0.4)', // Brillo verde más intenso
+  shadowNeon: 'rgba(99, 102, 241, 0.4)', // Brillo índigo
   
   // Overlay
-  overlay: 'rgba(17, 24, 39, 0.9)', // Overlay muy oscuro
-  overlayLight: 'rgba(17, 24, 39, 0.7)', // Overlay claro
+  overlay: 'rgba(15, 23, 42, 0.95)', // Overlay oscuro con tinte azul
+  overlayLight: 'rgba(15, 23, 42, 0.8)', // Overlay claro
 } as const;
 
 export type ColorName = keyof typeof colors;

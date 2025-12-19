@@ -179,7 +179,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     if (!player) return;
 
     const newPista: Pista = {
-      id: `pista-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: `pista-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
       playerId,
       playerName: player.name,
       text: text.trim(),

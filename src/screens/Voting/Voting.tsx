@@ -2,13 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import Animated, { FadeInDown, FadeInUp, FadeIn } from 'react-native-reanimated';
 import { Card, Avatar, Text, Button } from 'react-native-paper';
-import { ScreenContainer } from '../../components';
+import { ScreenContainer, AnimatedEmoji } from '../../components';
 import { useGame } from '../../game';
 import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme, getRoundColorScheme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList, Player } from '../../types';
+import { getPlayerColor } from '../../utils';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Voting'>;
 
@@ -37,6 +38,7 @@ const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
   };
 
   const initials = getInitials(player.name);
+  const playerColor = getPlayerColor(player.id);
 
   // Usar un delay fijo en lugar de Math.random() para evitar problemas con worklets
   const delay = (player.name.charCodeAt(0) % 200);
@@ -61,6 +63,7 @@ const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
             label={initials}
             style={[
               styles.avatar,
+              { backgroundColor: playerColor },
               isSelected && styles.avatarSelected,
             ]}
           />
@@ -266,9 +269,7 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
             entering={FadeInDown.delay(400).springify()}
             style={styles.iconContainer}
           >
-            <Text variant="displaySmall" style={styles.emoji}>
-              🗳️
-            </Text>
+            <AnimatedEmoji emoji="🗳️" animation="pulse" size={48} duration={3500} />
           </Animated.View>
           <Text variant="headlineMedium" style={styles.title}>
             Votación

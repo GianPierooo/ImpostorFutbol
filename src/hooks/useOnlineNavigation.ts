@@ -15,6 +15,9 @@ export const useOnlineNavigation = () => {
   const navigation = useNavigation<NavigationProp>();
   const { gameState, roomState, roomCode } = useOnlineGame();
   const previousPhaseRef = useRef<GamePhase | null>(null);
+  
+  // Calcular isOnline basado en roomCode
+  const isOnline = roomCode !== null;
 
   useEffect(() => {
     if (!roomCode) return;

@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { Text, Button, Card } from 'react-native-paper';
-import { ScreenContainer, PistaHistory } from '../../components';
+import { ScreenContainer, PistaHistory, AnimatedEmoji } from '../../components';
 import { useGame } from '../../game';
 import { useGameMode } from '../../hooks/useGameMode';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
-import { theme } from '../../theme';
+import { theme, getRoundColorScheme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
 
@@ -83,6 +83,12 @@ export const DiscussionScreen: React.FC<Props> = ({ navigation, route }) => {
   const isLastRound = gameState.maxRounds !== null && roundToShow >= gameState.maxRounds;
   const canFinish = roundToShow >= 3; // Mínimo 3 rondas
 
+  // Calcular esquema de colores según la ronda
+  const roundColors = useMemo(() => {
+    if (!gameState) return null;
+    return getRoundColorScheme(roundToShow, gameState.maxRounds);
+  }, [roundToShow, gameState?.maxRounds]);
+
 
   const handleContinue = async () => {
     // Si es la última ronda, ir a votación
@@ -138,7 +144,7 @@ export const DiscussionScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   return (
-    <ScreenContainer>
+    <ScreenContainer backgroundColor={roundColors?.background}>
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -153,9 +159,7 @@ export const DiscussionScreen: React.FC<Props> = ({ navigation, route }) => {
             entering={FadeInDown.delay(400).springify()}
             style={styles.iconContainer}
           >
-            <Text variant="displaySmall" style={styles.emoji}>
-              💬
-            </Text>
+            <AnimatedEmoji emoji="💬" animation="pulse" size={40} duration={3500} />
           </Animated.View>
           <Text variant="headlineMedium" style={styles.title}>
             Tiempo de Discusión
@@ -166,7 +170,16 @@ export const DiscussionScreen: React.FC<Props> = ({ navigation, route }) => {
         </Animated.View>
 
         {/* Información */}
-        <Card style={styles.infoCard} mode="elevated">
+        <Card 
+          style={[
+            styles.infoCard,
+            roundColors && {
+              borderColor: roundColors.accent,
+              backgroundColor: roundColors.surface,
+            }
+          ]} 
+          mode="elevated"
+        >
           <Card.Content style={styles.infoCardContent}>
             <Text variant="bodyLarge" style={styles.infoText}>
               💭 Discutan las pistas dadas y analicen quién podría ser el <Text style={styles.impostorText}>impostor</Text>.
@@ -201,7 +214,7 @@ export const DiscussionScreen: React.FC<Props> = ({ navigation, route }) => {
             contentStyle={styles.buttonContent}
             labelStyle={styles.buttonLabel}
             icon={isLastRound ? "vote" : "arrow-right"}
-            buttonColor={theme.colors.primary}
+            buttonColor={roundColors?.accent || theme.colors.primary}
             textColor={theme.colors.textLight}
           >
             {isLastRound ? "Ir a Votación" : canFinish ? "Finalizar y Votar" : "Siguiente Ronda"}

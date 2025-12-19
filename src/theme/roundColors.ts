@@ -49,44 +49,45 @@ export const getRoundColorScheme = (
       surface: colors.surface,
       border: colors.border,
     },
-    // Ronda final: Rojo/naranja intenso
+    // Ronda final: Rojo/naranja intenso (manteniendo estética oscura)
     end: {
-      background: '#fff5f5', // Fondo rojizo muy suave
-      accent: '#ff4444', // Rojo intenso
-      surface: '#ffe5e5', // Superficie rojiza suave
-      border: '#ff9999', // Borde rojizo
+      background: colors.background, // Mantener fondo oscuro
+      accent: '#EF4444', // Rojo intenso
+      surface: '#1F2937', // Mantener superficie oscura
+      border: '#EF4444', // Borde rojo
     },
   };
 
   // Colores predefinidos por nivel de intensidad
+  // Manteniendo la estética oscura pero con acentos más visibles
   const getColorByIntensity = (type: 'background' | 'accent' | 'surface' | 'border'): string => {
     if (intensity < 0.33) {
-      // Baja intensidad (rondas iniciales)
-      const colors = {
-        background: '#ffffff',
-        accent: '#00d4ff',
-        surface: '#f8f9fa',
-        border: '#e5e7eb',
+      // Baja intensidad (rondas iniciales) - Verde/Cyan
+      const roundColors = {
+        background: colors.background, // Mantener fondo oscuro
+        accent: '#06B6D4', // Cyan brillante
+        surface: colors.surface, // Mantener superficie oscura
+        border: '#06B6D4', // Borde cyan
       };
-      return colors[type];
+      return roundColors[type];
     } else if (intensity < 0.66) {
-      // Media intensidad (rondas intermedias)
-      const colors = {
-        background: '#fff8f0',
-        accent: '#ff8800',
-        surface: '#ffe8d0',
-        border: '#ffcc99',
+      // Media intensidad (rondas intermedias) - Ámbar/Naranja
+      const roundColors = {
+        background: colors.background, // Mantener fondo oscuro
+        accent: '#F59E0B', // Ámbar vibrante
+        surface: colors.surface, // Mantener superficie oscura
+        border: '#F59E0B', // Borde ámbar
       };
-      return colors[type];
+      return roundColors[type];
     } else {
-      // Alta intensidad (rondas finales)
-      const colors = {
-        background: '#fff5f5',
-        accent: '#ff4444',
-        surface: '#ffe5e5',
-        border: '#ff9999',
+      // Alta intensidad (rondas finales) - Rojo/Naranja intenso
+      const roundColors = {
+        background: colors.background, // Mantener fondo oscuro
+        accent: '#EF4444', // Rojo vibrante
+        surface: colors.surface, // Mantener superficie oscura
+        border: '#EF4444', // Borde rojo
       };
-      return colors[type];
+      return roundColors[type];
     }
   };
 

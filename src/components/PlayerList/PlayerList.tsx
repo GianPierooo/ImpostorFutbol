@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Card, Avatar, Text, IconButton } from 'react-native-paper';
 import { theme } from '../../theme';
 import { Player } from '../../types';
+import { getPlayerColor } from '../../utils';
 
 interface PlayerListProps {
   players: Player[];
@@ -25,15 +27,17 @@ const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove }) => {
   };
 
   const initials = getInitials(player.name);
+  const playerColor = getPlayerColor(player.id);
 
   return (
-    <Card style={styles.playerCard} mode="elevated">
-      <Card.Content style={styles.cardContent}>
-        <Avatar.Text
-          size={40}
-          label={initials}
-          style={styles.avatar}
-        />
+    <Animated.View entering={FadeInDown.delay(100)}>
+      <Card style={styles.playerCard} mode="elevated">
+        <Card.Content style={styles.cardContent}>
+          <Avatar.Text
+            size={40}
+            label={initials}
+            style={[styles.avatar, { backgroundColor: playerColor }]}
+          />
         <View style={styles.playerInfo}>
           <Text variant="titleMedium" style={styles.playerName}>
             {player.name}
@@ -50,6 +54,7 @@ const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove }) => {
         )}
       </Card.Content>
     </Card>
+    </Animated.View>
   );
 };
 
