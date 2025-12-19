@@ -80,7 +80,8 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
       };
 
       checkAllSeen();
-      const interval = setInterval(checkAllSeen, 2000); // Verificar cada 2 segundos
+      // Aumentar intervalo a 5 segundos para evitar rate limiting
+      const interval = setInterval(checkAllSeen, 5000); // Verificar cada 5 segundos
       return () => clearInterval(interval);
     }
   }, [isOnline, onlineGame?.roomCode, hasMarkedSeen]);

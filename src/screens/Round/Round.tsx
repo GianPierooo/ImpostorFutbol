@@ -138,15 +138,30 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
     const missingPlayers = roleAssignment.players.filter((p: Player) => !playersWhoGavePista.has(p.id));
     const isLastPlayer = missingPlayers.length === 1 && missingPlayers[0].id === currentPlayer.id;
     
-    // Agregar pista según el modo
-    if (isOnline && onlineGame) {
-      await onlineGame.addPista(pistaText);
-    } else if (localGame) {
-      localGame.addPista(pistaText, currentPlayer.id);
-      localGame.nextTurn();
+    // En modo online, verificar que es el turno del jugador
+    if (isOnline && !isMyTurn) {
+      console.warn('Intento de enviar pista fuera de turno');
+      return;
     }
-    
-    setPistaText('');
+
+    try {
+      // Agregar pista según el modo
+      if (isOnline && onlineGame) {
+        await onlineGame.addPista(pistaText);
+      } else if (localGame) {
+        localGame.addPista(pistaText, currentPlayer.id);
+        localGame.nextTurn();
+      }
+      
+      setPistaText('');
+    } catch (error: any) {
+      console.error('Error adding pista:', error);
+      // No mostrar error al usuario si es rate limiting (429)
+      if (error.response?.status !== 429) {
+        // Aquí podrías mostrar un mensaje de error al usuario si es necesario
+      }
+      return;
+    }
     
     // Si todos dieron pista, avanzar automáticamente (solo en modo local)
     // En modo online, el host controla la navegación
@@ -229,57 +244,18 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
 
           {/* Input para pista */}
           {isOnline && !isMyTurn ? (
-            // MODO ONLINE: No es el turno del jugador
-            <Card style={styles.inputCard} mode="elevated">
-              <Card.Content style={styles.inputCardContent}>
-                <Text variant="titleMedium" style={styles.inputLabel}>
-                  Esperando turno
+            // MODO ONLINE: No es el turno del jugador - SOLO mostrar mensaje de espera
+            <Card style={styles.waitingCard} mode="outlined">
+              <Card.Content style={styles.waitingContent}>
+                <Text variant="displaySmall" style={styles.waitingEmoji}>
+                  ⏳
                 </Text>
-                <TextInput
-                  mode="outlined"
-                  placeholder="Escribe tu pista aquí..."
-                  placeholderTextColor={theme.colors.textSecondary}
-                  value={pistaText}
-                  onChangeText={setPistaText}
-                  multiline
-                  numberOfLines={4}
-                  maxLength={20}
-                  style={styles.input}
-                  outlineColor={roundColors?.border || theme.colors.border}
-                  activeOutlineColor={roundColors?.accent || theme.colors.primary}
-                  theme={{ colors: { text: theme.colors.text } }}
-                />
-                <View style={styles.charCount}>
-                  <Text variant="bodySmall" style={styles.charCountText}>
-                    {pistaText.length} / 20
-                  </Text>
-                </View>
-                <Button
-                  mode="contained"
-                  onPress={handleAddPista}
-                  disabled={!pistaText.trim()}
-                  style={styles.sendButton}
-                  contentStyle={styles.buttonContent}
-                  labelStyle={styles.buttonLabel}
-                  icon="send"
-                  buttonColor={roundColors?.accent || theme.colors.primary}
-                  textColor={theme.colors.textLight}
-                >
-                  Enviar Pista
-                </Button>
-                <Card style={styles.waitingCard} mode="outlined">
-                  <Card.Content style={styles.waitingContent}>
-                    <Text variant="displaySmall" style={styles.waitingEmoji}>
-                      ⏳
-                    </Text>
-                    <Text variant="bodyLarge" style={styles.waitingText}>
-                      {playerWriting?.name} está escribiendo su pista...
-                    </Text>
-                    <Text variant="bodyMedium" style={styles.waitingSubtext}>
-                      Espera tu turno para escribir
-                    </Text>
-                  </Card.Content>
-                </Card>
+                <Text variant="bodyLarge" style={styles.waitingText}>
+                  {playerWriting?.name} está escribiendo su pista...
+                </Text>
+                <Text variant="bodyMedium" style={styles.waitingSubtext}>
+                  Espera tu turno para escribir
+                </Text>
               </Card.Content>
             </Card>
           ) : (

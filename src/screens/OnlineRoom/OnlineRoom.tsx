@@ -188,17 +188,31 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
         {/* Dialog de confirmación */}
         <Portal>
-          <Dialog visible={showLeaveDialog} onDismiss={() => setShowLeaveDialog(false)}>
-            <Dialog.Title>Salir de la sala</Dialog.Title>
+          <Dialog 
+            visible={showLeaveDialog} 
+            onDismiss={() => setShowLeaveDialog(false)}
+            style={styles.dialog}
+          >
+            <Dialog.Title style={styles.dialogTitle}>Salir de la sala</Dialog.Title>
             <Dialog.Content>
-              <Text variant="bodyMedium">¿Estás seguro de que quieres salir?</Text>
+              <Text variant="bodyMedium" style={styles.dialogText}>
+                ¿Estás seguro de que quieres salir?
+              </Text>
             </Dialog.Content>
             <Dialog.Actions>
-              <Button onPress={() => setShowLeaveDialog(false)}>Cancelar</Button>
-              <Button onPress={() => {
-                setShowLeaveDialog(false);
-                handleLeave();
-              }} textColor={theme.colors.error}>
+              <Button 
+                onPress={() => setShowLeaveDialog(false)}
+                textColor={theme.colors.primary}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onPress={() => {
+                  setShowLeaveDialog(false);
+                  handleLeave();
+                }} 
+                textColor={theme.colors.error}
+              >
                 Salir
               </Button>
             </Dialog.Actions>
@@ -304,6 +318,15 @@ const styles = StyleSheet.create({
   },
   buttonContent: {
     paddingVertical: theme.spacing.sm,
+  },
+  dialog: {
+    backgroundColor: theme.colors.surface,
+  },
+  dialogTitle: {
+    color: theme.colors.text,
+  },
+  dialogText: {
+    color: theme.colors.textSecondary,
   },
 });
 

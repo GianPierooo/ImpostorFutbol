@@ -60,10 +60,10 @@ const limiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
-// Aplicar rate limiting a todas las rutas API EXCEPTO health check
+// Aplicar rate limiting a todas las rutas API EXCEPTO health check y getAllRolesSeen
 app.use('/api/', (req, res, next) => {
-  // Excluir health check del rate limiting
-  if (req.path.startsWith('/health')) {
+  // Excluir health check y getAllRolesSeen del rate limiting
+  if (req.path.startsWith('/health') || req.path.includes('/all-roles-seen')) {
     return next();
   }
   return limiter(req, res, next);

@@ -279,6 +279,10 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       if (!socketService.connected()) {
         socketService.connect();
       }
+      
+      // Esperar un momento para que el WebSocket se conecte
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       socketService.joinRoom(code, pId);
       
       // Cargar estado después de establecer roomCode
@@ -288,13 +292,16 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
         setPlayers(result.data.players || []);
         setIsHost(result.data.room?.hostId === pId);
       }
+      
+      // Cargar estado inmediatamente después de unirse para sincronización
+      await loadRoomState();
     } catch (error) {
       console.error('Error joining room:', error);
       throw error;
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadRoomState]);
 
   const leaveRoom = useCallback(async () => {
     if (!roomCode || !playerId) return;
