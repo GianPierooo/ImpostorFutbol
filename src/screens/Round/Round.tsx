@@ -32,14 +32,31 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
   const getRoundPistas = isOnline
     ? (round: number) => onlineGame?.pistas.filter(p => p.round === round) || []
     : (round: number) => localGame?.getRoundPistas(round) || [];
+  /**
+   * Verifica si todos los jugadores dieron su pista en una ronda
+   * 
+   * IMPORTANTE: En modo online, debe usar roleAssignment.players como fuente de verdad
+   * porque ese es el orden original de los jugadores cuando se asignaron los roles.
+   * 
+   * @param {number} round - Número de ronda a verificar
+   * @returns {boolean} true si todos los jugadores dieron su pista, false en caso contrario
+   */
   const allPlayersGavePista = isOnline
     ? (round: number) => {
         if (!onlineGame || !roleAssignment) return false;
+        
+        // Obtener todas las pistas de la ronda especificada
         const roundPistas = onlineGame.pistas.filter((p) => p.round === round);
+        
+        // Crear un Set con los IDs de los jugadores que dieron pista
         const playersWhoGavePista = new Set(roundPistas.map((p) => p.playerId));
-        // Usar la lista actual de jugadores en lugar de roleAssignment.players
-        // para evitar problemas si un jugador se desconectó
-        const currentPlayers = onlineGame.players || roleAssignment.players;
+        
+        // IMPORTANTE: Usar roleAssignment.players como fuente de verdad
+        // porque ese es el orden original y todos los jugadores deben estar ahí
+        // onlineGame.players puede tener jugadores desconectados, pero todos deben dar pista
+        const currentPlayers = roleAssignment.players;
+        
+        // Verificar que todos los jugadores en roleAssignment.players dieron su pista
         return currentPlayers.every((p: Player) => playersWhoGavePista.has(p.id));
       }
     : (round: number) => localGame?.allPlayersGavePista(round) || false;
@@ -63,38 +80,69 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
     if (!gameState) return null;
     return getRoundColorScheme(gameState.currentRound, gameState.maxRounds);
   }, [gameState?.currentRound, gameState?.maxRounds]);
-  // MODO ONLINE: Verificar si es el turno del jugador actual
+  /**
+   * MODO ONLINE: Verificar si es el turno del jugador actual
+   * 
+   * IMPORTANTE: El orden de los jugadores debe ser consistente:
+   * - roleAssignment.players tiene el orden original de asignación de roles
+   * - onlineGame.players tiene la lista actual (puede cambiar si alguien se desconecta)
+   * - gameState.currentPlayerIndex apunta a la posición en roleAssignment.players
+   * 
+   * Flujo de validación:
+   * 1. Obtener la lista de jugadores (preferir onlineGame.players, fallback a roleAssignment.players)
+   * 2. Validar que currentPlayerIndex esté dentro del rango
+   * 3. Obtener el jugador en la posición currentPlayerIndex
+   * 4. Comparar si ese jugador es el jugador actual (onlineGame.playerId)
+   * 
+   * @returns {boolean} true si es el turno del jugador actual, false en caso contrario
+   */
   const isMyTurn = isOnline && onlineGame 
     ? (() => {
         if (!gameState || !onlineGame.playerId || !roleAssignment) return false;
-        // Usar la lista actual de jugadores si está disponible, sino usar roleAssignment.players
-        const currentPlayers = onlineGame.players && onlineGame.players.length > 0 
-          ? onlineGame.players 
-          : roleAssignment.players;
+        
+        // IMPORTANTE: Usar roleAssignment.players como fuente de verdad para el orden
+        // porque currentPlayerIndex se basa en este orden
+        // onlineGame.players puede tener jugadores desconectados, pero el orden debe ser el mismo
+        const currentPlayers = roleAssignment.players;
         
         // Validar que el índice esté dentro del rango
         if (gameState.currentPlayerIndex >= currentPlayers.length || gameState.currentPlayerIndex < 0) {
+          console.warn(`⚠️ currentPlayerIndex (${gameState.currentPlayerIndex}) fuera de rango (0-${currentPlayers.length - 1})`);
           return false;
         }
         
+        // Obtener el jugador que debería estar escribiendo según currentPlayerIndex
         const currentPlayerFromState = currentPlayers[gameState.currentPlayerIndex];
-        return currentPlayerFromState?.id === onlineGame.playerId;
+        if (!currentPlayerFromState) {
+          return false;
+        }
+        
+        // Verificar si el jugador actual es el que tiene el turno
+        return currentPlayerFromState.id === onlineGame.playerId;
       })()
     : true; // En modo local siempre es el turno del jugador actual
 
-  // MODO ONLINE: Obtener el jugador que está escribiendo actualmente
+  /**
+   * MODO ONLINE: Obtener el jugador que está escribiendo actualmente
+   * 
+   * IMPORTANTE: Debe usar roleAssignment.players para obtener el jugador correcto
+   * porque currentPlayerIndex se basa en el orden de roleAssignment.players
+   * 
+   * @returns {Player | null} El jugador que tiene el turno actual, o null si hay error
+   */
   const playerWriting = isOnline && roleAssignment && gameState && onlineGame
     ? (() => {
-        // Usar la lista actual de jugadores si está disponible
-        const currentPlayers = onlineGame.players && onlineGame.players.length > 0 
-          ? onlineGame.players 
-          : roleAssignment.players;
+        // IMPORTANTE: Usar roleAssignment.players como fuente de verdad
+        // porque currentPlayerIndex se basa en este orden
+        const currentPlayers = roleAssignment.players;
         
         // Validar que el índice esté dentro del rango
         if (gameState.currentPlayerIndex >= currentPlayers.length || gameState.currentPlayerIndex < 0) {
+          console.warn(`⚠️ currentPlayerIndex (${gameState.currentPlayerIndex}) fuera de rango (0-${currentPlayers.length - 1})`);
           return null;
         }
         
+        // Retornar el jugador en la posición currentPlayerIndex
         return currentPlayers[gameState.currentPlayerIndex];
       })()
     : currentPlayer;
@@ -154,53 +202,75 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
+  /**
+   * Maneja el envío de una pista
+   * 
+   * Flujo:
+   * 1. Valida que hay texto, jugador actual, gameState y roleAssignment
+   * 2. En modo online, verifica que es el turno del jugador (isMyTurn)
+   * 3. Envía la pista al backend (modo online) o al contexto local (modo local)
+   * 4. Limpia el campo de texto
+   * 5. En modo local, avanza automáticamente si todos dieron pista
+   * 
+   * IMPORTANTE: En modo online, el backend valida el turno y actualiza currentPlayerIndex.
+   * El frontend solo muestra/oculta el input según isMyTurn.
+   */
   const handleAddPista = async () => {
     if (!pistaText.trim() || !currentPlayer || !gameState || !roleAssignment) return;
 
-    // Verificar si este es el último jugador que falta dar pista
-    const roundPistasBefore = getRoundPistas(gameState.currentRound);
-    const playersWhoGavePista = new Set(roundPistasBefore.map((p) => p.playerId));
-    const missingPlayers = roleAssignment.players.filter((p: Player) => !playersWhoGavePista.has(p.id));
-    const isLastPlayer = missingPlayers.length === 1 && missingPlayers[0].id === currentPlayer.id;
-    
-    // En modo online, verificar que es el turno del jugador
+    // En modo online, verificar que es el turno del jugador ANTES de intentar enviar
+    // Esto previene envíos fuera de turno y mejora la UX
     if (isOnline && !isMyTurn) {
-      console.warn('Intento de enviar pista fuera de turno');
+      console.warn('⚠️ Intento de enviar pista fuera de turno - bloqueado en frontend');
       return;
     }
 
     try {
       // Agregar pista según el modo
       if (isOnline && onlineGame) {
+        // MODO ONLINE: El backend valida el turno y actualiza currentPlayerIndex
+        // Si no es el turno del jugador, el backend lanzará un error
         await onlineGame.addPista(pistaText);
+        // El WebSocket actualizará el estado automáticamente
       } else if (localGame) {
+        // MODO LOCAL: Agregar pista y avanzar turno localmente
         localGame.addPista(pistaText, currentPlayer.id);
         localGame.nextTurn();
       }
       
+      // Limpiar el campo de texto después de enviar
       setPistaText('');
     } catch (error: any) {
       console.error('Error adding pista:', error);
-      // No mostrar error al usuario si es rate limiting (429)
-      if (error.response?.status !== 429) {
-        // Aquí podrías mostrar un mensaje de error al usuario si es necesario
+      
+      // No mostrar error al usuario si es rate limiting (429) - es temporal
+      if (error.response?.status === 429) {
+        console.warn('⚠️ Rate limit alcanzado al enviar pista - reintentando más tarde');
+        return;
       }
+      
+      // Para otros errores, podrías mostrar un mensaje al usuario
+      // Por ejemplo: "No es tu turno" o "Error al enviar la pista"
       return;
     }
     
-    // Si todos dieron pista, avanzar automáticamente (solo en modo local)
-    // En modo online, el host controla la navegación
-    if (!isOnline && isLastPlayer) {
-      // Navegar inmediatamente sin delay
-      // Si es la última ronda configurada, ir directo a votación
-      if (gameState.maxRounds !== null && gameState.currentRound === gameState.maxRounds) {
-        localGame?.finishRound();
-        navigation.navigate('Voting', { mode: 'local' });
-      } else {
-        // SIEMPRE ir a Discussion después de cada ronda (excepto la última)
-        navigation.navigate('Discussion', { mode: 'local' });
+    // MODO LOCAL: Si todos dieron pista, avanzar automáticamente
+    // En modo online, el host controla la navegación manualmente
+    if (!isOnline) {
+      const roundPistasAfter = getRoundPistas(gameState.currentRound);
+      const playersWhoGavePista = new Set(roundPistasAfter.map((p) => p.playerId));
+      const allGavePista = roleAssignment.players.every((p: Player) => playersWhoGavePista.has(p.id));
+      
+      if (allGavePista) {
+        // Si es la última ronda configurada, ir directo a votación
+        if (gameState.maxRounds !== null && gameState.currentRound === gameState.maxRounds) {
+          localGame?.finishRound();
+          navigation.navigate('Voting', { mode: 'local' });
+        } else {
+          // SIEMPRE ir a Discussion después de cada ronda (excepto la última)
+          navigation.navigate('Discussion', { mode: 'local' });
+        }
       }
-      return;
     }
   };
 

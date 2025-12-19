@@ -14,6 +14,23 @@ class GameService {
    * @param {string} hostId - ID del host
    * @returns {Promise<object>}
    */
+  /**
+   * Inicia un juego
+   * 
+   * IMPORTANTE: El orden de los jugadores en roleAssignment.players es crítico.
+   * Este orden se usa para determinar el turno de cada jugador durante las rondas.
+   * currentPlayerIndex apunta a la posición en este array.
+   * 
+   * Flujo:
+   * 1. Obtiene todos los jugadores de la sala (orden: orden de unión)
+   * 2. Asigna roles manteniendo el mismo orden
+   * 3. Inicializa currentPlayerIndex = 0 (primer jugador en el array)
+   * 4. Los turnos avanzan secuencialmente: 0 -> 1 -> 2 -> ... -> 0 (circular)
+   * 
+   * @param {string} code - Código de la sala
+   * @param {string} hostId - ID del host
+   * @returns {Promise<object>}
+   */
   async startGame(code, hostId) {
     const room = await redisService.getRoom(code);
     if (!room) {
@@ -49,15 +66,19 @@ class GameService {
     await redisService.clearRolesSeen(code);
 
     // Convertir a formato Player para assignRoles
+    // IMPORTANTE: Mantener el orden de los jugadores tal como están en Redis
+    // Este orden se preservará en roleAssignment.players y se usará para los turnos
     const playersForRoles = players.map(p => ({
       id: p.id,
       name: p.name,
     }));
 
     // Asignar roles
+    // assignRoles mantiene el orden de los jugadores y solo asigna roles
     const roleAssignment = assignRoles(playersForRoles);
 
     // Guardar roles en Redis
+    // Mapeo: playerId -> role
     const rolesMap = {};
     roleAssignment.players.forEach(player => {
       rolesMap[player.id] = player.role;
@@ -65,15 +86,16 @@ class GameService {
     await redisService.saveRoles(code, rolesMap);
 
     // Crear estado del juego
+    // currentPlayerIndex = 0 significa que el primer jugador en roleAssignment.players es el primero en dar pista
     const gameState = {
       secretWord: roleAssignment.secretWord,
       impostorId: roleAssignment.impostorId,
       currentRound: 1,
       maxRounds: room.config.rounds,
       phase: constants.GAME_PHASES.ROLE_ASSIGNMENT,
-      currentPlayerIndex: 0,
-      currentVoterIndex: 0,
-      currentTurn: 1,
+      currentPlayerIndex: 0, // Índice del jugador actual en roleAssignment.players (0 = primer jugador)
+      currentVoterIndex: 0, // Índice del votante actual (0 = primer jugador)
+      currentTurn: 1, // Número de turno dentro de la ronda actual (incrementa cuando currentPlayerIndex vuelve a 0)
     };
 
     await redisService.saveGameState(code, gameState);
@@ -84,15 +106,29 @@ class GameService {
       roleAssignment: {
         secretWord: roleAssignment.secretWord,
         impostorId: roleAssignment.impostorId,
-        players: roleAssignment.players,
+        players: roleAssignment.players, // Array ordenado de jugadores (orden de turnos)
       },
     };
   }
 
   /**
    * Agrega una pista
+   * 
+   * IMPORTANTE: El orden de los jugadores debe ser el mismo que en roleAssignment.players
+   * para que currentPlayerIndex apunte al jugador correcto.
+   * 
+   * Flujo:
+   * 1. Verifica que el juego está en fase ROUND
+   * 2. Valida la pista (texto, longitud, palabra secreta)
+   * 3. Obtiene la lista de jugadores (debe estar en el mismo orden que roleAssignment.players)
+   * 4. Verifica que currentPlayerIndex apunta al jugador correcto
+   * 5. Valida que es el turno del jugador (currentPlayer.id === playerId)
+   * 6. Guarda la pista
+   * 7. Avanza al siguiente jugador: currentPlayerIndex = (currentPlayerIndex + 1) % totalPlayers
+   * 8. Si currentPlayerIndex vuelve a 0, incrementa currentTurn (nueva vuelta completa)
+   * 
    * @param {string} code - Código de la sala
-   * @param {string} playerId - ID del jugador
+   * @param {string} playerId - ID del jugador que envía la pista
    * @param {string} text - Texto de la pista
    * @returns {Promise<object>}
    */
@@ -109,19 +145,29 @@ class GameService {
       throw new Error(validation.error);
     }
 
-    // Verificar que es el turno del jugador
+    // Obtener lista de jugadores
+    // IMPORTANTE: Esta lista debe estar en el mismo orden que roleAssignment.players
+    // para que currentPlayerIndex sea válido
     const players = await redisService.getAllPlayersInfo(code);
     
     // Validar que el índice esté dentro del rango
+    // Si un jugador se desconectó, el índice podría estar fuera de rango
     if (gameState.currentPlayerIndex >= players.length || gameState.currentPlayerIndex < 0) {
-      // Ajustar índice si está fuera de rango
+      // Ajustar índice si está fuera de rango (resetear a 0)
+      console.warn(`⚠️ currentPlayerIndex (${gameState.currentPlayerIndex}) fuera de rango, reseteando a 0`);
       gameState.currentPlayerIndex = 0;
       await redisService.saveGameState(code, gameState);
     }
     
+    // Obtener el jugador que debería estar escribiendo según currentPlayerIndex
     const currentPlayer = players[gameState.currentPlayerIndex];
-    if (!currentPlayer || currentPlayer.id !== playerId) {
-      throw new Error('No es tu turno');
+    if (!currentPlayer) {
+      throw new Error('Error: No hay jugador en el índice actual');
+    }
+    
+    // Verificar que es el turno del jugador que intenta enviar la pista
+    if (currentPlayer.id !== playerId) {
+      throw new Error(`No es tu turno. Es el turno de ${currentPlayer.name}`);
     }
 
     // Obtener información del jugador
@@ -140,17 +186,21 @@ class GameService {
       turn: gameState.currentTurn,
     };
 
-    // Guardar pista
+    // Guardar pista en Redis
     await redisService.addPista(code, pista);
 
-    // Avanzar turno
+    // Avanzar al siguiente jugador
+    // El orden es circular: 0 -> 1 -> 2 -> ... -> (n-1) -> 0 -> ...
     const totalPlayers = players.length;
     gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % totalPlayers;
     
+    // Si currentPlayerIndex vuelve a 0, significa que completamos una vuelta completa
+    // Incrementamos currentTurn para indicar que empezamos una nueva vuelta
     if (gameState.currentPlayerIndex === 0) {
       gameState.currentTurn += 1;
     }
 
+    // Guardar el estado actualizado
     await redisService.saveGameState(code, gameState);
 
     return {

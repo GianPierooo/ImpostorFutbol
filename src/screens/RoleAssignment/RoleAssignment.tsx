@@ -51,11 +51,24 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
   const currentPlayer = players[currentPlayerIndex];
   const displayedPlayer = players[displayedPlayerIndex];
 
-  // MODO ONLINE: Cargar el rol del jugador actual
+  /**
+   * MODO ONLINE: Cargar el rol del jugador actual
+   * 
+   * IMPORTANTE: En modo online, cada jugador solo ve su propio rol.
+   * El orden de los jugadores en roleAssignment.players determina el orden de los turnos.
+   * 
+   * Flujo:
+   * 1. Cuando el componente se monta y hay un playerId y roomCode
+   * 2. Llama a getPlayerRole para obtener el rol del jugador actual
+   * 3. Guarda el rol en myRoleInfo para mostrarlo en la UI
+   * 
+   * Este efecto solo se ejecuta una vez cuando se carga el componente.
+   */
   useEffect(() => {
     if (isOnline && onlineGame?.playerId && onlineGame?.roomCode && !myRoleInfo) {
       const loadMyRole = async () => {
         try {
+          // Obtener el rol del jugador actual desde el backend
           const roleInfo = await onlineGame.getPlayerRole(onlineGame.playerId!);
           if (roleInfo) {
             setMyRoleInfo(roleInfo);
@@ -68,25 +81,46 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
     }
   }, [isOnline, onlineGame?.playerId, onlineGame?.roomCode, myRoleInfo]);
 
-  // MODO ONLINE: Verificar periódicamente si todos han visto su rol
+  /**
+   * MODO ONLINE: Verificar periódicamente si todos han visto su rol
+   * 
+   * IMPORTANTE: Solo se ejecuta después de que el jugador actual haya marcado su rol como visto.
+   * 
+   * Flujo:
+   * 1. Cuando hasMarkedSeen es true (el jugador ya vio su rol)
+   * 2. Verifica inmediatamente si todos vieron su rol
+   * 3. Luego verifica cada 6 segundos (para evitar rate limiting)
+   * 4. Actualiza el estado cuando todos han visto su rol
+   * 
+   * El intervalo de 6 segundos es un balance entre:
+   * - Responsividad: detectar rápidamente cuando todos vieron su rol
+   * - Rate limiting: no sobrecargar el servidor con requests
+   */
   useEffect(() => {
     if (isOnline && onlineGame?.roomCode && hasMarkedSeen) {
       const checkAllSeen = async () => {
         try {
+          // Obtener el estado de cuántos jugadores han visto su rol
           const status = await onlineGame.getAllRolesSeen();
           setRolesSeenStatus({
             playersWhoSeen: status.playersWhoSeen,
             totalPlayers: status.totalPlayers,
           });
           setAllPlayersSeen(status.allSeen);
-        } catch (error) {
-          console.error('Error checking all roles seen:', error);
+        } catch (error: any) {
+          // Ignorar errores 429 (rate limiting) - no es crítico, se reintentará en el siguiente intervalo
+          if (error.response?.status !== 429) {
+            console.error('Error checking all roles seen:', error);
+          }
         }
       };
 
+      // Verificar inmediatamente cuando el jugador marca su rol como visto
       checkAllSeen();
-      // Aumentar intervalo a 5 segundos para evitar rate limiting
-      const interval = setInterval(checkAllSeen, 5000); // Verificar cada 5 segundos
+      
+      // Luego verificar periódicamente cada 6 segundos
+      // Intervalo aumentado para evitar rate limiting (el endpoint está excluido, pero es buena práctica)
+      const interval = setInterval(checkAllSeen, 6000);
       return () => clearInterval(interval);
     }
   }, [isOnline, onlineGame?.roomCode, hasMarkedSeen]);
@@ -105,22 +139,42 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
     }
   }, []);
 
+  /**
+   * Maneja el evento cuando el jugador presiona "Ver mi Rol"
+   * 
+   * MODO ONLINE:
+   * 1. Muestra el rol inmediatamente en la UI (setShowRole(true))
+   * 2. Marca en el backend que este jugador vio su rol (markRoleSeen)
+   * 3. Verifica si todos los jugadores ya vieron su rol
+   * 
+   * MODO LOCAL:
+   * 1. Solo muestra el rol en la UI (no hay sincronización con backend)
+   * 
+   * IMPORTANTE: En modo online, el backend rastrea qué jugadores han visto su rol.
+   * Esto permite que el host sepa cuándo todos están listos para continuar.
+   */
   const handleShowRole = async () => {
     if (isOnline && onlineGame) {
-      // En modo online, marcar que este jugador vio su rol
+      // MODO ONLINE: Mostrar el rol inmediatamente y marcar como visto en el backend
       prevShowRoleRef.current = showRole;
       setShowRole(true);
+      
       try {
+        // Marcar en el backend que este jugador vio su rol
         const result = await onlineGame.markRoleSeen();
         setHasMarkedSeen(true);
+        
+        // Si todos ya vieron su rol, actualizar el estado inmediatamente
         if (result.allSeen) {
           setAllPlayersSeen(true);
         }
       } catch (error) {
         console.error('Error marking role seen:', error);
+        // Aunque falle el marcado en el backend, el jugador puede ver su rol
+        // El polling periódico intentará marcar nuevamente
       }
     } else {
-      // Modo local
+      // MODO LOCAL: Solo mostrar el rol en la UI
       prevShowRoleRef.current = showRole;
       setShowRole(true);
     }

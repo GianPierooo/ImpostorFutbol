@@ -85,7 +85,12 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
         setPlayers(result.data.players || []);
         setIsHost(result.data.room?.hostId === playerId);
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Ignorar errores 429 (rate limiting) - no es crítico
+      if (error.response?.status === 429) {
+        console.warn('Rate limit alcanzado al cargar room state, reintentando más tarde...');
+        return;
+      }
       console.error('Error loading room state:', error);
     }
   }, [roomCode, playerId]);
@@ -165,8 +170,11 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       if (data.gameState && !data.roleAssignment && data.gameState.phase === 'roleAssignment' && roomCode) {
         try {
           await loadGameState();
-        } catch (error) {
-          console.error('Error loading game state after GAME_STATE_CHANGED:', error);
+        } catch (error: any) {
+          // Ignorar errores 429 (rate limiting)
+          if (error.response?.status !== 429) {
+            console.error('Error loading game state after GAME_STATE_CHANGED:', error);
+          }
         }
       }
     };
@@ -219,8 +227,11 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       if (data.phase === 'roleAssignment' && (!gameState || !roleAssignment) && roomCode) {
         try {
           await loadGameState();
-        } catch (error) {
-          console.error('Error loading game state after PHASE_CHANGED:', error);
+        } catch (error: any) {
+          // Ignorar errores 429 (rate limiting)
+          if (error.response?.status !== 429) {
+            console.error('Error loading game state after PHASE_CHANGED:', error);
+          }
         }
       }
     };
@@ -293,7 +304,12 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
         });
         setVotes(votesArray);
       }
-    } catch (error) {
+    } catch (error: any) {
+      // Ignorar errores 429 (rate limiting) - no es crítico
+      if (error.response?.status === 429) {
+        console.warn('Rate limit alcanzado al cargar game state, reintentando más tarde...');
+        return;
+      }
       console.error('Error loading game state:', error);
     }
   }, [roomCode, players]);
@@ -502,14 +518,37 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     return { allSeen: false, playersWhoSeen: 0, totalPlayers: 0 };
   }, [roomCode]);
 
+  /**
+   * Obtiene el jugador actual (el que está usando esta instancia de la app)
+   * 
+   * IMPORTANTE: Este método busca el jugador en la lista `players` (lista actual de jugadores en la sala).
+   * No debe confundirse con el jugador que tiene el turno (que se obtiene con gameState.currentPlayerIndex).
+   * 
+   * @returns {Player | null} El jugador actual, o null si no se encuentra
+   */
   const getCurrentPlayer = useCallback((): Player | null => {
     if (!playerId) return null;
     return players.find((p) => p.id === playerId) || null;
   }, [playerId, players]);
 
+  /**
+   * Obtiene la información del rol de un jugador
+   * 
+   * IMPORTANTE: Busca el jugador en roleAssignment.players, que contiene:
+   * - El orden de los jugadores (usado para determinar turnos)
+   * - El rol asignado a cada jugador
+   * 
+   * @param {string} pId - ID del jugador
+   * @returns {object | null} Objeto con:
+   *   - role: 'impostor' | 'normal'
+   *   - secretWord: string | null (null si es impostor)
+   *   - isImpostor: boolean
+   */
   const getPlayerInfo = useCallback((pId: string) => {
     if (!roleAssignment || !gameState) return null;
 
+    // Buscar el jugador en roleAssignment.players
+    // Este array mantiene el orden de asignación de roles y se usa para los turnos
     const player = roleAssignment.players?.find((p: any) => p.id === pId);
     if (!player) return null;
 
@@ -517,18 +556,18 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
 
     return {
       role: player.role,
-      secretWord: isImpostor ? null : gameState.secretWord,
+      secretWord: isImpostor ? null : gameState.secretWord, // Los impostores no conocen la palabra secreta
       isImpostor,
     };
   }, [roleAssignment, gameState]);
 
   // Cargar estado del juego cuando cambia roomCode o cuando el estado de la sala cambia de lobby
   useEffect(() => {
-    if (roomCode && roomState?.room?.status && roomState.room.status !== 'lobby') {
-      // Cargar inmediatamente cuando cambia de lobby a cualquier otra fase
+    if (roomCode && roomState?.room?.status && roomState.room.status !== 'lobby' && !gameState) {
+      // Cargar inmediatamente cuando cambia de lobby a cualquier otra fase y no tenemos gameState
       loadGameState();
     }
-  }, [roomCode, roomState?.room?.status, loadGameState]);
+  }, [roomCode, roomState?.room?.status, gameState, loadGameState]);
 
   // Verificar periódicamente el estado de la sala (solo en lobby para sincronizar jugadores)
   useEffect(() => {
@@ -536,26 +575,44 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
 
     // Solo hacer polling si estamos en lobby
     if (roomState?.room?.status === 'lobby') {
+      let pollCount = 0;
+      const maxPolls = 20; // Máximo 20 polls (60 segundos)
+      
       const interval = setInterval(async () => {
-        // Cargar estado de la sala para verificar si cambió
-        const result = await roomsAPI.get(roomCode);
-        if (result.success && result.data) {
-          const newStatus = result.data.room?.status;
-          // Si el estado cambió de lobby a otra fase, actualizar y cargar gameState
-          if (newStatus && newStatus !== 'lobby') {
-            setRoomState(result.data);
-            setPlayers(result.data.players || []);
-            setIsHost(result.data.room?.hostId === playerId);
-            // Cargar gameState inmediatamente
-            await loadGameState();
-          } else {
-            // Si sigue en lobby, solo actualizar roomState
-            setRoomState(result.data);
-            setPlayers(result.data.players || []);
-            setIsHost(result.data.room?.hostId === playerId);
+        pollCount++;
+        if (pollCount > maxPolls) {
+          clearInterval(interval);
+          return;
+        }
+        
+        try {
+          // Cargar estado de la sala para verificar si cambió
+          const result = await roomsAPI.get(roomCode);
+          if (result.success && result.data) {
+            const newStatus = result.data.room?.status;
+            // Si el estado cambió de lobby a otra fase, actualizar y cargar gameState
+            if (newStatus && newStatus !== 'lobby') {
+              // Actualizar roomState primero para que useOnlineNavigation lo detecte
+              setRoomState(result.data);
+              setPlayers(result.data.players || []);
+              setIsHost(result.data.room?.hostId === playerId);
+              // Cargar gameState inmediatamente (esto también actualizará roomState.status)
+              await loadGameState();
+              clearInterval(interval); // Dejar de hacer polling cuando se detecta el cambio
+            } else {
+              // Si sigue en lobby, solo actualizar roomState
+              setRoomState(result.data);
+              setPlayers(result.data.players || []);
+              setIsHost(result.data.room?.hostId === playerId);
+            }
+          }
+        } catch (error: any) {
+          // Ignorar errores 429 (rate limiting) - no es crítico
+          if (error.response?.status !== 429) {
+            console.error('Error en polling de lobby:', error);
           }
         }
-      }, 2000); // Verificar cada 2 segundos (más frecuente para detectar inicio rápido)
+      }, 3000); // Verificar cada 3 segundos (reducido para evitar rate limiting)
 
       return () => clearInterval(interval);
     }
@@ -570,16 +627,19 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       // Cargar inmediatamente
       loadGameState();
       
-      // Y hacer polling cada 2 segundos hasta que se cargue
+      // Y hacer polling cada 3 segundos hasta que se cargue (reducido para evitar rate limiting)
       const interval = setInterval(async () => {
         try {
           await loadGameState();
           // Si ya tenemos gameState, dejar de hacer polling
           // (el intervalo se limpiará cuando gameState cambie)
-        } catch (error) {
-          console.error('Error polling game state:', error);
+        } catch (error: any) {
+          // Ignorar errores 429 (rate limiting) - no es crítico
+          if (error.response?.status !== 429) {
+            console.error('Error polling game state:', error);
+          }
         }
-      }, 2000);
+      }, 3000);
       
       return () => clearInterval(interval);
     }

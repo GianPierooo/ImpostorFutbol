@@ -59,18 +59,22 @@ router.get('/:code/state', async (req, res) => {
     const votes = await redisService.getVotes(code);
     
     // Reconstruir roleAssignment desde los roles guardados en Redis
+    // IMPORTANTE: El orden de los jugadores en roleAssignment.players debe ser el mismo
+    // que cuando se inició el juego, porque currentPlayerIndex se basa en ese orden
     let roleAssignment = null;
     if (gameState) {
       const roles = await redisService.getRoles(code);
       if (roles && Object.keys(roles).length > 0) {
         // Construir roleAssignment con los roles y jugadores
+        // IMPORTANTE: players viene de getAllPlayersInfo, que mantiene el orden de unión
+        // Este orden debe ser el mismo que cuando se inició el juego
         roleAssignment = {
           secretWord: gameState.secretWord,
           impostorId: gameState.impostorId,
           players: players.map(player => ({
             id: player.id,
             name: player.name,
-            role: roles[player.id] || 'normal',
+            role: roles[player.id] || 'normal', // Obtener el rol asignado, default 'normal' si no existe
           })),
         };
       }
