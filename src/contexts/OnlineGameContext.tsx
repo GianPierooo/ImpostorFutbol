@@ -263,6 +263,18 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
           setPlayers(result.data.players);
         }
         
+        // Actualizar roomState?.room?.status basándose en gameState.phase
+        // Esto es crítico para que useOnlineNavigation detecte el cambio de fase
+        if (result.data.gameState?.phase) {
+          setRoomState((prev) => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              room: prev.room ? { ...prev.room, status: result.data.gameState.phase } : { status: result.data.gameState.phase },
+            };
+          });
+        }
+        
         // Convertir votos del formato del backend
         const votesData = result.data.votes || {};
         const votesArray: Voto[] = [];
@@ -524,13 +536,30 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
 
     // Solo hacer polling si estamos en lobby
     if (roomState?.room?.status === 'lobby') {
-      const interval = setInterval(() => {
-        loadRoomState();
-      }, 3000); // Verificar cada 3 segundos
+      const interval = setInterval(async () => {
+        // Cargar estado de la sala para verificar si cambió
+        const result = await roomsAPI.get(roomCode);
+        if (result.success && result.data) {
+          const newStatus = result.data.room?.status;
+          // Si el estado cambió de lobby a otra fase, actualizar y cargar gameState
+          if (newStatus && newStatus !== 'lobby') {
+            setRoomState(result.data);
+            setPlayers(result.data.players || []);
+            setIsHost(result.data.room?.hostId === playerId);
+            // Cargar gameState inmediatamente
+            await loadGameState();
+          } else {
+            // Si sigue en lobby, solo actualizar roomState
+            setRoomState(result.data);
+            setPlayers(result.data.players || []);
+            setIsHost(result.data.room?.hostId === playerId);
+          }
+        }
+      }, 2000); // Verificar cada 2 segundos (más frecuente para detectar inicio rápido)
 
       return () => clearInterval(interval);
     }
-  }, [roomCode, isConnected, roomState?.room?.status, loadRoomState]);
+  }, [roomCode, isConnected, roomState?.room?.status, loadGameState, playerId]);
 
   // Polling de fallback cuando el juego inicia pero no recibimos el evento (para jugadores que no recibieron GAME_STATE_CHANGED)
   useEffect(() => {
