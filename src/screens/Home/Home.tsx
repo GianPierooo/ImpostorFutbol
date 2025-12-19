@@ -11,7 +11,6 @@ import Animated, {
   withSequence,
   Easing,
   interpolate,
-  runOnJS,
 } from 'react-native-reanimated';
 import LinearGradient from 'react-native-linear-gradient';
 import { Button, Text, Divider } from 'react-native-paper';
@@ -31,8 +30,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     navigation.navigate('Lobby');
   };
 
-  // Estado para controlar el mensaje flotante
-  const [showScrollHint, setShowScrollHint] = React.useState(true);
   const scrollViewRef = React.useRef<ScrollView>(null);
 
   // Animaciones profesionales del balón
@@ -45,9 +42,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const backgroundBreath = useSharedValue(0);
   const subtleGlow = useSharedValue(0);
   
-  // Animación para el mensaje flotante
-  const scrollHintY = useSharedValue(0);
-  const scrollHintOpacity = useSharedValue(1);
 
   React.useEffect(() => {
     // Pulso suave y elegante del balón
@@ -107,30 +101,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       true
     );
 
-    // Animación del mensaje flotante (sube y baja)
-    scrollHintY.value = withRepeat(
-      withSequence(
-        withTiming(8, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(-8, { duration: 1500, easing: Easing.inOut(Easing.ease) })
-      ),
-      -1,
-      true
-    );
-
-    // Ocultar el mensaje después de 5 segundos
-    const hideScrollHint = () => {
-      setShowScrollHint(false);
-    };
-
-    const timer = setTimeout(() => {
-      scrollHintOpacity.value = withTiming(0, { duration: 500 }, (finished) => {
-        if (finished) {
-          runOnJS(hideScrollHint)();
-        }
-      });
-    }, 5000);
-
-    return () => clearTimeout(timer);
   }, []);
 
   const iconAnimatedStyle = useAnimatedStyle(() => {
@@ -171,28 +141,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     };
   });
 
-  // Estilo animado para el mensaje flotante
-  const scrollHintStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: scrollHintY.value }],
-    opacity: scrollHintOpacity.value,
-  }));
-
-  // Función para ocultar el mensaje (necesaria para runOnJS)
-  const hideScrollHint = React.useCallback(() => {
-    setShowScrollHint(false);
-  }, []);
-
-  // Manejar el scroll para ocultar el mensaje
-  const handleScroll = (event: any) => {
-    const offsetY = event.nativeEvent.contentOffset.y;
-    if (offsetY > 50 && showScrollHint) {
-      scrollHintOpacity.value = withTiming(0, { duration: 300 }, (finished) => {
-        if (finished) {
-          runOnJS(hideScrollHint)();
-        }
-      });
-    }
-  };
 
   return (
     <ScreenContainer>
@@ -216,25 +164,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         />
       </Animated.View>
 
-      {/* Mensaje flotante para indicar scroll */}
-      {showScrollHint && (
-        <Animated.View style={[styles.scrollHint, scrollHintStyle]} pointerEvents="none">
-          <View style={styles.scrollHintContainer}>
-            <Text style={styles.scrollHintText}>Desliza para jugar</Text>
-            <Animated.View style={styles.scrollHintArrow}>
-              <Text style={styles.scrollHintArrowIcon}>↓</Text>
-            </Animated.View>
-          </View>
-        </Animated.View>
-      )}
-
       <ScrollView
         ref={scrollViewRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         bounces={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
       >
         {/* Header con logo y título */}
         <Animated.View
@@ -252,7 +186,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 colors={['#10B98150', '#16A34A40', '#10B98130']}
                 style={styles.iconGradient}
               >
-                <AnimatedEmoji emoji="⚽" animation="pulse" size={80} duration={4000} />
+                <AnimatedEmoji emoji="⚽" animation="pulse" size={60} duration={4000} />
               </LinearGradient>
             </Animated.View>
           </View>
@@ -378,8 +312,9 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: theme.spacing.xl,
-    paddingTop: theme.spacing['3xl'],
-    paddingBottom: theme.spacing.xl,
+    paddingVertical: theme.spacing.xl,
+    justifyContent: 'center',
+    minHeight: height,
     zIndex: 1,
   },
   // Efectos sutiles y profesionales
@@ -398,20 +333,19 @@ const styles = StyleSheet.create({
     left: 0,
   },
   header: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
     alignItems: 'center',
-    paddingTop: theme.spacing.lg,
   },
   iconWrapper: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconGlow: {
     position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     backgroundColor: theme.colors.primary + '20',
     shadowColor: theme.colors.primary,
     shadowOffset: { width: 0, height: 0 },
@@ -421,9 +355,9 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   iconContainer: {
-    width: 170,
-    height: 170,
-    borderRadius: 85,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -444,13 +378,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emoji: {
-    fontSize: 64,
+    fontSize: 48,
   },
   title: {
     textAlign: 'center',
     marginBottom: theme.spacing.xs,
     fontWeight: '900',
-    fontSize: 42,
+    fontSize: 36,
     letterSpacing: 1,
   },
   titleImpostor: {
@@ -467,7 +401,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: theme.colors.primary,
     fontWeight: '900',
-    fontSize: 44,
+    fontSize: 38,
     letterSpacing: 1.5,
     textShadowColor: theme.colors.primary + '80',
     textShadowOffset: { width: 0, height: 3 },
@@ -477,21 +411,21 @@ const styles = StyleSheet.create({
   tagline: {
     textAlign: 'center',
     color: theme.colors.textSecondary,
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     letterSpacing: 0.5,
-    marginTop: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
     fontStyle: 'italic',
   },
   description: {
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
     alignItems: 'center',
     width: '100%',
   },
   descriptionCard: {
     backgroundColor: theme.colors.surface + 'CC',
-    borderRadius: 20,
-    padding: theme.spacing.lg,
+    borderRadius: 16,
+    padding: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.primary + '30',
     maxWidth: 380,
@@ -502,23 +436,23 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
   },
   subtitle: {
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
     color: theme.colors.text,
     fontWeight: '700',
-    fontSize: 20,
+    fontSize: 18,
     textAlign: 'center',
   },
   descriptionText: {
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 20,
     color: theme.colors.textSecondary,
-    fontSize: 15,
+    fontSize: 13,
   },
   actions: {
     width: '100%',
     maxWidth: 360,
-    gap: theme.spacing.md,
-    marginBottom: theme.spacing['2xl'],
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
     alignSelf: 'center',
   },
   startButton: {
@@ -538,8 +472,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   buttonContent: {
-    paddingVertical: theme.spacing.md,
-    minHeight: 56,
+    paddingVertical: theme.spacing.sm,
+    minHeight: 50,
   },
   buttonLabel: {
     fontSize: 17,
@@ -552,11 +486,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     width: '100%',
-    marginTop: theme.spacing.xl,
-    paddingTop: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
   },
   divider: {
-    marginBottom: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
     backgroundColor: theme.colors.border + '60',
   },
   footerContent: {
@@ -590,8 +524,8 @@ const styles = StyleSheet.create({
   footerFeatures: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: theme.spacing.lg,
-    marginTop: theme.spacing.md,
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.sm,
     flexWrap: 'wrap',
   },
   featureItem: {
@@ -606,41 +540,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     fontSize: 11,
     textAlign: 'center',
-  },
-  // Mensaje flotante de scroll
-  scrollHint: {
-    position: 'absolute',
-    bottom: 40,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  scrollHintContainer: {
-    backgroundColor: theme.colors.surface + 'E6',
-    borderRadius: 25,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.primary + '40',
-    ...theme.shadows.medium,
-  },
-  scrollHintText: {
-    color: theme.colors.text,
-    fontSize: 14,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  scrollHintArrow: {
-    marginLeft: theme.spacing.xs,
-  },
-  scrollHintArrowIcon: {
-    color: theme.colors.primary,
-    fontSize: 20,
-    fontWeight: 'bold',
   },
 });
 

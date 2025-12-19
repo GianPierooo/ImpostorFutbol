@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button, Card, ProgressBar, Chip } from 'react-native-paper';
 import { ScreenContainer, AnimatedEmoji, AnimatedButton, FlipCard } from '../../components';
@@ -43,8 +43,13 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
       };
 
   const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+  const [isFlipping, setIsFlipping] = useState(false);
+  const [pendingPlayerIndex, setPendingPlayerIndex] = useState<number | null>(null);
+  const [displayedPlayerIndex, setDisplayedPlayerIndex] = useState(0);
+  const prevShowRoleRef = useRef(false);
   const players = roleAssignment?.players || [];
   const currentPlayer = players[currentPlayerIndex];
+  const displayedPlayer = players[displayedPlayerIndex];
 
   // MODO ONLINE: Cargar el rol del jugador actual
   useEffect(() => {
@@ -93,9 +98,17 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
     }
   }, [currentPlayerIndex, players.length, isOnline]);
 
+  // Inicializar displayedPlayerIndex cuando se carga el componente
+  useEffect(() => {
+    if (displayedPlayerIndex === 0 && currentPlayerIndex === 0 && !isFlipping) {
+      setDisplayedPlayerIndex(0);
+    }
+  }, []);
+
   const handleShowRole = async () => {
     if (isOnline && onlineGame) {
       // En modo online, marcar que este jugador vio su rol
+      prevShowRoleRef.current = showRole;
       setShowRole(true);
       try {
         const result = await onlineGame.markRoleSeen();
@@ -108,17 +121,35 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
       }
     } else {
       // Modo local
+      prevShowRoleRef.current = showRole;
       setShowRole(true);
     }
   };
 
   const handleNextPlayer = () => {
     if (currentPlayerIndex < players.length - 1) {
-      setCurrentPlayerIndex(currentPlayerIndex + 1);
+      // Primero voltear la carta hacia atrás
+      prevShowRoleRef.current = showRole;
+      setIsFlipping(true);
       setShowRole(false);
+      // Guardar el siguiente índice para cambiar después de la animación
+      setPendingPlayerIndex(currentPlayerIndex + 1);
     } else {
       setAllPlayersSeen(true);
     }
+  };
+
+  // Callback cuando la animación de volteo se completa
+  const handleFlipComplete = () => {
+    // Solo cambiar el jugador si se está volteando hacia atrás (showRole cambió de true a false)
+    if (isFlipping && pendingPlayerIndex !== null && !showRole && prevShowRoleRef.current) {
+      // Cambiar el jugador mostrado solo después de que la animación termine
+      setDisplayedPlayerIndex(pendingPlayerIndex);
+      setCurrentPlayerIndex(pendingPlayerIndex);
+      setPendingPlayerIndex(null);
+      setIsFlipping(false);
+    }
+    prevShowRoleRef.current = showRole;
   };
 
   const handleContinue = async () => {
@@ -305,7 +336,8 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
   }
 
   // MODO LOCAL: Lógica original (mostrar roles uno por uno)
-  const playerInfo = currentPlayer ? getPlayerInfo(currentPlayer.id) : null;
+  // Usar displayedPlayer para el contenido de la carta, pero currentPlayer para el header
+  const playerInfo = displayedPlayer ? getPlayerInfo(displayedPlayer.id) : null;
   const progress = (currentPlayerIndex + 1) / players.length;
 
   if (allPlayersSeen) {
@@ -347,10 +379,10 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
       <View style={styles.content}>
         <View style={styles.header}>
           <Text variant="headlineMedium" style={styles.playerName}>
-            {currentPlayer?.name}
+            {displayedPlayer?.name || currentPlayer?.name}
           </Text>
           <Chip icon="account" style={styles.progressChip}>
-            Jugador {currentPlayerIndex + 1} de {players.length}
+            Jugador {displayedPlayerIndex + 1} de {players.length}
           </Chip>
           <ProgressBar progress={progress} color={theme.colors.accent} style={styles.progressBar} />
         </View>
@@ -359,6 +391,7 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
           <FlipCard
             flipped={showRole}
             style={styles.flipCardContainer}
+            onFlipComplete={handleFlipComplete}
             front={
               <Card style={styles.revealCard} mode="elevated">
                 <Card.Content style={styles.revealContent}>
