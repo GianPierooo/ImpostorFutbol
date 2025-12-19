@@ -128,12 +128,18 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
 
   const handleNextPlayer = () => {
     if (currentPlayerIndex < players.length - 1) {
-      // Primero voltear la carta hacia atrás
+      const nextIndex = currentPlayerIndex + 1;
+      // Voltear la carta hacia atrás primero
       prevShowRoleRef.current = showRole;
       setIsFlipping(true);
       setShowRole(false);
-      // Guardar el siguiente índice para cambiar después de la animación
-      setPendingPlayerIndex(currentPlayerIndex + 1);
+      // Cambiar el jugador cuando la carta esté a la mitad del flip (después de ~150ms)
+      // Esto es más rápido que esperar a que termine toda la animación
+      setTimeout(() => {
+        setDisplayedPlayerIndex(nextIndex);
+        setCurrentPlayerIndex(nextIndex);
+        setIsFlipping(false);
+      }, 150);
     } else {
       setAllPlayersSeen(true);
     }
@@ -141,12 +147,8 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
 
   // Callback cuando la animación de volteo se completa
   const handleFlipComplete = () => {
-    // Solo cambiar el jugador si se está volteando hacia atrás (showRole cambió de true a false)
-    if (isFlipping && pendingPlayerIndex !== null && !showRole && prevShowRoleRef.current) {
-      // Cambiar el jugador mostrado solo después de que la animación termine
-      setDisplayedPlayerIndex(pendingPlayerIndex);
-      setCurrentPlayerIndex(pendingPlayerIndex);
-      setPendingPlayerIndex(null);
+    // Solo limpiar el estado de flipping si es necesario
+    if (isFlipping && !showRole) {
       setIsFlipping(false);
     }
     prevShowRoleRef.current = showRole;

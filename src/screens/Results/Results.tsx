@@ -249,26 +249,28 @@ export const ResultsScreen: React.FC<Props> = ({ navigation, route }) => {
                       mode={isMostVoted ? "elevated" : "outlined"}
                     >
                       <Card.Content style={styles.voteResultContent}>
-                        <View style={styles.voteResultHeader}>
-                          <View style={styles.voteResultInfo}>
-                            <Avatar.Text
-                              size={32}
-                              label={getInitials(player.name)}
-                              style={[
-                                styles.smallAvatar,
-                                { backgroundColor: getPlayerColor(player.id) },
-                                isImpostor && styles.smallAvatarImpostor
-                              ]}
-                            />
+                        <View style={styles.voteResultInfoContainer}>
+                          <Avatar.Text
+                            size={56}
+                            label={getInitials(player.name)}
+                            style={[
+                              styles.resultAvatar,
+                              { backgroundColor: getPlayerColor(player.id) },
+                              isImpostor && styles.resultAvatarImpostor
+                            ]}
+                          />
+                          <View style={styles.resultPlayerDetails}>
                             <Text variant="titleMedium" style={styles.voteResultName}>
                               {player.name}
                             </Text>
                             {isImpostor && (
-                              <Text variant="bodySmall" style={[styles.impostorBadge, styles.impostorBadgeText]}>
+                              <Text variant="bodySmall" style={styles.impostorBadgeText}>
                                 IMPOSTOR
                               </Text>
                             )}
                           </View>
+                        </View>
+                        <View style={styles.voteCountContainer}>
                           <Text
                             variant="headlineSmall"
                             style={[
@@ -278,12 +280,12 @@ export const ResultsScreen: React.FC<Props> = ({ navigation, route }) => {
                           >
                             {voteCount}
                           </Text>
+                          {isMostVoted && (
+                            <Text variant="bodySmall" style={styles.mostVotedLabel}>
+                              Más votado
+                            </Text>
+                          )}
                         </View>
-                        {isMostVoted && (
-                          <Text variant="bodySmall" style={styles.mostVotedLabel}>
-                            Más votado
-                          </Text>
-                        )}
                       </Card.Content>
                     </Card>
                   </Animated.View>
@@ -507,7 +509,6 @@ const styles = StyleSheet.create({
   voteResultCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
     borderWidth: 2,
     borderColor: theme.colors.border,
@@ -515,43 +516,69 @@ const styles = StyleSheet.create({
   },
   voteResultCardHighlighted: {
     borderColor: theme.colors.accent,
+    borderWidth: 3,
   },
   voteResultCardImpostor: {
     borderColor: theme.colors.error,
+    borderWidth: 3,
   },
-  voteResultHeader: {
+  voteResultContent: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
   },
-  voteResultInfo: {
+  voteResultInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
   },
-  smallAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  resultAvatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: theme.colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: theme.spacing.sm,
+    marginRight: theme.spacing.md,
+    ...theme.shadows.small,
   },
-  smallAvatarImpostor: {
+  resultAvatarImpostor: {
     backgroundColor: theme.colors.error,
   },
-  voteResultName: {
-    flex: 1,
-    fontWeight: theme.typography.weights.semibold,
+  resultPlayerDetails: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  impostorBadge: {
-    marginLeft: theme.spacing.sm,
+  voteResultName: {
+    fontWeight: theme.typography.weights.semibold,
+    textAlign: 'center',
+    marginBottom: theme.spacing.xs,
+  },
+  impostorBadgeText: {
+    color: theme.colors.error,
     fontWeight: theme.typography.weights.bold,
+    textAlign: 'center',
+  },
+  voteCountContainer: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  voteCount: {
+    color: theme.colors.textSecondary,
+    fontWeight: '600',
+  },
+  voteCountHighlighted: {
+    color: theme.colors.accent,
+    fontWeight: '700',
   },
   mostVotedLabel: {
     marginTop: theme.spacing.xs,
+    color: theme.colors.accent,
     fontWeight: theme.typography.weights.semibold,
+    fontSize: 12,
   },
   votesDetailList: {
     width: '100%',

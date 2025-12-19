@@ -58,24 +58,26 @@ const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
         mode={isSelected ? "elevated" : "outlined"}
       >
         <Card.Content style={styles.cardContent}>
-          <Avatar.Text
-            size={56}
-            label={initials}
-            style={[
-              styles.avatar,
-              { backgroundColor: playerColor },
-              isSelected && styles.avatarSelected,
-            ]}
-          />
-          <View style={styles.playerDetails}>
-            <Text variant="titleMedium" style={styles.playerName}>
-              {player.name}
-            </Text>
+          <View style={styles.playerInfoContainer}>
+            <Avatar.Text
+              size={56}
+              label={initials}
+              style={[
+                styles.avatar,
+                { backgroundColor: playerColor },
+                isSelected && styles.avatarSelected,
+              ]}
+            />
+            <View style={styles.playerDetails}>
+              <Text variant="titleMedium" style={styles.playerName}>
+                {player.name}
+              </Text>
             {voteCount > 0 && (
-              <Text variant="bodySmall" style={styles.voteCount}>
+              <Text variant="bodySmall" style={styles.playerVoteCount}>
                 {voteCount} {voteCount === 1 ? 'voto' : 'votos'}
               </Text>
             )}
+            </View>
           </View>
           {isSelected && (
             <View style={styles.selectedBadge}>
@@ -529,12 +531,8 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
   playerCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    padding: theme.spacing.md,
     marginBottom: theme.spacing.sm,
     borderWidth: 2,
     borderColor: theme.colors.border,
@@ -543,14 +541,24 @@ const styles = StyleSheet.create({
   playerCardSelected: {
     borderColor: theme.colors.accent,
     backgroundColor: theme.colors.surface,
+    borderWidth: 3,
     ...theme.shadows.medium,
   },
   playerCardDisabled: {
     opacity: 0.5,
   },
-  playerInfo: {
+  cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
+    position: 'relative',
+  },
+  playerInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     flex: 1,
   },
   avatar: {
@@ -570,19 +578,32 @@ const styles = StyleSheet.create({
     fontWeight: theme.typography.weights.bold,
   },
   playerDetails: {
-    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   playerName: {
     fontWeight: theme.typography.weights.semibold,
     marginBottom: theme.spacing.xs,
+    textAlign: 'center',
+  },
+  playerVoteCount: {
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
   },
   selectedBadge: {
+    position: 'absolute',
+    top: theme.spacing.sm,
+    right: theme.spacing.sm,
     width: 32,
     height: 32,
     borderRadius: 16,
     backgroundColor: theme.colors.accent,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  checkmark: {
+    color: theme.colors.textLight,
+    fontWeight: 'bold',
   },
   resultsSection: {
     width: '100%',
