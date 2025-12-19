@@ -108,12 +108,15 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   }, [gameState, currentRound]);
 
-  // Inicializar el jugador que está viendo la pantalla
+  // Inicializar el jugador que está viendo la pantalla - optimizado para evitar delay
   useEffect(() => {
-    if (currentPlayer && !viewingPlayerId) {
-      setViewingPlayerId(currentPlayer.id);
+    if (currentPlayer) {
+      // Actualizar inmediatamente sin verificar viewingPlayerId para evitar delay inicial
+      if (viewingPlayerId !== currentPlayer.id) {
+        setViewingPlayerId(currentPlayer.id);
+      }
     }
-  }, [currentPlayer, viewingPlayerId]);
+  }, [currentPlayer?.id, viewingPlayerId]);
 
   // MODO ONLINE: Intentar cargar el estado si no está disponible
   const [loadingState, setLoadingState] = useState(false);
@@ -188,17 +191,15 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
     // Si todos dieron pista, avanzar automáticamente (solo en modo local)
     // En modo online, el host controla la navegación
     if (!isOnline && isLastPlayer) {
-      // Esperar un momento para que se actualice el estado
-      setTimeout(() => {
-        // Si es la última ronda configurada, ir directo a votación
-        if (gameState.maxRounds !== null && gameState.currentRound === gameState.maxRounds) {
-          localGame?.finishRound();
-          navigation.navigate('Voting', { mode: 'local' });
-        } else {
-          // SIEMPRE ir a Discussion después de cada ronda (excepto la última)
-          navigation.navigate('Discussion', { mode: 'local' });
-        }
-      }, 200);
+      // Navegar inmediatamente sin delay
+      // Si es la última ronda configurada, ir directo a votación
+      if (gameState.maxRounds !== null && gameState.currentRound === gameState.maxRounds) {
+        localGame?.finishRound();
+        navigation.navigate('Voting', { mode: 'local' });
+      } else {
+        // SIEMPRE ir a Discussion después de cada ronda (excepto la última)
+        navigation.navigate('Discussion', { mode: 'local' });
+      }
       return;
     }
   };
