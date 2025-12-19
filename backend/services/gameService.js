@@ -145,21 +145,42 @@ class GameService {
       throw new Error(validation.error);
     }
 
-    // Obtener lista de jugadores
-    // IMPORTANTE: Esta lista debe estar en el mismo orden que roleAssignment.players
-    // para que currentPlayerIndex sea válido
-    const players = await redisService.getAllPlayersInfo(code);
+    // IMPORTANTE: Reconstruir roleAssignment.players desde los roles guardados en Redis
+    // Este orden es la fuente de verdad para currentPlayerIndex
+    // No usar getAllPlayersInfo porque puede tener un orden diferente
+    const roles = await redisService.getRoles(code);
+    const allPlayers = await redisService.getAllPlayersInfo(code);
+    
+    // Reconstruir roleAssignment.players en el orden original
+    // El orden se preserva porque los roles se guardan en el mismo orden que se asignaron
+    const roleAssignmentPlayers = [];
+    const playerMap = new Map(allPlayers.map(p => [p.id, p]));
+    
+    // Iterar sobre los roles en el orden en que se guardaron (orden de asignación)
+    // Esto mantiene el orden original de roleAssignment.players
+    for (const [pId, role] of Object.entries(roles)) {
+      const player = playerMap.get(pId);
+      if (player) {
+        roleAssignmentPlayers.push({
+          id: player.id,
+          name: player.name,
+          role: role,
+        });
+      }
+    }
+    
+    // Si no hay roles guardados, usar getAllPlayersInfo como fallback (no debería pasar)
+    const players = roleAssignmentPlayers.length > 0 ? roleAssignmentPlayers : allPlayers.map(p => ({ ...p, role: 'normal' }));
     
     // Validar que el índice esté dentro del rango
-    // Si un jugador se desconectó, el índice podría estar fuera de rango
     if (gameState.currentPlayerIndex >= players.length || gameState.currentPlayerIndex < 0) {
-      // Ajustar índice si está fuera de rango (resetear a 0)
       console.warn(`⚠️ currentPlayerIndex (${gameState.currentPlayerIndex}) fuera de rango, reseteando a 0`);
       gameState.currentPlayerIndex = 0;
       await redisService.saveGameState(code, gameState);
     }
     
     // Obtener el jugador que debería estar escribiendo según currentPlayerIndex
+    // IMPORTANTE: Usar players (roleAssignment.players reconstruido) no allPlayers
     const currentPlayer = players[gameState.currentPlayerIndex];
     if (!currentPlayer) {
       throw new Error('Error: No hay jugador en el índice actual');
@@ -170,26 +191,20 @@ class GameService {
       throw new Error(`No es tu turno. Es el turno de ${currentPlayer.name}`);
     }
 
-    // Obtener información del jugador
-    const playerInfo = await redisService.getPlayerInfo(code, playerId);
-    if (!playerInfo) {
-      throw new Error('Jugador no encontrado');
-    }
+    // Obtener información del jugador (optimizado: ya tenemos el nombre en currentPlayer)
+    const playerName = currentPlayer.name;
 
     // Crear pista
     const pista = {
       id: `pista-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       playerId,
-      playerName: playerInfo.name,
+      playerName: playerName,
       text: text.trim(),
       round: gameState.currentRound,
       turn: gameState.currentTurn,
     };
 
-    // Guardar pista en Redis
-    await redisService.addPista(code, pista);
-
-    // Avanzar al siguiente jugador
+    // Avanzar al siguiente jugador ANTES de guardar
     // El orden es circular: 0 -> 1 -> 2 -> ... -> (n-1) -> 0 -> ...
     const totalPlayers = players.length;
     gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % totalPlayers;
@@ -200,12 +215,17 @@ class GameService {
       gameState.currentTurn += 1;
     }
 
-    // Guardar el estado actualizado
-    await redisService.saveGameState(code, gameState);
+    // Optimización: Guardar pista y gameState en paralelo usando Promise.all
+    // Esto reduce la latencia total
+    await Promise.all([
+      redisService.addPista(code, pista),
+      redisService.saveGameState(code, gameState),
+    ]);
 
+    // Retornar el gameState actualizado (ya está guardado)
     return {
       pista,
-      gameState: await redisService.getGameState(code),
+      gameState: gameState, // Usar el gameState ya actualizado, no hacer otra llamada a Redis
     };
   }
 

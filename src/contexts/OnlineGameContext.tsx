@@ -416,17 +416,31 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     }
   }, [roomCode, playerId, isHost]);
 
+  /**
+   * Agregar una pista
+   * 
+   * IMPORTANTE: En modo online, usamos WebSocket para mejor rendimiento y sincronización instantánea.
+   * El backend valida el turno y actualiza currentPlayerIndex, luego emite el evento 'pista_added'
+   * a todos los jugadores en la sala.
+   * 
+   * Optimización: Usamos WebSocket directamente en lugar de HTTP REST para:
+   * 1. Menor latencia (no hay overhead de HTTP)
+   * 2. Sincronización instantánea (el evento se emite inmediatamente)
+   * 3. Mejor experiencia de usuario (cambios visibles al instante)
+   */
   const addPista = useCallback(async (text: string) => {
     if (!roomCode || !playerId) return;
 
     try {
-      const result = await gamesAPI.addPista(roomCode, playerId, text);
-      if (result.success) {
-        socketService.addPista(roomCode, playerId, text);
-        // El WebSocket actualizará el estado
-      }
-    } catch (error) {
+      // Usar WebSocket directamente para mejor rendimiento
+      // El backend procesará la pista y emitirá el evento 'pista_added' automáticamente
+      socketService.addPista(roomCode, playerId, text);
+      
+      // El estado se actualizará automáticamente cuando llegue el evento 'pista_added'
+      // No necesitamos esperar respuesta ni hacer llamadas adicionales
+    } catch (error: any) {
       console.error('Error adding pista:', error);
+      // Re-lanzar el error para que el componente pueda manejarlo
       throw error;
     }
   }, [roomCode, playerId]);

@@ -149,19 +149,23 @@ function setupSocketHandlers(io) {
           return;
         }
 
+        // Procesar la pista y actualizar el estado
         const result = await gameService.addPista(code, playerId, text);
 
-        // Notificar a todos en la sala
+        // Notificar a todos en la sala INMEDIATAMENTE después de actualizar
+        // Esto asegura que todos los jugadores vean el cambio de turno al instante
         io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PISTA_ADDED, {
           pista: result.pista,
           gameState: result.gameState,
         });
 
-        console.log(`💬 Pista agregada en sala ${code} por ${playerId}`);
+        console.log(`💬 Pista agregada en sala ${code} por ${playerId} - Turno actualizado a índice ${result.gameState.currentPlayerIndex}`);
       } catch (error) {
+        // Enviar error solo al jugador que intentó enviar la pista
         socket.emit(constants.SOCKET_EVENTS.ERROR, {
           message: error.message,
         });
+        console.error(`❌ Error agregando pista en sala ${code}:`, error.message);
       }
     });
 
