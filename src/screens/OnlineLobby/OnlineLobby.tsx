@@ -38,18 +38,29 @@ export const OnlineLobbyScreen: React.FC<Props> = ({ navigation }) => {
         }
       } catch (healthError: any) {
         console.error('Health check failed:', healthError);
-        showError(
-          'Servidor no disponible',
-          'No se pudo conectar al servidor.\n\n' +
-          'Posibles causas:\n' +
-          '1. El backend no está corriendo en la VM\n' +
-          '2. El servidor Redis no está disponible\n' +
-          '3. Problemas de firewall o red\n\n' +
-          'Verifica en la VM:\n' +
-          '• pm2 status (backend debe estar corriendo)\n' +
-          '• redis-cli ping (Redis debe responder PONG)\n' +
-          '• curl http://163.192.223.30:3000/api/health'
-        );
+        
+        // Distinguir entre diferentes tipos de errores
+        let errorMessage = 'No se pudo conectar al servidor.\n\n';
+        
+        // Si es error 429 (rate limiting), informar pero permitir continuar
+        if (healthError.response?.status === 429) {
+          errorMessage += '⚠️ El servidor está recibiendo demasiadas peticiones.\n';
+          errorMessage += 'Esto es temporal, intenta de nuevo en unos momentos.\n\n';
+          errorMessage += 'El servidor está funcionando, solo está limitando peticiones.';
+        } else if (healthError.code === 'ERR_NETWORK' || healthError.message.includes('Network Error')) {
+          errorMessage += 'Posibles causas:\n' +
+            '1. El backend no está corriendo en la VM\n' +
+            '2. El servidor Redis no está disponible\n' +
+            '3. Problemas de firewall o red\n\n' +
+            'Verifica en la VM:\n' +
+            '• pm2 status (backend debe estar corriendo)\n' +
+            '• redis-cli ping (Redis debe responder PONG)\n' +
+            '• curl http://163.192.223.30:3000/api/health';
+        } else {
+          errorMessage += 'Error: ' + (healthError.response?.data?.error || healthError.message || 'Error desconocido');
+        }
+        
+        showError('Servidor no disponible', errorMessage);
         setLoading(false);
         return;
       }

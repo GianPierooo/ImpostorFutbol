@@ -59,7 +59,15 @@ const limiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
-app.use('/api/', limiter);
+
+// Aplicar rate limiting a todas las rutas API EXCEPTO health check
+app.use('/api/', (req, res, next) => {
+  // Excluir health check del rate limiting
+  if (req.path.startsWith('/health')) {
+    return next();
+  }
+  return limiter(req, res, next);
+});
 
 // Logging middleware
 app.use((req, res, next) => {
