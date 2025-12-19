@@ -145,7 +145,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       }
     };
 
-    const handleGameStateChanged = (data: any) => {
+    const handleGameStateChanged = async (data: any) => {
       if (data.gameState) {
         setGameState(data.gameState);
         // Actualizar también el status de la sala cuando cambia el estado del juego
@@ -159,6 +159,15 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       }
       if (data.roleAssignment) {
         setRoleAssignment(data.roleAssignment);
+      }
+      
+      // Si no recibimos roleAssignment en el evento pero el juego inició, cargarlo manualmente
+      if (data.gameState && !data.roleAssignment && data.gameState.phase === 'roleAssignment' && roomCode) {
+        try {
+          await loadGameState();
+        } catch (error) {
+          console.error('Error loading game state after GAME_STATE_CHANGED:', error);
+        }
       }
     };
 
@@ -192,7 +201,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       }
     };
 
-    const handlePhaseChanged = (data: any) => {
+    const handlePhaseChanged = async (data: any) => {
       if (data.gameState) {
         setGameState(data.gameState);
       }
@@ -204,6 +213,15 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
             room: prev.room ? { ...prev.room, status: data.phase } : { status: data.phase },
           };
         });
+      }
+      
+      // Si cambió a roleAssignment y no tenemos gameState o roleAssignment, cargarlos
+      if (data.phase === 'roleAssignment' && (!gameState || !roleAssignment) && roomCode) {
+        try {
+          await loadGameState();
+        } catch (error) {
+          console.error('Error loading game state after PHASE_CHANGED:', error);
+        }
       }
     };
 
@@ -224,7 +242,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       socketService.off('vote_added', handleVoteAdded);
       socketService.off('phase_changed', handlePhaseChanged);
     };
-  }, [roomCode, playerId, loadRoomState]);
+  }, [roomCode, playerId, loadRoomState, loadGameState, gameState, roleAssignment]);
 
   const loadGameState = useCallback(async () => {
     if (!roomCode) return;
@@ -492,9 +510,10 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     };
   }, [roleAssignment, gameState]);
 
-  // Cargar estado del juego cuando cambia roomCode
+  // Cargar estado del juego cuando cambia roomCode o cuando el estado de la sala cambia de lobby
   useEffect(() => {
-    if (roomCode && roomState?.room?.status !== 'lobby') {
+    if (roomCode && roomState?.room?.status && roomState.room.status !== 'lobby') {
+      // Cargar inmediatamente cuando cambia de lobby a cualquier otra fase
       loadGameState();
     }
   }, [roomCode, roomState?.room?.status, loadGameState]);
@@ -512,6 +531,30 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       return () => clearInterval(interval);
     }
   }, [roomCode, isConnected, roomState?.room?.status, loadRoomState]);
+
+  // Polling de fallback cuando el juego inicia pero no recibimos el evento (para jugadores que no recibieron GAME_STATE_CHANGED)
+  useEffect(() => {
+    if (!roomCode || !isConnected) return;
+    
+    // Si el estado de la sala cambió a roleAssignment pero no tenemos gameState, hacer polling
+    if (roomState?.room?.status === 'roleAssignment' && !gameState) {
+      // Cargar inmediatamente
+      loadGameState();
+      
+      // Y hacer polling cada 2 segundos hasta que se cargue
+      const interval = setInterval(async () => {
+        try {
+          await loadGameState();
+          // Si ya tenemos gameState, dejar de hacer polling
+          // (el intervalo se limpiará cuando gameState cambie)
+        } catch (error) {
+          console.error('Error polling game state:', error);
+        }
+      }, 2000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [roomCode, isConnected, roomState?.room?.status, gameState, loadGameState]);
 
   const value: OnlineGameContextType = {
     roomCode,
