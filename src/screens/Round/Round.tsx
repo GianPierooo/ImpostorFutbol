@@ -67,14 +67,36 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
   const isMyTurn = isOnline && onlineGame 
     ? (() => {
         if (!gameState || !onlineGame.playerId || !roleAssignment) return false;
-        const currentPlayerFromState = roleAssignment.players[gameState.currentPlayerIndex];
+        // Usar la lista actual de jugadores si está disponible, sino usar roleAssignment.players
+        const currentPlayers = onlineGame.players && onlineGame.players.length > 0 
+          ? onlineGame.players 
+          : roleAssignment.players;
+        
+        // Validar que el índice esté dentro del rango
+        if (gameState.currentPlayerIndex >= currentPlayers.length || gameState.currentPlayerIndex < 0) {
+          return false;
+        }
+        
+        const currentPlayerFromState = currentPlayers[gameState.currentPlayerIndex];
         return currentPlayerFromState?.id === onlineGame.playerId;
       })()
     : true; // En modo local siempre es el turno del jugador actual
 
   // MODO ONLINE: Obtener el jugador que está escribiendo actualmente
-  const playerWriting = isOnline && roleAssignment && gameState
-    ? roleAssignment.players[gameState.currentPlayerIndex]
+  const playerWriting = isOnline && roleAssignment && gameState && onlineGame
+    ? (() => {
+        // Usar la lista actual de jugadores si está disponible
+        const currentPlayers = onlineGame.players && onlineGame.players.length > 0 
+          ? onlineGame.players 
+          : roleAssignment.players;
+        
+        // Validar que el índice esté dentro del rango
+        if (gameState.currentPlayerIndex >= currentPlayers.length || gameState.currentPlayerIndex < 0) {
+          return null;
+        }
+        
+        return currentPlayers[gameState.currentPlayerIndex];
+      })()
     : currentPlayer;
 
   // Reiniciar cuando cambia la ronda

@@ -271,6 +271,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
   const joinRoom = useCallback(async (code: string, pId: string, pName: string) => {
     setLoading(true);
     try {
+      // Primero establecer roomCode para que el useEffect configure los listeners
       setRoomCode(code);
       setPlayerId(pId);
       setPlayerName(pName);
@@ -280,8 +281,15 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
         socketService.connect();
       }
       
-      // Esperar un momento para que el WebSocket se conecte
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Esperar a que el WebSocket se conecte completamente
+      let attempts = 0;
+      while (!socketService.connected() && attempts < 10) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      // Esperar un momento adicional para que los listeners se configuren
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       socketService.joinRoom(code, pId);
       
