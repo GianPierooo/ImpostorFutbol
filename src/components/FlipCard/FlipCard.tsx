@@ -9,6 +9,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   interpolate,
+  runOnJS,
 } from 'react-native-reanimated';
 import { theme } from '../../theme';
 
@@ -30,6 +31,13 @@ export const FlipCard: React.FC<FlipCardProps> = ({
 }) => {
   const flipRotation = useSharedValue(0);
 
+  // Función wrapper para llamar al callback de forma segura
+  const callOnFlipComplete = React.useCallback(() => {
+    if (onFlipComplete) {
+      onFlipComplete();
+    }
+  }, [onFlipComplete]);
+
   useEffect(() => {
     if (flipped) {
       flipRotation.value = withSpring(180, {
@@ -38,7 +46,7 @@ export const FlipCard: React.FC<FlipCardProps> = ({
         mass: 1.2,
       }, (finished) => {
         if (finished && onFlipComplete) {
-          onFlipComplete();
+          runOnJS(callOnFlipComplete)();
         }
       });
     } else {
@@ -46,9 +54,13 @@ export const FlipCard: React.FC<FlipCardProps> = ({
         damping: 12,
         stiffness: 90,
         mass: 1.2,
+      }, (finished) => {
+        if (finished && onFlipComplete) {
+          runOnJS(callOnFlipComplete)();
+        }
       });
     }
-  }, [flipped, onFlipComplete]);
+  }, [flipped, onFlipComplete, callOnFlipComplete]);
 
   // Estilo para el lado frontal
   const frontAnimatedStyle = useAnimatedStyle(() => {
