@@ -30,11 +30,16 @@ const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
 }) => {
   // Generar avatar con iniciales
   const getInitials = (name: string): string => {
-    const words = name.trim().split(' ');
-    if (words.length >= 2) {
+    const words = name.trim().split(' ').filter(w => w.length > 0);
+    if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
       return (words[0][0] + words[1][0]).toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    // Fallback: usar las primeras 2 letras del nombre
+    const trimmedName = name.trim();
+    if (trimmedName.length >= 2) {
+      return trimmedName.substring(0, 2).toUpperCase();
+    }
+    return trimmedName.toUpperCase() || '??';
   };
 
   const initials = getInitials(player.name);
@@ -112,18 +117,46 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
         return onlineGame.votes.some(v => v.voterId === playerId);
       }
     : (playerId: string) => localGame?.hasVoted(playerId) || false;
+  /**
+   * MODO ONLINE: Obtener el votante actual
+   * 
+   * IMPORTANTE: Debe validar que currentVoterIndex esté dentro del rango
+   * para evitar errores si un jugador se desconectó
+   * 
+   * @returns {Player | null} El votante actual, o null si hay error
+   */
   const getCurrentVoter = isOnline
     ? () => {
         if (!onlineGame || !roleAssignment || currentVoterIndex === undefined) return null;
+        
+        // Validar que el índice esté dentro del rango
+        if (currentVoterIndex >= roleAssignment.players.length || currentVoterIndex < 0) {
+          console.warn(`⚠️ currentVoterIndex (${currentVoterIndex}) fuera de rango (0-${roleAssignment.players.length - 1})`);
+          return null;
+        }
+        
         return roleAssignment.players[currentVoterIndex] || null;
       }
     : () => localGame?.getCurrentVoter() || null;
+  /**
+   * Verifica si todos los jugadores han votado
+   * 
+   * IMPORTANTE: En modo online, debe usar roleAssignment.players como fuente de verdad
+   * porque ese es el orden original de los jugadores cuando se asignaron los roles.
+   * Todos los jugadores en roleAssignment.players deben votar.
+   * 
+   * @returns {boolean} true si todos los jugadores han votado, false en caso contrario
+   */
   const allVotesComplete = isOnline
     ? () => {
         if (!onlineGame || !roleAssignment) return false;
-        // Usar la lista actual de jugadores en lugar de roleAssignment.players
-        // para evitar problemas si un jugador se desconectó
-        const currentPlayers = onlineGame.players || roleAssignment.players;
+        
+        // IMPORTANTE: Usar roleAssignment.players como fuente de verdad
+        // porque ese es el orden original y todos los jugadores deben estar ahí
+        // onlineGame.players puede tener jugadores desconectados, pero todos deben votar
+        const currentPlayers = roleAssignment.players;
+        
+        // Verificar que todos los jugadores en roleAssignment.players hayan votado
         return currentPlayers.every(p => onlineGame.votes.some(v => v.voterId === p.id));
       }
     : () => localGame?.allVotesComplete() || false;
@@ -134,12 +167,32 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
   const currentVoter = getCurrentVoter();
   const votingResults = getVotingResults();
 
-  // MODO ONLINE: Verificar si es el turno del jugador actual
+  /**
+   * MODO ONLINE: Verificar si es el turno del jugador actual para votar
+   * 
+   * IMPORTANTE: Debe validar que currentVoterIndex esté dentro del rango
+   * y usar roleAssignment.players como fuente de verdad
+   * 
+   * @returns {boolean} true si es el turno del jugador actual, false en caso contrario
+   */
   const isMyTurn = isOnline && onlineGame 
     ? (() => {
         if (!gameState || !onlineGame.playerId || !roleAssignment) return false;
+        
+        // Validar que el índice esté dentro del rango
+        if (gameState.currentVoterIndex >= roleAssignment.players.length || gameState.currentVoterIndex < 0) {
+          console.warn(`⚠️ currentVoterIndex (${gameState.currentVoterIndex}) fuera de rango (0-${roleAssignment.players.length - 1})`);
+          return false;
+        }
+        
+        // Obtener el votante que debería estar votando según currentVoterIndex
         const currentVoterFromState = roleAssignment.players[gameState.currentVoterIndex];
-        return currentVoterFromState?.id === onlineGame.playerId;
+        if (!currentVoterFromState) {
+          return false;
+        }
+        
+        // Verificar si el jugador actual es el que tiene el turno
+        return currentVoterFromState.id === onlineGame.playerId;
       })()
     : true; // En modo local siempre es el turno del votante actual
 

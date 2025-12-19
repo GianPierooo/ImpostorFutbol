@@ -167,6 +167,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       }
       
       // Si no recibimos roleAssignment en el evento pero el juego inició, cargarlo manualmente
+      // IMPORTANTE: Usar loadGameState del closure, no del estado actual
       if (data.gameState && !data.roleAssignment && data.gameState.phase === 'roleAssignment' && roomCode) {
         try {
           await loadGameState();
@@ -223,8 +224,10 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
         });
       }
       
-      // Si cambió a roleAssignment y no tenemos gameState o roleAssignment, cargarlos
-      if (data.phase === 'roleAssignment' && (!gameState || !roleAssignment) && roomCode) {
+      // Si cambió a roleAssignment, cargar gameState para asegurar que tenemos todos los datos
+      // IMPORTANTE: Usar loadGameState del closure, no verificar gameState/roleAssignment del estado
+      // porque pueden estar desactualizados en el momento del evento
+      if (data.phase === 'roleAssignment' && roomCode) {
         try {
           await loadGameState();
         } catch (error: any) {
@@ -253,7 +256,11 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       socketService.off('vote_added', handleVoteAdded);
       socketService.off('phase_changed', handlePhaseChanged);
     };
-  }, [roomCode, playerId, loadRoomState, loadGameState, gameState, roleAssignment]);
+    // IMPORTANTE: No incluir gameState y roleAssignment en las dependencias
+    // porque causaría que los listeners se desmonten y vuelvan a montar cada vez que cambian
+    // Los handlers usan las funciones loadGameState y loadRoomState que ya están en las dependencias
+    // y acceden al estado actual mediante closures
+  }, [roomCode, playerId, loadRoomState, loadGameState]);
 
   const loadGameState = useCallback(async () => {
     if (!roomCode) return;
@@ -618,17 +625,36 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     }
   }, [roomCode, isConnected, roomState?.room?.status, loadGameState, playerId]);
 
-  // Polling de fallback cuando el juego inicia pero no recibimos el evento (para jugadores que no recibieron GAME_STATE_CHANGED)
+  /**
+   * Polling de fallback cuando el juego inicia pero no recibimos el evento
+   * (para jugadores que no recibieron GAME_STATE_CHANGED)
+   * 
+   * IMPORTANTE: Este efecto solo debe ejecutarse cuando:
+   * - El estado de la sala cambió a roleAssignment
+   * - Y no tenemos gameState todavía
+   * 
+   * Hace polling cada 3 segundos hasta que se cargue gameState o hasta un máximo de intentos.
+   */
   useEffect(() => {
     if (!roomCode || !isConnected) return;
     
     // Si el estado de la sala cambió a roleAssignment pero no tenemos gameState, hacer polling
     if (roomState?.room?.status === 'roleAssignment' && !gameState) {
+      let pollCount = 0;
+      const maxPolls = 10; // Máximo 10 polls (30 segundos) para evitar polling infinito
+      
       // Cargar inmediatamente
       loadGameState();
       
       // Y hacer polling cada 3 segundos hasta que se cargue (reducido para evitar rate limiting)
       const interval = setInterval(async () => {
+        pollCount++;
+        if (pollCount > maxPolls) {
+          clearInterval(interval);
+          console.warn('⚠️ Polling de gameState alcanzó el máximo de intentos');
+          return;
+        }
+        
         try {
           await loadGameState();
           // Si ya tenemos gameState, dejar de hacer polling

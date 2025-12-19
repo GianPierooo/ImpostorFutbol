@@ -116,11 +116,16 @@ export const ResultsScreen: React.FC<Props> = ({ navigation, route }) => {
 
   // Generar avatar con iniciales
   const getInitials = (name: string): string => {
-    const words = name.trim().split(' ');
-    if (words.length >= 2) {
+    const words = name.trim().split(' ').filter(w => w.length > 0);
+    if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
       return (words[0][0] + words[1][0]).toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    // Fallback: usar las primeras 2 letras del nombre
+    const trimmedName = name.trim();
+    if (trimmedName.length >= 2) {
+      return trimmedName.substring(0, 2).toUpperCase();
+    }
+    return trimmedName.toUpperCase() || '??';
   };
 
   return (

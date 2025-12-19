@@ -35,6 +35,17 @@ export const AnimatedIcon: React.FC<AnimatedIconProps> = ({
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(1);
 
+  // Validar que duration y delay sean números válidos
+  const safeDuration = typeof duration === 'number' && !isNaN(duration) && isFinite(duration) && duration > 0 
+    ? duration 
+    : 2000;
+  const safeDelay = typeof delay === 'number' && !isNaN(delay) && isFinite(delay) && delay >= 0 
+    ? delay 
+    : 0;
+  const safeSize = typeof size === 'number' && !isNaN(size) && isFinite(size) && size > 0 
+    ? size 
+    : 24;
+
   useEffect(() => {
     if (animation === 'none') return;
 
@@ -44,8 +55,8 @@ export const AnimatedIcon: React.FC<AnimatedIconProps> = ({
         case 'pulse':
           scale.value = withRepeat(
             withSequence(
-              withTiming(1.2, { duration: duration / 2, easing: Easing.out(Easing.ease) }),
-              withTiming(1, { duration: duration / 2, easing: Easing.in(Easing.ease) })
+              withTiming(1.2, { duration: safeDuration / 2, easing: Easing.out(Easing.ease) }),
+              withTiming(1, { duration: safeDuration / 2, easing: Easing.in(Easing.ease) })
             ),
             -1,
             true
@@ -65,7 +76,7 @@ export const AnimatedIcon: React.FC<AnimatedIconProps> = ({
 
         case 'rotate':
           rotation.value = withRepeat(
-            withTiming(360, { duration, easing: Easing.linear }),
+            withTiming(360, { duration: safeDuration, easing: Easing.linear }),
             -1,
             false
           );
@@ -88,18 +99,18 @@ export const AnimatedIcon: React.FC<AnimatedIconProps> = ({
         case 'glow':
           opacity.value = withRepeat(
             withSequence(
-              withTiming(0.5, { duration: duration / 2 }),
-              withTiming(1, { duration: duration / 2 })
+              withTiming(0.5, { duration: safeDuration / 2 }),
+              withTiming(1, { duration: safeDuration / 2 })
             ),
             -1,
             true
           );
           break;
       }
-    }, delay);
+    }, safeDelay);
 
     return () => clearTimeout(startDelay);
-  }, [animation, duration, delay]);
+  }, [animation, safeDuration, safeDelay]);
 
   const animatedStyle = useAnimatedStyle(() => {
     'worklet';
@@ -124,7 +135,7 @@ export const AnimatedIcon: React.FC<AnimatedIconProps> = ({
 
   return (
     <Animated.View style={[animatedStyle, style]}>
-      <IconButton {...props} size={size} />
+      <IconButton {...props} size={safeSize} />
     </Animated.View>
   );
 };

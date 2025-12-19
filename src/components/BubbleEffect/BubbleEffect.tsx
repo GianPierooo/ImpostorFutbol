@@ -71,10 +71,24 @@ const ParticleComponent: React.FC<{
   const rotation = useSharedValue(0);
 
   useEffect(() => {
+    // Validar que los valores de la partícula sean válidos antes de calcular
+    const safeAngle = typeof particle.angle === 'number' && !isNaN(particle.angle) && isFinite(particle.angle)
+      ? particle.angle
+      : 0;
+    const safeDistance = typeof particle.distance === 'number' && !isNaN(particle.distance) && isFinite(particle.distance) && particle.distance > 0
+      ? particle.distance
+      : 100;
+    
     // Calcular posición final basada en ángulo y distancia
-    const radians = (particle.angle * Math.PI) / 180;
-    const finalX = Math.cos(radians) * particle.distance;
-    const finalY = Math.sin(radians) * particle.distance;
+    const radians = (safeAngle * Math.PI) / 180;
+    const finalX = Math.cos(radians) * safeDistance;
+    const finalY = Math.sin(radians) * safeDistance;
+    
+    // Validar que los cálculos sean válidos
+    if (isNaN(finalX) || isNaN(finalY) || !isFinite(finalX) || !isFinite(finalY)) {
+      console.warn(`⚠️ BubbleEffect: Valores inválidos calculados para partícula ${particle.id}`);
+      return;
+    }
 
     // Animación de salida con física realista
     translateX.value = withDelay(
@@ -192,9 +206,18 @@ const ParticleComponent: React.FC<{
 export const BubbleEffect: React.FC<BubbleEffectProps> = ({ visible, position, onComplete }) => {
   const particles = useMemo(() => generateParticles(), [visible]);
   
-  // Usar posición proporcionada o centro de pantalla por defecto
-  const effectX = position?.x ?? SCREEN_WIDTH / 2;
-  const effectY = position?.y ?? SCREEN_HEIGHT * 0.3;
+  // Validar y usar posición proporcionada o centro de pantalla por defecto
+  // IMPORTANTE: Validar que las coordenadas sean números válidos para evitar errores de renderizado
+  const isValidPosition = position && 
+    typeof position.x === 'number' && 
+    !isNaN(position.x) && 
+    isFinite(position.x) &&
+    typeof position.y === 'number' && 
+    !isNaN(position.y) && 
+    isFinite(position.y);
+  
+  const effectX = isValidPosition ? position.x : SCREEN_WIDTH / 2;
+  const effectY = isValidPosition ? position.y : SCREEN_HEIGHT * 0.3;
 
   if (!visible) {
     return null;

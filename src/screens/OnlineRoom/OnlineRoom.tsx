@@ -48,7 +48,30 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
     prevPlayersRef.current = players;
   }, [players]);
 
+  /**
+   * Maneja el layout de un jugador para mostrar el efecto de burbuja
+   * 
+   * IMPORTANTE: Valida que las coordenadas sean números válidos antes de usarlas
+   * para evitar errores de renderizado con valores NaN
+   * 
+   * @param {string} playerId - ID del jugador
+   * @param {number} x - Coordenada X (debe ser un número válido)
+   * @param {number} y - Coordenada Y (debe ser un número válido)
+   */
   const handlePlayerLayout = React.useCallback((playerId: string, x: number, y: number) => {
+    // Validar que las coordenadas sean números válidos
+    if (
+      typeof x !== 'number' || 
+      isNaN(x) || 
+      !isFinite(x) ||
+      typeof y !== 'number' || 
+      isNaN(y) || 
+      !isFinite(y)
+    ) {
+      console.warn(`⚠️ handlePlayerLayout recibió coordenadas inválidas para jugador ${playerId}: x=${x}, y=${y}`);
+      return;
+    }
+    
     // Solo activar si es el jugador nuevo y el efecto no está ya visible
     if (playerId === newPlayerId && !showBubble && effectTriggeredRef.current === playerId) {
       setBubblePosition({ x, y });
@@ -56,22 +79,33 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [newPlayerId, showBubble]);
 
-  // Unirse a la sala cuando se monta
+  /**
+   * Unirse a la sala cuando se monta el componente
+   * 
+   * IMPORTANTE: Este efecto solo debe ejecutarse una vez cuando el componente se monta.
+   * Las dependencias son code, playerId, playerName que vienen de route.params
+   * y no deberían cambiar durante la vida del componente.
+   * 
+   * Cleanup: Cuando el componente se desmonta, salir de la sala automáticamente.
+   */
   useEffect(() => {
     const join = async () => {
       try {
         await joinRoom(code, playerId, playerName);
       } catch (error: any) {
         // Error manejado por el contexto
+        console.error('Error joining room:', error);
         navigation.goBack();
       }
     };
     join();
 
     return () => {
+      // Cleanup: salir de la sala cuando el componente se desmonta
       leaveRoom();
     };
-  }, [code, playerId, playerName]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Solo ejecutar una vez al montar - las dependencias vienen de route.params que no cambian
 
   // Usar navegación automática online
   useOnlineNavigation();

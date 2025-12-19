@@ -394,7 +394,10 @@ export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => 
   // MODO LOCAL: Lógica original (mostrar roles uno por uno)
   // Usar displayedPlayer para el contenido de la carta, pero currentPlayer para el header
   const playerInfo = displayedPlayer ? getPlayerInfo(displayedPlayer.id) : null;
-  const progress = (currentPlayerIndex + 1) / players.length;
+  // Calcular progreso de forma segura, evitando división por cero
+  const progress = players.length > 0 
+    ? Math.min(1, Math.max(0, (currentPlayerIndex + 1) / players.length))
+    : 0;
 
   if (allPlayersSeen) {
     return (

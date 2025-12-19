@@ -27,11 +27,16 @@ const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove, onLayout, isN
 
   // Generar avatar con iniciales
   const getInitials = (name: string): string => {
-    const words = name.trim().split(' ');
-    if (words.length >= 2) {
+    const words = name.trim().split(' ').filter(w => w.length > 0);
+    if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
       return (words[0][0] + words[1][0]).toUpperCase();
     }
-    return name.substring(0, 2).toUpperCase();
+    // Fallback: usar las primeras 2 letras del nombre
+    const trimmedName = name.trim();
+    if (trimmedName.length >= 2) {
+      return trimmedName.substring(0, 2).toUpperCase();
+    }
+    return trimmedName.toUpperCase() || '??';
   };
 
   const initials = getInitials(player.name);
@@ -51,10 +56,26 @@ const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove, onLayout, isN
       measureTimeoutRef.current = setTimeout(() => {
         if (cardRef.current) {
           cardRef.current.measure((x, y, width, height, pageX, pageY) => {
-            // Calcular el centro del avatar
-            const centerX = pageX + 40; // Avatar está a ~40px del inicio
-            const centerY = pageY + height / 2;
-            onLayout(centerX, centerY);
+            // Validar que los valores sean números válidos antes de usarlos
+            // Si alguno es NaN o undefined, no llamar onLayout
+            if (
+              typeof pageX === 'number' && 
+              !isNaN(pageX) && 
+              typeof pageY === 'number' && 
+              !isNaN(pageY) &&
+              typeof height === 'number' && 
+              !isNaN(height) &&
+              height > 0
+            ) {
+              // Calcular el centro del avatar
+              const centerX = pageX + 40; // Avatar está a ~40px del inicio
+              const centerY = pageY + height / 2;
+              
+              // Validar que los valores calculados también sean válidos
+              if (!isNaN(centerX) && !isNaN(centerY) && isFinite(centerX) && isFinite(centerY)) {
+                onLayout(centerX, centerY);
+              }
+            }
           });
         }
       }, 50);

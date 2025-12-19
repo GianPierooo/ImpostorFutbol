@@ -37,6 +37,17 @@ export const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
   const translateX = useSharedValue(0);
   const opacity = useSharedValue(1);
 
+  // Validar que duration y delay sean números válidos
+  const safeDuration = typeof duration === 'number' && !isNaN(duration) && isFinite(duration) && duration > 0 
+    ? duration 
+    : 3000;
+  const safeDelay = typeof delay === 'number' && !isNaN(delay) && isFinite(delay) && delay >= 0 
+    ? delay 
+    : 0;
+  const safeSize = typeof size === 'number' && !isNaN(size) && isFinite(size) && size > 0 
+    ? size 
+    : 48;
+
   useEffect(() => {
     if (animation === 'none') return;
 
@@ -45,8 +56,8 @@ export const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
         case 'pulse':
           scale.value = withRepeat(
             withSequence(
-              withTiming(1.08, { duration: duration / 2, easing: Easing.out(Easing.ease) }),
-              withTiming(1, { duration: duration / 2, easing: Easing.in(Easing.ease) })
+              withTiming(1.08, { duration: safeDuration / 2, easing: Easing.out(Easing.ease) }),
+              withTiming(1, { duration: safeDuration / 2, easing: Easing.in(Easing.ease) })
             ),
             -1,
             true
@@ -66,7 +77,7 @@ export const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
 
         case 'rotate':
           rotation.value = withRepeat(
-            withTiming(360, { duration, easing: Easing.linear }),
+            withTiming(360, { duration: safeDuration, easing: Easing.linear }),
             -1,
             false
           );
@@ -89,18 +100,18 @@ export const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
         case 'glow':
           opacity.value = withRepeat(
             withSequence(
-              withTiming(0.75, { duration: duration / 2, easing: Easing.out(Easing.ease) }),
-              withTiming(1, { duration: duration / 2, easing: Easing.in(Easing.ease) })
+              withTiming(0.75, { duration: safeDuration / 2, easing: Easing.out(Easing.ease) }),
+              withTiming(1, { duration: safeDuration / 2, easing: Easing.in(Easing.ease) })
             ),
             -1,
             true
           );
           break;
       }
-    }, delay);
+    }, safeDelay);
 
     return () => clearTimeout(startDelay);
-  }, [animation, duration, delay]);
+  }, [animation, safeDuration, safeDelay]);
 
   const animatedStyle = useAnimatedStyle(() => {
     'worklet';
@@ -126,7 +137,7 @@ export const AnimatedEmoji: React.FC<AnimatedEmojiProps> = ({
   return (
     <AnimatedText
       {...props}
-      style={[styles.emoji, { fontSize: size }, style, animatedStyle]}
+      style={[styles.emoji, { fontSize: safeSize }, style, animatedStyle]}
     >
       {emoji}
     </AnimatedText>

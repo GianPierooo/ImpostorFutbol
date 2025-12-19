@@ -303,7 +303,11 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
               Turno de {playerWriting?.name || 'Cargando...'}
             </Text>
             <ProgressBar 
-              progress={roundPistas.length / (roleAssignment?.players.length || 1)} 
+              progress={
+                roleAssignment?.players && roleAssignment.players.length > 0
+                  ? Math.min(1, Math.max(0, roundPistas.length / roleAssignment.players.length))
+                  : 0
+              } 
               color={roundColors?.accent || theme.colors.primary} 
               style={styles.progressBar} 
             />
