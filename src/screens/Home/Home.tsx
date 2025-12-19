@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
   actions: {
     width: '100%',
     maxWidth: 360,
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md,
     marginBottom: theme.spacing.md,
     alignSelf: 'center',
   },

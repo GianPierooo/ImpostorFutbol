@@ -9,14 +9,22 @@ import { getPlayerColor } from '../../utils';
 interface PlayerListProps {
   players: Player[];
   onRemove?: (id: string) => void;
+  onPlayerLayout?: (playerId: string, x: number, y: number) => void;
+  newPlayerId?: string;
 }
 
 interface PlayerItemProps {
   player: Player;
   onRemove?: (id: string) => void;
+  onLayout?: (x: number, y: number) => void;
+  isNew?: boolean;
 }
 
-const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove }) => {
+const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove, onLayout, isNew }) => {
+  const cardRef = React.useRef<View>(null);
+  const hasMeasuredRef = React.useRef(false);
+  const measureTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
   // Generar avatar con iniciales
   const getInitials = (name: string): string => {
     const words = name.trim().split(' ');
@@ -29,36 +37,86 @@ const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove }) => {
   const initials = getInitials(player.name);
   const playerColor = getPlayerColor(player.id);
 
+  // Función para medir la posición (solo una vez)
+  const measurePosition = React.useCallback(() => {
+    if (isNew && onLayout && cardRef.current && !hasMeasuredRef.current) {
+      hasMeasuredRef.current = true;
+      
+      // Limpiar timeout anterior si existe
+      if (measureTimeoutRef.current) {
+        clearTimeout(measureTimeoutRef.current);
+      }
+      
+      // Reducir delay a 50ms para respuesta más rápida
+      measureTimeoutRef.current = setTimeout(() => {
+        if (cardRef.current) {
+          cardRef.current.measure((x, y, width, height, pageX, pageY) => {
+            // Calcular el centro del avatar
+            const centerX = pageX + 40; // Avatar está a ~40px del inicio
+            const centerY = pageY + height / 2;
+            onLayout(centerX, centerY);
+          });
+        }
+      }, 50);
+    }
+  }, [isNew, onLayout]);
+
+  // Obtener posición cuando el componente se monta o cuando es nuevo
+  React.useEffect(() => {
+    if (isNew && !hasMeasuredRef.current) {
+      measurePosition();
+    }
+    
+    // Cleanup
+    return () => {
+      if (measureTimeoutRef.current) {
+        clearTimeout(measureTimeoutRef.current);
+      }
+      if (!isNew) {
+        hasMeasuredRef.current = false;
+      }
+    };
+  }, [isNew, measurePosition]);
+
+  const handleLayout = React.useCallback(() => {
+    // Solo medir si es nuevo y no se ha medido aún
+    if (isNew && !hasMeasuredRef.current) {
+      measurePosition();
+    }
+  }, [isNew, measurePosition]);
+
   return (
     <Animated.View entering={FadeInDown.delay(100)}>
-      <Card style={styles.playerCard} mode="elevated">
-        <Card.Content style={styles.cardContent}>
-          <Avatar.Text
-            size={40}
-            label={initials}
-            style={[styles.avatar, { backgroundColor: playerColor }]}
-          />
-        <View style={styles.playerInfo}>
-          <Text variant="titleMedium" style={styles.playerName}>
-            {player.name}
-          </Text>
-        </View>
-        {onRemove && (
-          <IconButton
-            icon="close"
-            size={20}
-            iconColor={theme.colors.error}
-            style={styles.removeButton}
-            onPress={() => onRemove(player.id)}
-          />
-        )}
-      </Card.Content>
-    </Card>
+      <View ref={cardRef} collapsable={false} onLayout={handleLayout}>
+        <Card style={styles.playerCard} mode="elevated">
+          <Card.Content style={styles.cardContent}>
+            <Avatar.Text
+              size={40}
+              label={initials}
+              style={[styles.avatar, { backgroundColor: playerColor }]}
+            />
+          <View style={styles.playerInfo}>
+            <Text variant="titleMedium" style={styles.playerName}>
+              {player.name}
+            </Text>
+          </View>
+          {onRemove && (
+            <IconButton
+              icon="close"
+              size={20}
+              iconColor={theme.colors.error}
+              style={styles.removeButton}
+              onPress={() => onRemove(player.id)}
+            />
+          )}
+        </Card.Content>
+      </Card>
+      </View>
     </Animated.View>
   );
 };
 
-export const PlayerList: React.FC<PlayerListProps> = ({ players, onRemove }) => {
+export const PlayerList: React.FC<PlayerListProps> = ({ players, onRemove, onPlayerLayout, newPlayerId }) => {
   if (players.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -87,7 +145,17 @@ export const PlayerList: React.FC<PlayerListProps> = ({ players, onRemove }) => 
       
       <View style={styles.listContent}>
         {players.map((player) => (
-          <PlayerItem key={player.id} player={player} onRemove={onRemove} />
+          <PlayerItem 
+            key={player.id} 
+            player={player} 
+            onRemove={onRemove}
+            isNew={player.id === newPlayerId}
+            onLayout={(x, y) => {
+              if (onPlayerLayout && player.id === newPlayerId) {
+                onPlayerLayout(player.id, x, y);
+              }
+            }}
+          />
         ))}
       </View>
     </View>
