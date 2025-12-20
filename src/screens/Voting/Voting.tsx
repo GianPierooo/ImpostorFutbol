@@ -98,9 +98,19 @@ const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
 };
 
 export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { mode, isOnline, onlineGame, localGame } = useGameMode();
+  // IMPORTANTE: Usar route.params como fuente de verdad para el modo
+  // Esto previene que se mezclen parámetros de modo online y offline
+  const routeParams = route.params || {};
+  const modeFromRoute = routeParams.mode || 'local';
+  const roomCodeFromRoute = routeParams.roomCode;
   
-  // Usar navegación automática online
+  // Usar useGameMode con los parámetros de ruta para detectar correctamente el modo
+  const { mode, isOnline, onlineGame, localGame } = useGameMode({
+    mode: modeFromRoute as 'local' | 'online',
+    roomCode: roomCodeFromRoute,
+  });
+  
+  // Usar navegación automática online (verifica internamente si debe ejecutarse)
   useOnlineNavigation();
   
   // Usar el contexto apropiado según el modo
@@ -209,9 +219,13 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [currentVoter, viewingVoterId, votes]);
 
   // MODO ONLINE: Intentar cargar el estado si no está disponible
+  // IMPORTANTE: Solo cargar si realmente estamos en modo online (verificado por route.params)
   const [loadingState, setLoadingState] = useState(false);
   useEffect(() => {
-    if (isOnline && onlineGame?.roomCode && onlineGame?.loadGameState && (!gameState || !roleAssignment) && !loadingState) {
+    // Verificar que realmente estamos en modo online usando route.params
+    const isReallyOnline = modeFromRoute === 'online' && roomCodeFromRoute;
+    
+    if (isReallyOnline && onlineGame?.roomCode && onlineGame?.loadGameState && (!gameState || !roleAssignment) && !loadingState) {
       setLoadingState(true);
       const loadState = async () => {
         try {
@@ -224,7 +238,7 @@ export const VotingScreen: React.FC<Props> = ({ navigation, route }) => {
       };
       loadState();
     }
-  }, [isOnline, onlineGame?.roomCode, onlineGame?.loadGameState, gameState, roleAssignment, loadingState]);
+  }, [isOnline, modeFromRoute, roomCodeFromRoute, onlineGame?.roomCode, onlineGame?.loadGameState, gameState, roleAssignment, loadingState]);
 
   // Si no hay estado del juego después de intentar cargarlo, mostrar loading
   if (!gameState || !roleAssignment) {

@@ -12,9 +12,19 @@ import { NavigationParamList, Player } from '../../types';
 type Props = NativeStackScreenProps<NavigationParamList, 'Round'>;
 
 export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { mode, isOnline, onlineGame, localGame } = useGameMode();
+  // IMPORTANTE: Usar route.params como fuente de verdad para el modo
+  // Esto previene que se mezclen parámetros de modo online y offline
+  const routeParams = route.params || {};
+  const modeFromRoute = routeParams.mode || 'local';
+  const roomCodeFromRoute = routeParams.roomCode;
   
-  // Usar navegación automática online
+  // Usar useGameMode con los parámetros de ruta para detectar correctamente el modo
+  const { mode, isOnline, onlineGame, localGame } = useGameMode({
+    mode: modeFromRoute as 'local' | 'online',
+    roomCode: roomCodeFromRoute,
+  });
+  
+  // Usar navegación automática online (verifica internamente si debe ejecutarse)
   useOnlineNavigation();
   
   // Usar el contexto apropiado según el modo
@@ -167,9 +177,13 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [currentPlayer?.id, viewingPlayerId]);
 
   // MODO ONLINE: Intentar cargar el estado si no está disponible
+  // IMPORTANTE: Solo cargar si realmente estamos en modo online (verificado por route.params)
   const [loadingState, setLoadingState] = useState(false);
   useEffect(() => {
-    if (isOnline && onlineGame?.roomCode && onlineGame?.loadGameState && (!gameState || !roleAssignment) && !loadingState) {
+    // Verificar que realmente estamos en modo online usando route.params
+    const isReallyOnline = modeFromRoute === 'online' && roomCodeFromRoute;
+    
+    if (isReallyOnline && onlineGame?.roomCode && onlineGame?.loadGameState && (!gameState || !roleAssignment) && !loadingState) {
       setLoadingState(true);
       const loadState = async () => {
         try {
@@ -183,7 +197,7 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
       };
       loadState();
     }
-  }, [isOnline, onlineGame?.roomCode, onlineGame?.loadGameState, gameState, roleAssignment, loadingState]);
+  }, [isOnline, modeFromRoute, roomCodeFromRoute, onlineGame?.roomCode, onlineGame?.loadGameState, gameState, roleAssignment, loadingState]);
 
   // Si no hay estado del juego después de intentar cargarlo, mostrar loading
   if (!gameState || !roleAssignment) {
@@ -208,12 +222,14 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
    * Flujo:
    * 1. Valida que hay texto, jugador actual, gameState y roleAssignment
    * 2. En modo online, verifica que es el turno del jugador (isMyTurn)
-   * 3. Envía la pista al backend (modo online) o al contexto local (modo local)
-   * 4. Limpia el campo de texto
-   * 5. En modo local, avanza automáticamente si todos dieron pista
+   * 3. En modo local, verifica que el jugador no haya dado ya una pista en esta ronda
+   * 4. Envía la pista al backend (modo online) o al contexto local (modo local)
+   * 5. Limpia el campo de texto
+   * 6. En modo local, avanza automáticamente si todos dieron pista
    * 
-   * IMPORTANTE: En modo online, el backend valida el turno y actualiza currentPlayerIndex.
-   * El frontend solo muestra/oculta el input según isMyTurn.
+   * IMPORTANTE: 
+   * - En modo online, el backend valida el turno y actualiza currentPlayerIndex.
+   * - En modo local, cada jugador solo puede dar UNA pista por ronda.
    */
   const handleAddPista = async () => {
     if (!pistaText.trim() || !currentPlayer || !gameState || !roleAssignment) return;
@@ -225,6 +241,19 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
 
+    // MODO LOCAL: Verificar que el jugador no haya dado ya una pista en esta ronda
+    // Cada jugador solo puede dar UNA pista por ronda
+    if (!isOnline && localGame) {
+      const roundPistas = getRoundPistas(gameState.currentRound);
+      const playerAlreadyGavePista = roundPistas.some(p => p.playerId === currentPlayer.id);
+      
+      if (playerAlreadyGavePista) {
+        console.warn(`⚠️ El jugador ${currentPlayer.name} ya dio una pista en la ronda ${gameState.currentRound}`);
+        // No permitir enviar otra pista en la misma ronda
+        return;
+      }
+    }
+
     try {
       // Agregar pista según el modo
       if (isOnline && onlineGame) {
@@ -234,6 +263,7 @@ export const RoundScreen: React.FC<Props> = ({ navigation, route }) => {
         // El WebSocket actualizará el estado automáticamente
       } else if (localGame) {
         // MODO LOCAL: Agregar pista y avanzar turno localmente
+        // addPista ya valida internamente que el jugador no haya dado pista en esta ronda
         localGame.addPista(pistaText, currentPlayer.id);
         localGame.nextTurn();
       }

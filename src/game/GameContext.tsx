@@ -172,11 +172,31 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     };
   }, [roleAssignment]);
 
+  /**
+   * Agrega una pista de un jugador
+   * 
+   * IMPORTANTE: En modo local, cada jugador solo puede dar UNA pista por ronda.
+   * Si el jugador ya dio una pista en la ronda actual, no se permite agregar otra.
+   * 
+   * @param {string} text - Texto de la pista
+   * @param {string} playerId - ID del jugador que envía la pista
+   */
   const addPista = useCallback((text: string, playerId: string) => {
     if (!gameState || !roleAssignment) return;
 
     const player = roleAssignment.players.find((p) => p.id === playerId);
     if (!player) return;
+
+    // IMPORTANTE: Verificar si el jugador ya dio una pista en esta ronda
+    // Cada jugador solo puede dar UNA pista por ronda
+    const existingPistaInRound = pistas.find(
+      (p) => p.playerId === playerId && p.round === gameState.currentRound
+    );
+    
+    if (existingPistaInRound) {
+      console.warn(`⚠️ El jugador ${player.name} ya dio una pista en la ronda ${gameState.currentRound}`);
+      return; // No permitir agregar otra pista en la misma ronda
+    }
 
     const newPista: Pista = {
       id: `pista-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`,
@@ -188,21 +208,63 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     };
 
     setPistas((prev) => [...prev, newPista]);
-  }, [gameState, roleAssignment, currentTurn]);
+  }, [gameState, roleAssignment, currentTurn, pistas]);
 
+  /**
+   * Avanza al siguiente turno/jugador
+   * 
+   * IMPORTANTE: En modo local, cada jugador solo puede dar UNA pista por ronda.
+   * Esta función debe saltar automáticamente a los jugadores que ya dieron su pista
+   * en la ronda actual, hasta encontrar uno que no haya dado pista o hasta que
+   * todos hayan dado su pista.
+   * 
+   * Flujo:
+   * 1. Avanzar al siguiente índice de jugador
+   * 2. Si volvemos al índice 0, incrementar el turno (nueva vuelta completa)
+   * 3. Verificar si el jugador actual ya dio pista en esta ronda
+   * 4. Si ya dio pista, saltar al siguiente jugador (recursivamente hasta encontrar uno que no haya dado)
+   * 5. Si todos dieron pista, mantener el índice actual (se manejará en finishRound)
+   */
   const nextTurn = useCallback(() => {
     if (!gameState || !roleAssignment) return;
 
     const totalPlayers = roleAssignment.players.length;
-    const nextIndex = (currentPlayerIndex + 1) % totalPlayers;
+    let nextIndex = (currentPlayerIndex + 1) % totalPlayers;
 
     if (nextIndex === 0) {
       // Completamos una vuelta completa de todos los jugadores, avanzamos al siguiente turno
       setCurrentTurn((prev) => prev + 1);
     }
 
+    // IMPORTANTE: Verificar si el siguiente jugador ya dio su pista en esta ronda
+    // Si es así, saltar al siguiente jugador que no haya dado pista
+    const roundPistas = pistas.filter(p => p.round === gameState.currentRound);
+    const playersWhoGavePista = new Set(roundPistas.map(p => p.playerId));
+    
+    // Buscar el siguiente jugador que no haya dado pista en esta ronda
+    let attempts = 0;
+    while (attempts < totalPlayers) {
+      const nextPlayer = roleAssignment.players[nextIndex];
+      if (!nextPlayer) break;
+      
+      // Si este jugador no ha dado pista en esta ronda, usar este índice
+      if (!playersWhoGavePista.has(nextPlayer.id)) {
+        break;
+      }
+      
+      // Si ya dio pista, avanzar al siguiente
+      nextIndex = (nextIndex + 1) % totalPlayers;
+      
+      // Si volvemos al inicio, incrementar el turno
+      if (nextIndex === 0) {
+        setCurrentTurn((prev) => prev + 1);
+      }
+      
+      attempts++;
+    }
+
     setCurrentPlayerIndex(nextIndex);
-  }, [gameState, roleAssignment, currentPlayerIndex]);
+  }, [gameState, roleAssignment, currentPlayerIndex, pistas]);
 
   const finishRound = useCallback(() => {
     if (!gameState) return;

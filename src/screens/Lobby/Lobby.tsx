@@ -78,8 +78,10 @@ export const LobbyScreen: React.FC<Props> = ({ navigation }) => {
     startGame(players, config);
 
     // Usar setTimeout para asegurar que el estado se actualice antes de navegar
+    // IMPORTANTE: Pasar explícitamente mode: 'local' para evitar confusión con modo online
     setTimeout(() => {
       navigation.navigate('RoleAssignment', {
+        mode: 'local', // Modo local explícito
         players,
         config,
       });

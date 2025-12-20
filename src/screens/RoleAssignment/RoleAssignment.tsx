@@ -13,9 +13,19 @@ import { NavigationParamList } from '../../types';
 type Props = NativeStackScreenProps<NavigationParamList, 'RoleAssignment'>;
 
 export const RoleAssignmentScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { mode, isOnline, onlineGame, localGame } = useGameMode();
+  // IMPORTANTE: Usar route.params como fuente de verdad para el modo
+  // Esto previene que se mezclen parámetros de modo online y offline
+  const routeParams = route.params || {};
+  const modeFromRoute = routeParams.mode || 'local';
+  const roomCodeFromRoute = routeParams.roomCode;
   
-  // Usar navegación automática online
+  // Usar useGameMode con los parámetros de ruta para detectar correctamente el modo
+  const { mode, isOnline, onlineGame, localGame } = useGameMode({
+    mode: modeFromRoute as 'local' | 'online',
+    roomCode: roomCodeFromRoute,
+  });
+  
+  // Usar navegación automática online (verifica internamente si debe ejecutarse)
   useOnlineNavigation();
   
   // Para modo ONLINE: cada jugador ve solo su propio rol

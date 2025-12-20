@@ -371,7 +371,8 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       await roomsAPI.leave(roomCode, playerId);
       socketService.leaveRoom(roomCode, playerId);
       
-      // Resetear estado
+      // IMPORTANTE: Limpiar completamente el estado del contexto online
+      // Esto previene que el estado residual cause problemas de detección de modo
       setRoomCode(null);
       setPlayerId(null);
       setPlayerName(null);
@@ -382,8 +383,22 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       setVotes([]);
       setRoleAssignment(null);
       setIsHost(false);
+      
+      // Desconectar WebSocket si no hay más salas activas
+      socketService.disconnect();
     } catch (error) {
       console.error('Error leaving room:', error);
+      // Aún así, limpiar el estado local para evitar problemas
+      setRoomCode(null);
+      setPlayerId(null);
+      setPlayerName(null);
+      setRoomState(null);
+      setGameState(null);
+      setPlayers([]);
+      setPistas([]);
+      setVotes([]);
+      setRoleAssignment(null);
+      setIsHost(false);
     }
   }, [roomCode, playerId]);
 
