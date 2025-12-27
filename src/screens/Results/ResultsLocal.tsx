@@ -57,8 +57,11 @@ export const ResultsLocalScreen: React.FC<Props> = ({ navigation }) => {
   const impostorName = impostor?.name || 'Desconocido';
   const secretWord = roleAssignment.secretWord;
 
-  // Generar avatar con iniciales
-  const getInitials = (name: string): string => {
+  /**
+   * Función para obtener iniciales - MODO LOCAL
+   * Implementación específica para modo local
+   */
+  const getInitialsLocal = (name: string): string => {
     const words = name.trim().split(' ').filter(w => w.length > 0);
     if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
       return (words[0][0] + words[1][0]).toUpperCase();
@@ -147,7 +150,7 @@ export const ResultsLocalScreen: React.FC<Props> = ({ navigation }) => {
             <Card.Content style={styles.impostorCardContent}>
               <Avatar.Text
                 size={80}
-                label={getInitials(impostorName)}
+                label={getInitialsLocal(impostorName)}
                 style={[
                   styles.impostorAvatar,
                   impostor && { backgroundColor: getPlayerColor(impostor.id) }
@@ -209,7 +212,7 @@ export const ResultsLocalScreen: React.FC<Props> = ({ navigation }) => {
                         <View style={styles.voteResultInfoContainer}>
                           <Avatar.Text
                             size={56}
-                            label={getInitials(player.name)}
+                            label={getInitialsLocal(player.name)}
                             style={[
                               styles.resultAvatar,
                               { backgroundColor: getPlayerColor(player.id) },

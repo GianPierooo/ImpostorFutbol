@@ -18,7 +18,7 @@ import { getPlayerColor } from '../../utils';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Voting'>;
 
-interface PlayerVoteItemProps {
+interface PlayerVoteItemLocalProps {
   player: Player;
   onVote: (playerId: string) => void;
   isSelected: boolean;
@@ -26,14 +26,22 @@ interface PlayerVoteItemProps {
   canVote: boolean;
 }
 
-const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
+/**
+ * Componente de item de votación para MODO LOCAL
+ * Implementación específica para modo local sin dependencias online
+ */
+const PlayerVoteItemLocal: React.FC<PlayerVoteItemLocalProps> = ({
   player,
   onVote,
   isSelected,
   voteCount,
   canVote,
 }) => {
-  const getInitials = (name: string): string => {
+  /**
+   * Función para obtener iniciales - MODO LOCAL
+   * Implementación específica para modo local
+   */
+  const getInitialsLocal = (name: string): string => {
     const words = name.trim().split(' ').filter(w => w.length > 0);
     if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
       return (words[0][0] + words[1][0]).toUpperCase();
@@ -45,7 +53,7 @@ const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
     return trimmedName.toUpperCase() || '??';
   };
 
-  const initials = getInitials(player.name);
+  const initials = getInitialsLocal(player.name);
   const playerColor = getPlayerColor(player.id);
   const delay = (player.name.charCodeAt(0) % 200);
   
@@ -231,7 +239,7 @@ export const VotingLocalScreen: React.FC<Props> = ({ navigation }) => {
         {!allComplete && currentVoter && (
           <View style={styles.playersSection}>
             {availablePlayers.map((player) => (
-              <PlayerVoteItem
+              <PlayerVoteItemLocal
                 key={player.id}
                 player={player}
                 onVote={handleVote}

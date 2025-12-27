@@ -19,7 +19,7 @@ import { getPlayerColor } from '../../utils';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Voting'>;
 
-interface PlayerVoteItemProps {
+interface PlayerVoteItemOnlineProps {
   player: Player;
   onVote: (playerId: string) => void;
   isSelected: boolean;
@@ -27,14 +27,22 @@ interface PlayerVoteItemProps {
   canVote: boolean;
 }
 
-const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
+/**
+ * Componente de item de votación para MODO ONLINE
+ * Implementación específica para modo online sin dependencias locales
+ */
+const PlayerVoteItemOnline: React.FC<PlayerVoteItemOnlineProps> = ({
   player,
   onVote,
   isSelected,
   voteCount,
   canVote,
 }) => {
-  const getInitials = (name: string): string => {
+  /**
+   * Función para obtener iniciales - MODO ONLINE
+   * Implementación específica para modo online
+   */
+  const getInitialsOnline = (name: string): string => {
     const words = name.trim().split(' ').filter(w => w.length > 0);
     if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
       return (words[0][0] + words[1][0]).toUpperCase();
@@ -46,7 +54,7 @@ const PlayerVoteItem: React.FC<PlayerVoteItemProps> = ({
     return trimmedName.toUpperCase() || '??';
   };
 
-  const initials = getInitials(player.name);
+  const initials = getInitialsOnline(player.name);
   const playerColor = getPlayerColor(player.id);
   const delay = (player.name.charCodeAt(0) % 200);
   
@@ -293,7 +301,7 @@ export const VotingOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
               // Es el turno del jugador
               <View style={styles.playersSection}>
                 {availablePlayers.map((player) => (
-                  <PlayerVoteItem
+                  <PlayerVoteItemOnline
                     key={player.id}
                     player={player}
                     onVote={handleVote}

@@ -84,8 +84,11 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   const impostorName = impostor?.name || 'Desconocido';
   const secretWord = roleAssignment.secretWord;
 
-  // Generar avatar con iniciales
-  const getInitials = (name: string): string => {
+  /**
+   * Función para obtener iniciales - MODO ONLINE
+   * Implementación específica para modo online
+   */
+  const getInitialsOnline = (name: string): string => {
     const words = name.trim().split(' ').filter(w => w.length > 0);
     if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
       return (words[0][0] + words[1][0]).toUpperCase();
@@ -174,7 +177,7 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
             <Card.Content style={styles.impostorCardContent}>
               <Avatar.Text
                 size={80}
-                label={getInitials(impostorName)}
+                label={getInitialsOnline(impostorName)}
                 style={[
                   styles.impostorAvatar,
                   impostor && { backgroundColor: getPlayerColor(impostor.id) }
@@ -236,7 +239,7 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
                         <View style={styles.voteResultInfoContainer}>
                           <Avatar.Text
                             size={56}
-                            label={getInitials(player.name)}
+                            label={getInitialsOnline(player.name)}
                             style={[
                               styles.resultAvatar,
                               { backgroundColor: getPlayerColor(player.id) },
