@@ -186,8 +186,29 @@ export const VotingOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   const gameState = onlineGame.gameState;
   const roleAssignment = onlineGame.roleAssignment;
   const votes = onlineGame.votes || [];
-  const votingResults = onlineGame.getVotingResults();
   const roomCode = route.params?.roomCode || onlineGame.roomCode;
+  
+  // Estado para los resultados de votación (se carga de forma asíncrona)
+  const [votingResults, setVotingResults] = useState<any | null>(null);
+  
+  // Cargar resultados de votación cuando todos han votado
+  useEffect(() => {
+    const loadVotingResults = async () => {
+      if (allVotesComplete && roleAssignment) {
+        try {
+          const results = await onlineGame.getVotingResults();
+          setVotingResults(results);
+        } catch (error) {
+          console.error('Error loading voting results:', error);
+          setVotingResults(null);
+        }
+      } else {
+        setVotingResults(null);
+      }
+    };
+    
+    loadVotingResults();
+  }, [allVotesComplete, roleAssignment, onlineGame]);
 
   // Obtener el votante actual
   const getCurrentVoter = () => {
@@ -202,11 +223,11 @@ export const VotingOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   // Verificar si todos los jugadores han votado
-  const allVotesComplete = () => {
+  const allVotesComplete = useMemo(() => {
     if (!onlineGame || !roleAssignment) return false;
     const currentPlayers = roleAssignment.players;
     return currentPlayers.every(p => onlineGame.votes.some(v => v.voterId === p.id));
-  };
+  }, [onlineGame, roleAssignment, votes]);
 
   // Verificar si es el turno del jugador actual
   const isMyTurn = (() => {
@@ -309,7 +330,7 @@ export const VotingOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const currentVoteCount = votingResults?.voteCounts || {};
-  const allComplete = allVotesComplete();
+  const allComplete = allVotesComplete;
 
   // Calcular esquema de colores según la ronda
   const roundColors = useMemo(() => {
@@ -411,8 +432,8 @@ export const VotingOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
             </Text>
             <View style={styles.votesList}>
               {roleAssignment.players.map((player, index) => {
-                const count = votingResults.voteCounts[player.id] || 0;
-                const isMostVoted = votingResults.mostVoted === player.id;
+                const count = votingResults?.voteCounts?.[player.id] || 0;
+                const isMostVoted = votingResults?.mostVoted === player.id;
                 
                 return (
                   <Animated.View
@@ -450,7 +471,7 @@ export const VotingOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
                 );
               })}
             </View>
-            {votingResults.isTie && (
+            {votingResults?.isTie && (
               <Text variant="bodyMedium" style={styles.tieText}>
                 ¡Empate! Hay múltiples jugadores con la misma cantidad de votos.
               </Text>
