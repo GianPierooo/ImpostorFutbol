@@ -481,11 +481,12 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     if (!roomCode || !playerId) return;
 
     try {
-      const result = await gamesAPI.addVote(roomCode, playerId, targetId);
-      if (result.success) {
-        socketService.addVote(roomCode, playerId, targetId);
-        // El WebSocket actualizará el estado
-      }
+      // IMPORTANTE: Usar solo WebSocket para votar (similar a addPista)
+      // El backend valida el turno y actualiza currentVoterIndex, luego emite el evento 'vote_added'
+      // a todos los jugadores en la sala.
+      socketService.addVote(roomCode, playerId, targetId);
+      // El WebSocket actualizará el estado automáticamente mediante handleVoteAdded
+      // No usar REST + WebSocket porque causaría que se intente votar dos veces
     } catch (error) {
       console.error('Error adding vote:', error);
       throw error;

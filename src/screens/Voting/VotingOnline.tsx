@@ -5,10 +5,18 @@
  * No tiene ninguna dependencia del modo local.
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { Card, Avatar, Text, Button } from 'react-native-paper';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { View, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
+import Animated, { 
+  FadeInDown, 
+  FadeInUp, 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming,
+  cancelAnimation,
+  runOnJS
+} from 'react-native-reanimated';
+import { Card, Avatar, Text, Button, ProgressBar } from 'react-native-paper';
 import { ScreenContainer, AnimatedEmoji } from '../../components';
 import { useOnlineGame } from '../../contexts';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
@@ -27,9 +35,12 @@ interface PlayerVoteItemOnlineProps {
   canVote: boolean;
 }
 
+const HOLD_DURATION = 1000; // Duración en milisegundos para mantener presionado
+
 /**
  * Componente de item de votación para MODO ONLINE
  * Implementación específica para modo online sin dependencias locales
+ * Con sistema de hold-to-vote con barra de progreso
  */
 const PlayerVoteItemOnline: React.FC<PlayerVoteItemOnlineProps> = ({
   player,
@@ -42,49 +53,125 @@ const PlayerVoteItemOnline: React.FC<PlayerVoteItemOnlineProps> = ({
   const playerColor = getPlayerColor(player.id);
   const delay = (player.name.charCodeAt(0) % 200);
   
+  const progress = useSharedValue(0);
+  const isHolding = useRef(false);
+  const holdTimer = useRef<NodeJS.Timeout | null>(null);
+  
+  // Animación de la barra de progreso
+  const progressStyle = useAnimatedStyle(() => {
+    return {
+      width: `${progress.value * 100}%`,
+    };
+  });
+
+  // Limpiar timer al desmontar
+  useEffect(() => {
+    return () => {
+      if (holdTimer.current) {
+        clearTimeout(holdTimer.current);
+        holdTimer.current = null;
+      }
+      cancelAnimation(progress);
+      progress.value = 0;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handlePressIn = () => {
+    if (!canVote || isSelected) return;
+    
+    isHolding.current = true;
+    progress.value = 0;
+    
+    // Animar progreso desde 0 a 1
+    progress.value = withTiming(1, { duration: HOLD_DURATION });
+    
+    // Cuando se complete, ejecutar el voto
+    holdTimer.current = setTimeout(() => {
+      if (isHolding.current) {
+        isHolding.current = false;
+        onVote(player.id);
+        progress.value = 0;
+      }
+    }, HOLD_DURATION);
+  };
+
+  const handlePressOut = () => {
+    isHolding.current = false;
+    
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+    
+    // Cancelar animación y resetear progreso
+    cancelAnimation(progress);
+    progress.value = withTiming(0, { duration: 200 });
+  };
+  
   return (
     <Animated.View entering={FadeInDown.delay(delay).springify()}>
-      <Card
-        style={[
-          styles.playerCard,
-          isSelected && styles.playerCardSelected,
-          !canVote && styles.playerCardDisabled,
+      <Pressable
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        disabled={!canVote || isSelected}
+        style={({ pressed }) => [
+          pressed && canVote && !isSelected && styles.pressedCard,
         ]}
-        onPress={() => canVote && onVote(player.id)}
-        disabled={!canVote}
-        mode={isSelected ? "elevated" : "outlined"}
       >
-        <Card.Content style={styles.cardContent}>
-          <View style={styles.playerInfoContainer}>
-            <Avatar.Text
-              size={56}
-              label={initials}
-              style={[
-                styles.avatar,
-                { backgroundColor: playerColor },
-                isSelected && styles.avatarSelected,
-              ]}
-            />
-            <View style={styles.playerDetails}>
-              <Text variant="titleMedium" style={styles.playerName}>
-                {player.name}
-              </Text>
-              {voteCount > 0 && (
-                <Text variant="bodySmall" style={styles.playerVoteCount}>
-                  {voteCount} {voteCount === 1 ? 'voto' : 'votos'}
+        <Card
+          style={[
+            styles.playerCard,
+            isSelected && styles.playerCardSelected,
+            !canVote && styles.playerCardDisabled,
+          ]}
+          mode={isSelected ? "elevated" : "outlined"}
+        >
+          <Card.Content style={styles.cardContent}>
+            {/* Barra de progreso animada */}
+            {canVote && !isSelected && (
+              <View style={styles.progressBarContainer}>
+                <Animated.View 
+                  style={[
+                    styles.progressBar,
+                    { backgroundColor: playerColor },
+                    progressStyle,
+                  ]} 
+                />
+              </View>
+            )}
+            
+            <View style={styles.playerInfoContainer}>
+              <Avatar.Text
+                size={56}
+                label={initials}
+                style={[
+                  styles.avatar,
+                  { backgroundColor: playerColor },
+                  isSelected && styles.avatarSelected,
+                ]}
+              />
+              <View style={styles.playerDetails}>
+                <Text variant="titleMedium" style={styles.playerName}>
+                  {player.name}
                 </Text>
-              )}
+                {voteCount > 0 && (
+                  <Text variant="bodySmall" style={styles.playerVoteCount}>
+                    {voteCount} {voteCount === 1 ? 'voto' : 'votos'}
+                  </Text>
+                )}
+              </View>
             </View>
-          </View>
-          {isSelected && (
-            <View style={styles.selectedBadge}>
-              <Text variant="titleLarge" style={styles.checkmark}>
-                ✓
-              </Text>
-            </View>
-          )}
-        </Card.Content>
-      </Card>
+            {isSelected && (
+              <View style={styles.selectedBadge}>
+                <Text variant="titleLarge" style={styles.checkmark}>
+                  ✓
+                </Text>
+              </View>
+            )}
+          </Card.Content>
+        </Card>
+      </Pressable>
     </Animated.View>
   );
 };
@@ -141,16 +228,30 @@ export const VotingOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const currentVoter = getCurrentVoter();
 
-  // Inicializar el votante actual
+  // Inicializar el votante actual y actualizar selectedTarget cuando cambia el votante o los votos
   useEffect(() => {
-    if (currentVoter && !viewingVoterId) {
-      setViewingVoterId(currentVoter.id);
-      const existingVote = votes.find((v) => v.voterId === currentVoter.id);
-      if (existingVote) {
-        setSelectedTarget(existingVote.targetId);
+    if (currentVoter) {
+      // Si cambió el votante, actualizar el estado de selección
+      if (viewingVoterId !== currentVoter.id) {
+        setViewingVoterId(currentVoter.id);
+        setSelectedTarget(null);
+      }
+      
+      // Actualizar selectedTarget basándose en los votos actuales
+      // Solo si es el turno del jugador actual
+      if (isMyTurn) {
+        const existingVote = votes.find((v) => v.voterId === currentVoter.id);
+        if (existingVote) {
+          setSelectedTarget(existingVote.targetId);
+        } else {
+          // Si no hay voto y no es el votante que estábamos viendo, resetear
+          if (viewingVoterId === currentVoter.id) {
+            setSelectedTarget(null);
+          }
+        }
       }
     }
-  }, [currentVoter, viewingVoterId, votes]);
+  }, [currentVoter, viewingVoterId, votes, isMyTurn]);
 
   // Intentar cargar el estado si no está disponible
   const [loadingState, setLoadingState] = useState(false);
@@ -194,13 +295,16 @@ export const VotingOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const handleVote = async (targetId: string) => {
     if (!currentVoter) return;
-    setSelectedTarget(targetId);
     
+    // No establecer selectedTarget aquí, se manejará automáticamente cuando el voto se procese
     try {
       await onlineGame.addVote(targetId);
-      setSelectedTarget(null);
+      // El estado se actualizará automáticamente cuando llegue el evento VOTE_ADDED
+      // No necesitamos resetear selectedTarget aquí
     } catch (error: any) {
       console.error('Error al votar:', error);
+      // En caso de error, resetear el target seleccionado
+      setSelectedTarget(null);
     }
   };
 
@@ -420,6 +524,24 @@ const styles = StyleSheet.create({
     ...theme.shadows.medium,
   },
   playerCardDisabled: { opacity: 0.5 },
+  pressedCard: {
+    opacity: 0.8,
+  },
+  progressBarContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: theme.colors.primary,
+  },
   cardContent: {
     flexDirection: 'row',
     alignItems: 'center',
