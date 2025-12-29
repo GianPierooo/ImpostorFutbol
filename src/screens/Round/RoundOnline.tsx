@@ -42,23 +42,6 @@ export const RoundOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
     return getRoundColorScheme(gameState.currentRound, gameState.maxRounds);
   }, [gameState?.currentRound, gameState?.maxRounds]);
 
-  /**
-   * Verifica si todos los jugadores dieron su pista en una ronda
-   */
-  const allPlayersGavePista = (round: number) => {
-    if (!onlineGame || !roleAssignment) return false;
-    
-    const roundPistas = onlineGame.pistas.filter((p) => p.round === round);
-    const playersWhoGavePista = new Set(roundPistas.map((p) => p.playerId));
-    const currentPlayers = roleAssignment.players;
-    
-    return currentPlayers.every((p: Player) => playersWhoGavePista.has(p.id));
-  };
-
-  const canFinishRound = () => {
-    if (!gameState || !roleAssignment) return false;
-    return allPlayersGavePista(gameState.currentRound);
-  };
 
   /**
    * Verifica si es el turno del jugador actual
@@ -297,35 +280,6 @@ export const RoundOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
             )
           )}
 
-          {/* Botón para host avanzar a Discussion cuando todos dieron pista */}
-          {onlineGame?.isHost && canFinishRound() && (
-            <View style={styles.hostActions}>
-              <Card style={styles.hostCard} mode="elevated">
-                <Card.Content style={styles.hostCardContent}>
-                  <Text variant="titleMedium" style={styles.hostCardTitle}>
-                    ✅ Todos los jugadores han dado su pista
-                  </Text>
-                  <Text variant="bodyMedium" style={styles.hostCardText}>
-                    Como host, puedes avanzar a la discusión
-                  </Text>
-                  <Button
-                    mode="contained"
-                    onPress={async () => {
-                      await onlineGame.changePhase('discussion');
-                    }}
-                    style={styles.continueButton}
-                    contentStyle={styles.buttonContent}
-                    labelStyle={styles.buttonLabel}
-                    icon="arrow-forward"
-                    buttonColor={theme.colors.primary}
-                    textColor={theme.colors.textLight}
-                  >
-                    Ir a Discusión
-                  </Button>
-                </Card.Content>
-              </Card>
-            </View>
-          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </ScreenContainer>
@@ -462,34 +416,6 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: 16,
     fontWeight: '700',
-  },
-  hostActions: {
-    marginTop: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
-    paddingHorizontal: theme.spacing.md,
-  },
-  hostCard: {
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.primary,
-    borderWidth: 2,
-  },
-  hostCardContent: {
-    alignItems: 'center',
-  },
-  hostCardTitle: {
-    marginBottom: theme.spacing.sm,
-    color: theme.colors.primary,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  hostCardText: {
-    marginBottom: theme.spacing.md,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  continueButton: {
-    width: '100%',
-    marginTop: theme.spacing.sm,
   },
   errorText: {
     textAlign: 'center',

@@ -159,6 +159,15 @@ function setupSocketHandlers(io) {
           gameState: result.gameState,
         });
 
+        // Si todos los jugadores dieron su pista, notificar cambio de fase automático
+        if (result.allPlayersGavePista) {
+          io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PHASE_CHANGED, {
+            phase: result.gameState.phase,
+            gameState: result.gameState,
+          });
+          console.log(`🔄 Fase cambiada automáticamente a DISCUSSION en sala ${code} (todos dieron su pista)`);
+        }
+
         console.log(`💬 Pista agregada en sala ${code} por ${playerId} - Turno actualizado a índice ${result.gameState.currentPlayerIndex}`);
       } catch (error) {
         // Enviar error solo al jugador que intentó enviar la pista

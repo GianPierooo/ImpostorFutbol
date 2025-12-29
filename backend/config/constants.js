@@ -14,6 +14,7 @@ module.exports = {
     LOBBY: 'lobby',
     ROLE_ASSIGNMENT: 'roleAssignment',
     ROUND: 'round',
+    DISCUSSION: 'discussion',
     VOTING: 'voting',
     RESULTS: 'results',
   },

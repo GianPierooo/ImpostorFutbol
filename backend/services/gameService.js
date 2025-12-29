@@ -222,10 +222,24 @@ class GameService {
       redisService.saveGameState(code, gameState),
     ]);
 
+    // Verificar si todos los jugadores han dado su pista en la ronda actual
+    const roundPistas = await redisService.getPistasByRound(code, gameState.currentRound);
+    const playersWhoGavePista = new Set(roundPistas.map(p => p.playerId));
+    const allPlayersGavePista = players.every((p) => playersWhoGavePista.has(p.id));
+
+    // Si todos dieron su pista, cambiar automáticamente a fase de discusión
+    if (allPlayersGavePista) {
+      gameState.phase = constants.GAME_PHASES.DISCUSSION;
+      await redisService.saveGameState(code, gameState);
+      await redisService.updateRoomStatus(code, constants.GAME_PHASES.DISCUSSION);
+      console.log(`✅ Todos los jugadores dieron su pista en ronda ${gameState.currentRound} - Cambiando a fase DISCUSSION`);
+    }
+
     // Retornar el gameState actualizado (ya está guardado)
     return {
       pista,
       gameState: gameState, // Usar el gameState ya actualizado, no hacer otra llamada a Redis
+      allPlayersGavePista, // Indicar si todos dieron su pista
     };
   }
 
