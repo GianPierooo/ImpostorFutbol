@@ -19,7 +19,6 @@ export const SECRET_WORDS = [
   'Van Dijk',
   'Casemiro',
   'Kroos',
-  'Benzema',
   'Vinicius Jr',
   'Rodrygo',
   'Foden',

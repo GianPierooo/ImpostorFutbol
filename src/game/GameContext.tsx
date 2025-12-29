@@ -273,19 +273,24 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     const hasMoreRounds = gameState.maxRounds === null || gameState.currentRound < gameState.maxRounds;
     
     if (hasMoreRounds) {
+      const newRound = gameState.currentRound + 1;
+      
+      // IMPORTANTE: Actualizar lastRoundNumber ANTES de actualizar gameState
+      // Esto asegura que el efecto que reinicia turnos se ejecute correctamente
+      setLastRoundNumber(newRound);
+      
+      // Reiniciar turnos ANTES de actualizar la ronda para evitar problemas de timing
+      setCurrentTurn(1);
+      setCurrentPlayerIndex(0);
+      
+      // Actualizar el estado del juego con la nueva ronda
       setGameState((prev) => {
         if (!prev) return prev;
-        const newRound = prev.currentRound + 1;
-        // Actualizar lastRoundNumber usando el valor del estado previo
-        setLastRoundNumber(newRound);
         return {
           ...prev,
           currentRound: newRound,
         };
       });
-      // Reiniciar turnos solo si hay más rondas
-      setCurrentTurn(1);
-      setCurrentPlayerIndex(0);
     } else {
       // Si es la última ronda, cambiar a fase de votación
       setGameState((prev) => {

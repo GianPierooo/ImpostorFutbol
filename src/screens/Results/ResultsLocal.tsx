@@ -14,7 +14,7 @@ import { useGame } from '../../game';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
-import { getPlayerColor } from '../../utils';
+import { getPlayerColor, getInitials } from '../../utils';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Results'>;
 
@@ -57,21 +57,6 @@ export const ResultsLocalScreen: React.FC<Props> = ({ navigation }) => {
   const impostorName = impostor?.name || 'Desconocido';
   const secretWord = roleAssignment.secretWord;
 
-  /**
-   * Función para obtener iniciales - MODO LOCAL
-   * Implementación específica para modo local
-   */
-  const getInitialsLocal = (name: string): string => {
-    const words = name.trim().split(' ').filter(w => w.length > 0);
-    if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
-      return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    const trimmedName = name.trim();
-    if (trimmedName.length >= 2) {
-      return trimmedName.substring(0, 2).toUpperCase();
-    }
-    return trimmedName.toUpperCase() || '??';
-  };
 
   const handleNewGame = () => {
     localGame.resetGame();
@@ -150,7 +135,7 @@ export const ResultsLocalScreen: React.FC<Props> = ({ navigation }) => {
             <Card.Content style={styles.impostorCardContent}>
               <Avatar.Text
                 size={80}
-                label={getInitialsLocal(impostorName)}
+                label={getInitials(impostorName)}
                 style={[
                   styles.impostorAvatar,
                   impostor && { backgroundColor: getPlayerColor(impostor.id) }
@@ -212,7 +197,7 @@ export const ResultsLocalScreen: React.FC<Props> = ({ navigation }) => {
                         <View style={styles.voteResultInfoContainer}>
                           <Avatar.Text
                             size={56}
-                            label={getInitialsLocal(player.name)}
+                            label={getInitials(player.name)}
                             style={[
                               styles.resultAvatar,
                               { backgroundColor: getPlayerColor(player.id) },

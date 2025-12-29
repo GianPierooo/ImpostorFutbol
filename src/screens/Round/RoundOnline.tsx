@@ -1,8 +1,8 @@
 /**
  * Pantalla de Ronda - MODO ONLINE
  * 
- * IMPORTANTE: Esta pantalla SOLO maneja el modo online.
- * No tiene ninguna dependencia del modo local.
+ * IMPORTANTE: Este archivo SOLO maneja el modo online.
+ * No tiene ninguna dependencia del modo offline.
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
@@ -21,7 +21,7 @@ export const RoundOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   // Usar SOLO el contexto online
   const onlineGame = useOnlineGame();
   
-  // Usar navegación automática online (verifica internamente si debe ejecutarse)
+  // Navegación automática online
   useOnlineNavigation();
   
   const gameState = onlineGame.gameState;
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
   },
   hostCard: {
-    backgroundColor: theme.colors.primaryContainer,
+    backgroundColor: theme.colors.surface,
     borderColor: theme.colors.primary,
     borderWidth: 2,
   },

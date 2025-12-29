@@ -24,15 +24,22 @@ export const useOnlineNavigation = () => {
   const routeParams = route.params as any;
   const modeFromRoute = routeParams?.mode;
   const roomCodeFromRoute = routeParams?.roomCode;
+  const codeFromRoute = routeParams?.code; // OnlineRoom usa 'code' en lugar de 'roomCode'
   
   // VERIFICAR SI REALMENTE ESTAMOS EN MODO ONLINE
   // Usar parámetros de ruta como fuente de verdad
-  const isOnlineFromRoute = modeFromRoute === 'online' || roomCodeFromRoute !== undefined;
+  // OnlineRoom usa 'code', otras rutas usan 'roomCode'
+  const isOnlineFromRoute = modeFromRoute === 'online' || 
+                            roomCodeFromRoute !== undefined || 
+                            codeFromRoute !== undefined;
   
   // También verificar que el contexto online tenga datos válidos
+  // IMPORTANTE: No requerir gameState !== null porque puede ser null en lobby
+  // y queremos que la navegación funcione cuando el juego se inicia
+  // El roomCode del contexto debe coincidir con el code/roomCode de la ruta
+  const routeRoomCode = roomCodeFromRoute || codeFromRoute;
   const hasValidOnlineContext = roomCode !== null && 
-                                 roomCode === roomCodeFromRoute && // El roomCode debe coincidir
-                                 gameState !== null;
+                                 roomCode === routeRoomCode; // El roomCode debe coincidir
 
   // SOLO ejecutar navegación automática si realmente estamos en modo online
   const shouldNavigate = isOnlineFromRoute && hasValidOnlineContext;

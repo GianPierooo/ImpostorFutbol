@@ -15,7 +15,7 @@ import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
-import { getPlayerColor } from '../../utils';
+import { getPlayerColor, getInitials } from '../../utils';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Results'>;
 
@@ -84,21 +84,6 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   const impostorName = impostor?.name || 'Desconocido';
   const secretWord = roleAssignment.secretWord;
 
-  /**
-   * Función para obtener iniciales - MODO ONLINE
-   * Implementación específica para modo online
-   */
-  const getInitialsOnline = (name: string): string => {
-    const words = name.trim().split(' ').filter(w => w.length > 0);
-    if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
-      return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    const trimmedName = name.trim();
-    if (trimmedName.length >= 2) {
-      return trimmedName.substring(0, 2).toUpperCase();
-    }
-    return trimmedName.toUpperCase() || '??';
-  };
 
   const handleNewGame = async () => {
     await onlineGame.leaveRoom();
@@ -177,7 +162,7 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
             <Card.Content style={styles.impostorCardContent}>
               <Avatar.Text
                 size={80}
-                label={getInitialsOnline(impostorName)}
+                label={getInitials(impostorName)}
                 style={[
                   styles.impostorAvatar,
                   impostor && { backgroundColor: getPlayerColor(impostor.id) }
@@ -239,7 +224,7 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
                         <View style={styles.voteResultInfoContainer}>
                           <Avatar.Text
                             size={56}
-                            label={getInitialsOnline(player.name)}
+                            label={getInitials(player.name)}
                             style={[
                               styles.resultAvatar,
                               { backgroundColor: getPlayerColor(player.id) },

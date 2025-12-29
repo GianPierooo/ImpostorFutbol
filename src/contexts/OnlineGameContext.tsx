@@ -95,6 +95,27 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     }
   }, [roomCode, playerId]);
 
+  // Sincronizar estado de conexión con el socket service
+  useEffect(() => {
+    if (!roomCode) return;
+    
+    // Actualizar estado de conexión basado en el socket service
+    const updateConnectionStatus = () => {
+      setIsConnected(socketService.connected());
+    };
+    
+    // Verificar estado inicial
+    updateConnectionStatus();
+    
+    // Configurar interval para verificar conexión periódicamente
+    // Esto es necesario porque el socket service no emite eventos cuando cambia el estado
+    const connectionCheckInterval = setInterval(updateConnectionStatus, 2000);
+    
+    return () => {
+      clearInterval(connectionCheckInterval);
+    };
+  }, [roomCode]);
+
   // Escuchar eventos del WebSocket (solo cuando hay una sala activa)
   useEffect(() => {
     // No conectar automáticamente - solo cuando se une a una sala
@@ -104,7 +125,6 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     if (!socketService.connected()) {
       socketService.connect();
     }
-    setIsConnected(socketService.connected());
 
     // Escuchar eventos
     const handleRoomUpdated = (data: any) => {
@@ -239,6 +259,16 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       }
     };
 
+    const handleSocketError = (data: any) => {
+      // Manejar errores del servidor WebSocket
+      const errorMessage = data.message || 'Error desconocido del servidor';
+      console.error('❌ Error de WebSocket:', errorMessage);
+      
+      // Los errores se registran pero no interrumpen el flujo del juego
+      // El usuario puede continuar jugando y los errores se manejan en cada operación específica
+      // Si es un error crítico, el backend debería manejar la desconexión apropiadamente
+    };
+
     socketService.on('room_updated', handleRoomUpdated);
     socketService.on('player_joined', handlePlayerJoined);
     socketService.on('player_left', handlePlayerLeft);
@@ -246,6 +276,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     socketService.on('pista_added', handlePistaAdded);
     socketService.on('vote_added', handleVoteAdded);
     socketService.on('phase_changed', handlePhaseChanged);
+    socketService.on('error', handleSocketError);
 
     return () => {
       socketService.off('room_updated', handleRoomUpdated);
@@ -255,6 +286,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       socketService.off('pista_added', handlePistaAdded);
       socketService.off('vote_added', handleVoteAdded);
       socketService.off('phase_changed', handlePhaseChanged);
+      socketService.off('error', handleSocketError);
     };
     // IMPORTANTE: No incluir gameState y roleAssignment en las dependencias
     // porque causaría que los listeners se desmonten y vuelvan a montar cada vez que cambian
@@ -405,30 +437,14 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
   const startGame = useCallback(async () => {
     if (!roomCode || !playerId || !isHost) return;
 
-    setLoading(true);
-    try {
-      const result = await gamesAPI.start(roomCode, playerId);
-      if (result.success) {
-        socketService.startGame(roomCode, playerId);
-        setGameState(result.data.gameState);
-        setRoleAssignment(result.data.roleAssignment);
-        // Actualizar también el status de la sala
-        if (result.data.gameState?.phase) {
-          setRoomState((prev) => {
-            if (!prev) return null;
-            return {
-              ...prev,
-              room: prev.room ? { ...prev.room, status: result.data.gameState.phase } : { status: result.data.gameState.phase },
-            };
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error starting game:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
+    // IMPORTANTE: Usar solo WebSocket para iniciar el juego.
+    // El backend emitirá los eventos GAME_STATE_CHANGED y PHASE_CHANGED
+    // que actualizarán automáticamente el estado mediante los listeners.
+    // No usar REST + WebSocket porque causaría que se intente iniciar el juego dos veces.
+    socketService.startGame(roomCode, playerId);
+    
+    // El estado se actualizará automáticamente cuando lleguen los eventos WebSocket
+    // desde el backend (handleGameStateChanged y handlePhaseChanged)
   }, [roomCode, playerId, isHost]);
 
   /**

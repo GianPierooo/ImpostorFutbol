@@ -32,16 +32,39 @@ class SocketService {
       this.isConnected = true;
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('❌ WebSocket desconectado');
+    this.socket.on('disconnect', (reason) => {
+      console.log('❌ WebSocket desconectado:', reason);
       this.isConnected = false;
+      
+      // Si fue una desconexión inesperada (no por desconexión manual), intentar reconectar
+      // Socket.io ya maneja la reconexión automática, pero podemos loggear el motivo
+      if (reason === 'io server disconnect') {
+        // El servidor forzó la desconexión, necesitaremos reconectar manualmente
+        console.warn('⚠️ Servidor forzó la desconexión. Intentando reconectar...');
+      }
     });
 
     this.socket.on('connect_error', (error) => {
       // Solo mostrar error en desarrollo, no en producción
       if (__DEV__) {
-        console.warn('⚠️ Error de conexión WebSocket (esto es normal si el servidor no está corriendo):', error.message);
+        console.warn('⚠️ Error de conexión WebSocket:', error.message);
       }
+      this.isConnected = false;
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log(`✅ WebSocket reconectado después de ${attemptNumber} intentos`);
+      this.isConnected = true;
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      if (__DEV__) {
+        console.warn('⚠️ Error al intentar reconectar WebSocket:', error.message);
+      }
+    });
+
+    this.socket.on('reconnect_failed', () => {
+      console.error('❌ Falló la reconexión del WebSocket después de todos los intentos');
       this.isConnected = false;
     });
 

@@ -14,7 +14,7 @@ import { useGame } from '../../game';
 import { theme, getRoundColorScheme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList, Player } from '../../types';
-import { getPlayerColor } from '../../utils';
+import { getPlayerColor, getInitials } from '../../utils';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Voting'>;
 
@@ -37,23 +37,7 @@ const PlayerVoteItemLocal: React.FC<PlayerVoteItemLocalProps> = ({
   voteCount,
   canVote,
 }) => {
-  /**
-   * Función para obtener iniciales - MODO LOCAL
-   * Implementación específica para modo local
-   */
-  const getInitialsLocal = (name: string): string => {
-    const words = name.trim().split(' ').filter(w => w.length > 0);
-    if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
-      return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    const trimmedName = name.trim();
-    if (trimmedName.length >= 2) {
-      return trimmedName.substring(0, 2).toUpperCase();
-    }
-    return trimmedName.toUpperCase() || '??';
-  };
-
-  const initials = getInitialsLocal(player.name);
+  const initials = getInitials(player.name);
   const playerColor = getPlayerColor(player.id);
   const delay = (player.name.charCodeAt(0) % 200);
   

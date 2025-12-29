@@ -1,8 +1,11 @@
 /**
- * Wrapper de Round que redirige a la pantalla correcta según el modo
+ * Router de Round que redirige a la pantalla correcta según el modo
  * 
- * IMPORTANTE: Este archivo solo actúa como router.
- * Toda la lógica está separada en RoundLocal.tsx y RoundOnline.tsx
+ * ═══════════════════════════════════════════════════════════════
+ * IMPORTANTE: Este archivo SOLO actúa como router.
+ * Toda la lógica LOCAL está en RoundLocal.tsx
+ * Toda la lógica ONLINE está en RoundOnline.tsx
+ * ═══════════════════════════════════════════════════════════════
  */
 
 import React from 'react';

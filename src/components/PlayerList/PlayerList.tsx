@@ -4,7 +4,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Card, Avatar, Text, IconButton } from 'react-native-paper';
 import { theme } from '../../theme';
 import { Player } from '../../types';
-import { getPlayerColor } from '../../utils';
+import { getPlayerColor, getInitials } from '../../utils';
 
 interface PlayerListProps {
   players: Player[];
@@ -24,20 +24,6 @@ const PlayerItem: React.FC<PlayerItemProps> = ({ player, onRemove, onLayout, isN
   const cardRef = React.useRef<View>(null);
   const hasMeasuredRef = React.useRef(false);
   const measureTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  // Generar avatar con iniciales
-  const getInitials = (name: string): string => {
-    const words = name.trim().split(' ').filter(w => w.length > 0);
-    if (words.length >= 2 && words[0].length > 0 && words[1].length > 0) {
-      return (words[0][0] + words[1][0]).toUpperCase();
-    }
-    // Fallback: usar las primeras 2 letras del nombre
-    const trimmedName = name.trim();
-    if (trimmedName.length >= 2) {
-      return trimmedName.substring(0, 2).toUpperCase();
-    }
-    return trimmedName.toUpperCase() || '??';
-  };
 
   const initials = getInitials(player.name);
   const playerColor = getPlayerColor(player.id);
