@@ -164,6 +164,14 @@ export const gamesAPI = {
   },
 
   /**
+   * Avanzar a la siguiente ronda
+   */
+  nextRound: async (code: string, playerId: string): Promise<any> => {
+    const response = await api.post(`/games/${code}/next-round`, { playerId });
+    return response.data;
+  },
+
+  /**
    * Obtener rol de un jugador
    */
   getRole: async (code: string, playerId: string): Promise<any> => {

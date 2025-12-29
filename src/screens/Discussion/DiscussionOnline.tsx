@@ -90,11 +90,11 @@ export const DiscussionOnlineScreen: React.FC<Props> = ({ navigation, route }) =
       await onlineGame.changePhase('voting');
       navigation.navigate('Voting', { mode: 'online', roomCode });
     } else {
-      // Avanzar a la siguiente ronda
+      // Avanzar a la siguiente ronda usando nextRound (incrementa la ronda y resetea índices)
       const hasMoreRounds = gameState.maxRounds === null || roundToShow < gameState.maxRounds;
       if (hasMoreRounds) {
-        await onlineGame.changePhase('round');
-        // Navegar a la siguiente ronda
+        await onlineGame.nextRound();
+        // Navegar a la siguiente ronda (la navegación automática también funcionará)
         setTimeout(() => {
           navigation.navigate('Round', { mode: 'online', roomCode });
         }, 100);
@@ -105,7 +105,7 @@ export const DiscussionOnlineScreen: React.FC<Props> = ({ navigation, route }) =
   const handleNextRound = async () => {
     // Solo disponible en modo sin límite
     if (gameState.maxRounds === null) {
-      await onlineGame.changePhase('round');
+      await onlineGame.nextRound();
       setTimeout(() => {
         navigation.navigate('Round', { mode: 'online', roomCode });
       }, 100);

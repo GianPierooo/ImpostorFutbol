@@ -31,6 +31,7 @@ interface OnlineGameContextType {
   addPista: (text: string) => Promise<void>;
   addVote: (targetId: string) => Promise<void>;
   changePhase: (phase: GamePhase) => Promise<void>;
+  nextRound: () => Promise<void>;
   getPlayerRole: (playerId: string) => Promise<any>;
   getVotingResults: () => Promise<VotingResult | null>;
   markRoleSeen: () => Promise<{ allSeen: boolean }>;
@@ -506,6 +507,26 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     }
   }, [roomCode, playerId, isHost]);
 
+  const nextRound = useCallback(async () => {
+    if (!roomCode || !playerId || !isHost) return;
+
+    try {
+      const result = await gamesAPI.nextRound(roomCode, playerId);
+      if (result.success) {
+        // El backend ya actualiza la fase a ROUND en nextRound
+        // Cargar el nuevo estado para actualizar el contexto
+        await loadGameState();
+        // Emitir evento WebSocket para notificar a otros clientes
+        // Nota: Esto es necesario porque nextRound es una operación REST
+        // y otros clientes necesitan ser notificados del cambio de fase
+        socketService.changePhase(roomCode, playerId, 'round');
+      }
+    } catch (error) {
+      console.error('Error advancing to next round:', error);
+      throw error;
+    }
+  }, [roomCode, playerId, isHost, loadGameState]);
+
   const getPlayerRole = useCallback(async (pId: string) => {
     if (!roomCode) return null;
 
@@ -735,6 +756,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     addPista,
     addVote,
     changePhase,
+    nextRound,
     getPlayerRole,
     getVotingResults,
     markRoleSeen,

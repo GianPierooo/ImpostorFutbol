@@ -190,6 +190,37 @@ router.post('/:code/phase', async (req, res) => {
 });
 
 /**
+ * Avanzar a la siguiente ronda
+ * POST /api/games/:code/next-round
+ * Body: { playerId }
+ */
+router.post('/:code/next-round', async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { playerId } = req.body;
+
+    if (!playerId) {
+      return res.status(400).json({
+        success: false,
+        error: 'playerId es requerido',
+      });
+    }
+
+    const result = await gameService.nextRound(code, playerId);
+
+    res.json({
+      success: true,
+      data: result,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message,
+    });
+  }
+});
+
+/**
  * Obtener rol de un jugador
  * GET /api/games/:code/role/:playerId
  */

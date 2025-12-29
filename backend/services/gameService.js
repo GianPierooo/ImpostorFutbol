@@ -222,17 +222,19 @@ class GameService {
       redisService.saveGameState(code, gameState),
     ]);
 
-    // Verificar si todos los jugadores han dado su pista en la ronda actual
+    // Verificar si todos los jugadores han dado su pista en el PRIMER TURNO de la ronda actual
+    // IMPORTANTE: Solo considerar el turno 1 para evitar que se active cuando hay múltiples turnos
     const roundPistas = await redisService.getPistasByRound(code, gameState.currentRound);
-    const playersWhoGavePista = new Set(roundPistas.map(p => p.playerId));
+    const firstTurnPistas = roundPistas.filter(p => p.turn === 1);
+    const playersWhoGavePista = new Set(firstTurnPistas.map(p => p.playerId));
     const allPlayersGavePista = players.every((p) => playersWhoGavePista.has(p.id));
 
-    // Si todos dieron su pista, cambiar automáticamente a fase de discusión
+    // Si todos dieron su pista en el primer turno, cambiar automáticamente a fase de discusión
     if (allPlayersGavePista) {
       gameState.phase = constants.GAME_PHASES.DISCUSSION;
       await redisService.saveGameState(code, gameState);
       await redisService.updateRoomStatus(code, constants.GAME_PHASES.DISCUSSION);
-      console.log(`✅ Todos los jugadores dieron su pista en ronda ${gameState.currentRound} - Cambiando a fase DISCUSSION`);
+      console.log(`✅ Todos los jugadores dieron su pista en ronda ${gameState.currentRound} (turno 1) - Cambiando a fase DISCUSSION`);
     }
 
     // Retornar el gameState actualizado (ya está guardado)
@@ -409,12 +411,14 @@ class GameService {
       throw new Error('Ya es la última ronda');
     }
 
-    // Avanzar ronda
+    // Avanzar ronda: incrementar número de ronda y resetear índices
     gameState.currentRound += 1;
     gameState.currentPlayerIndex = 0;
     gameState.currentTurn = 1;
+    gameState.phase = constants.GAME_PHASES.ROUND; // Cambiar a fase ROUND
 
     await redisService.saveGameState(code, gameState);
+    await redisService.updateRoomStatus(code, constants.GAME_PHASES.ROUND);
 
     return {
       gameState: await redisService.getGameState(code),
