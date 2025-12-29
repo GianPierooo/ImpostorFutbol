@@ -29,7 +29,28 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   const gameState = onlineGame.gameState;
   const roleAssignment = onlineGame.roleAssignment;
   const votes = onlineGame.votes || [];
-  const votingResults = onlineGame.getVotingResults();
+  
+  // Estado para los resultados de votación (se carga de forma asíncrona)
+  const [votingResults, setVotingResults] = useState<any | null>(null);
+  
+  // Cargar resultados de votación cuando el componente se monta o cuando cambian los votos
+  useEffect(() => {
+    const loadVotingResults = async () => {
+      if (roleAssignment && votes.length > 0) {
+        try {
+          const results = await onlineGame.getVotingResults();
+          setVotingResults(results);
+        } catch (error) {
+          console.error('Error loading voting results:', error);
+          setVotingResults(null);
+        }
+      } else {
+        setVotingResults(null);
+      }
+    };
+    
+    loadVotingResults();
+  }, [votes, roleAssignment, onlineGame]);
   
   // Calcular ganador
   const gameWinner = (() => {
@@ -80,7 +101,7 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
     );
   }
 
-  const impostor = roleAssignment.players.find((p) => p.id === roleAssignment.impostorId);
+  const impostor = roleAssignment?.players?.find((p) => p.id === roleAssignment?.impostorId);
   const impostorName = impostor?.name || 'Desconocido';
   const secretWord = roleAssignment.secretWord;
 
@@ -202,9 +223,9 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
               Resultados de la Votación
             </Text>
             <View style={styles.votesList}>
-              {roleAssignment.players.map((player, index) => {
-                const voteCount = votingResults.voteCounts[player.id] || 0;
-                const isMostVoted = votingResults.mostVoted === player.id;
+              {roleAssignment?.players?.map((player, index) => {
+                const voteCount = votingResults?.voteCounts?.[player.id] || 0;
+                const isMostVoted = votingResults?.mostVoted === player.id;
                 const isImpostor = player.id === roleAssignment.impostorId;
 
                 return (
@@ -278,8 +299,8 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
             </Text>
             <View style={styles.votesDetailList}>
               {votes.map((vote, index) => {
-                const voter = roleAssignment.players.find((p) => p.id === vote.voterId);
-                const target = roleAssignment.players.find((p) => p.id === vote.targetId);
+                const voter = roleAssignment?.players?.find((p) => p.id === vote.voterId);
+                const target = roleAssignment?.players?.find((p) => p.id === vote.targetId);
                 const isTargetImpostor = vote.targetId === roleAssignment.impostorId;
 
                 return (
