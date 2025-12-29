@@ -8,6 +8,7 @@ import { colors } from './colors';
 export interface RoundColorScheme {
   background: string;
   accent: string;
+  primary: string; // Alias de accent para compatibilidad
   surface: string;
   border: string;
   intensity: number; // 0-1, donde 0 es inicio y 1 es final
@@ -59,15 +60,15 @@ export const getRoundColorScheme = (
   };
 
   // Colores predefinidos por nivel de intensidad
-  // Manteniendo la estética oscura pero con acentos más visibles
+  // Temática fútbol: Verde césped → Ámbar → Rojo (más armonioso)
   const getColorByIntensity = (type: 'background' | 'accent' | 'surface' | 'border'): string => {
     if (intensity < 0.33) {
-      // Baja intensidad (rondas iniciales) - Verde/Cyan
+      // Baja intensidad (rondas iniciales) - Verde césped
       const roundColors = {
         background: colors.background, // Mantener fondo oscuro
-        accent: '#06B6D4', // Cyan brillante
+        accent: '#16A34A', // Verde césped vibrante
         surface: colors.surface, // Mantener superficie oscura
-        border: '#06B6D4', // Borde cyan
+        border: '#22C55E', // Borde verde claro
       };
       return roundColors[type];
     } else if (intensity < 0.66) {
@@ -76,24 +77,27 @@ export const getRoundColorScheme = (
         background: colors.background, // Mantener fondo oscuro
         accent: '#F59E0B', // Ámbar vibrante
         surface: colors.surface, // Mantener superficie oscura
-        border: '#F59E0B', // Borde ámbar
+        border: '#FBBF24', // Borde ámbar claro
       };
       return roundColors[type];
     } else {
-      // Alta intensidad (rondas finales) - Rojo/Naranja intenso
+      // Alta intensidad (rondas finales) - Rojo intenso
       const roundColors = {
         background: colors.background, // Mantener fondo oscuro
         accent: '#EF4444', // Rojo vibrante
         surface: colors.surface, // Mantener superficie oscura
-        border: '#EF4444', // Borde rojo
+        border: '#F87171', // Borde rojo claro
       };
       return roundColors[type];
     }
   };
 
+  const accent = getColorByIntensity('accent');
+  
   return {
     background: getColorByIntensity('background'),
-    accent: getColorByIntensity('accent'),
+    accent,
+    primary: accent, // Alias de accent para compatibilidad
     surface: getColorByIntensity('surface'),
     border: getColorByIntensity('border'),
     intensity,
