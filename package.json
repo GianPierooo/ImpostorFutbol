@@ -15,6 +15,7 @@
     "version:v": "powershell -ExecutionPolicy Bypass -File ./generar-version.ps1"
   },
   "dependencies": {
+    "@react-native-clipboard/clipboard": "^1.16.3",
     "@react-native-community/blur": "^4.4.1",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",

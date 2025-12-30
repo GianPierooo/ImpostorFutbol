@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Button, Text, Chip, Portal, Dialog } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { Button, Text, Chip, Portal, Dialog, Snackbar, IconButton } from 'react-native-paper';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { ScreenContainer, PlayerList, BubbleEffect } from '../../components';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -27,6 +28,7 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
   const [showBubble, setShowBubble] = useState(false);
   const [bubblePosition, setBubblePosition] = useState<{ x: number; y: number } | undefined>();
   const [newPlayerId, setNewPlayerId] = useState<string | undefined>();
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
   const prevPlayerCountRef = useRef(players.length);
   const prevPlayersRef = useRef<typeof players>([]);
   const effectTriggeredRef = useRef<string | null>(null);
@@ -155,6 +157,11 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const canStart = isHost && players.length >= 3 && roomState?.room?.status === 'lobby';
 
+  const handleCopyCode = useCallback(() => {
+    Clipboard.setString(code);
+    setSnackbarVisible(true);
+  }, [code]);
+
   return (
     <ScreenContainer>
       <BubbleEffect 
@@ -184,9 +191,18 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text variant="bodySmall" style={styles.codeLabel}>
               Código de la sala
             </Text>
-            <Text variant="displaySmall" style={styles.code}>
-              {code}
-            </Text>
+            <View style={styles.codeRow}>
+              <Text variant="displaySmall" style={styles.code}>
+                {code}
+              </Text>
+              <IconButton
+                icon="content-copy"
+                size={24}
+                iconColor={theme.colors.primary}
+                onPress={handleCopyCode}
+                style={styles.copyButton}
+              />
+            </View>
           </View>
           {isHost && (
             <Chip icon="crown" style={styles.hostBadge} textStyle={styles.hostBadgeText}>
@@ -320,6 +336,14 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
           </Dialog>
         </Portal>
       </ScrollView>
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={2000}
+        style={styles.snackbar}
+      >
+        Código copiado al portapapeles
+      </Snackbar>
     </ScreenContainer>
   );
 };
@@ -350,10 +374,23 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xs,
     color: theme.colors.textSecondary,
   },
+  codeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: theme.spacing.sm,
+  },
   code: {
     fontWeight: '700',
     letterSpacing: 8,
     color: theme.colors.accent,
+  },
+  copyButton: {
+    margin: 0,
+    backgroundColor: theme.colors.surface,
+  },
+  snackbar: {
+    backgroundColor: theme.colors.surface,
   },
   hostBadge: {
     marginTop: theme.spacing.sm,
