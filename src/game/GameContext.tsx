@@ -2,7 +2,7 @@
  * Context para manejar el estado del juego entre pantallas
  */
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { Player, GameConfig, GamePhase, Pista, Voto, VotingResult } from '../types';
 import { assignRoles, RoleAssignment, GameState } from './gameLogic';
 
@@ -79,8 +79,19 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       setCurrentTurn(1);
       setCurrentPlayerIndex(0);
       setLastRoundNumber(gameState.currentRound);
+      
+      // Asegurar que la fase sea 'round' cuando cambia la ronda (excepto en roleAssignment)
+      if (gameState.phase !== 'round' && gameState.phase !== 'roleAssignment' && gameState.phase !== 'voting' && gameState.phase !== 'results') {
+        setGameState((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            phase: 'round',
+          };
+        });
+      }
     }
-  }, [gameState?.currentRound, lastRoundNumber]);
+  }, [gameState?.currentRound, lastRoundNumber, gameState]);
 
   const startGame = useCallback((players: Player[], config: GameConfig) => {
     // Asignar roles
@@ -134,6 +145,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           // Permitir avanzar si no hay límite o si no hemos alcanzado el límite
           const canAdvance = prev.maxRounds === null || prev.currentRound < prev.maxRounds;
           if (canAdvance) {
+            // IMPORTANTE: Reiniciar currentPlayerIndex a 0 cuando empezamos la primera ronda
+            setCurrentPlayerIndex(0);
+            setCurrentTurn(1);
             return {
               ...prev,
               phase: nextPhase,
@@ -194,7 +208,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     );
     
     if (existingPistaInRound) {
-      console.warn(`⚠️ El jugador ${player.name} ya dio una pista en la ronda ${gameState.currentRound}`);
+      // El jugador ya dio una pista en esta ronda, no permitir otra
+      // No mostrar warning en consola para evitar ruido, solo retornar
       return; // No permitir agregar otra pista en la misma ronda
     }
 
@@ -207,8 +222,37 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       turn: currentTurn,
     };
 
+    // Agregar la nueva pista
     setPistas((prev) => [...prev, newPista]);
   }, [gameState, roleAssignment, currentTurn, pistas]);
+
+  // Efecto para verificar si todos dieron pista después de que se actualice pistas
+  useEffect(() => {
+    if (!gameState || !roleAssignment || gameState.phase !== 'round') return;
+    
+    // Solo verificar si hay al menos una pista en la ronda actual
+    const roundPistas = pistas.filter(p => p.round === gameState.currentRound);
+    if (roundPistas.length === 0) return;
+
+    // Verificar si todos los jugadores dieron pista en la ronda actual
+    const playersWhoGavePista = new Set(roundPistas.map(p => p.playerId));
+    const allPlayersGavePista = roleAssignment.players.every((p) => 
+      playersWhoGavePista.has(p.id)
+    );
+    
+    // Si todos dieron pista, cambiar automáticamente a fase de discusión
+    if (allPlayersGavePista && roundPistas.length >= roleAssignment.players.length) {
+      setGameState((prev) => {
+        if (!prev || prev.phase !== 'round') return prev;
+        // Solo cambiar si estamos en la ronda correcta
+        if (prev.currentRound !== gameState.currentRound) return prev;
+        return {
+          ...prev,
+          phase: 'discussion',
+        };
+      });
+    }
+  }, [pistas, gameState?.currentRound, gameState?.phase, roleAssignment]);
 
   /**
    * Avanza al siguiente turno/jugador
@@ -223,10 +267,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
    * 2. Si volvemos al índice 0, incrementar el turno (nueva vuelta completa)
    * 3. Verificar si el jugador actual ya dio pista en esta ronda
    * 4. Si ya dio pista, saltar al siguiente jugador (recursivamente hasta encontrar uno que no haya dado)
-   * 5. Si todos dieron pista, mantener el índice actual (se manejará en finishRound)
+   * 
+   * NOTA: La verificación de si todos dieron pista se hace en addPista para evitar problemas de timing
    */
   const nextTurn = useCallback(() => {
     if (!gameState || !roleAssignment) return;
+    
+    // Si la fase cambió a discussion, no hacer nada más
+    if (gameState.phase !== 'round') return;
 
     const totalPlayers = roleAssignment.players.length;
     let nextIndex = (currentPlayerIndex + 1) % totalPlayers;
@@ -283,12 +331,13 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       setCurrentTurn(1);
       setCurrentPlayerIndex(0);
       
-      // Actualizar el estado del juego con la nueva ronda
+      // Actualizar el estado del juego con la nueva ronda Y cambiar fase a 'round'
       setGameState((prev) => {
         if (!prev) return prev;
         return {
           ...prev,
           currentRound: newRound,
+          phase: 'round', // IMPORTANTE: Cambiar fase a 'round' para continuar el juego
         };
       });
     } else {

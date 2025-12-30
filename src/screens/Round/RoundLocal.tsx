@@ -17,7 +17,7 @@ import { NavigationParamList, Player } from '../../types';
 type Props = NativeStackScreenProps<NavigationParamList, 'Round'>;
 
 export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
-  const { gameState, roleAssignment, addPista, nextTurn } = useGame();
+  const { gameState, roleAssignment, addPista, nextTurn, currentPlayerIndex, pistas, getCurrentPlayer } = useGame();
   const [pistaText, setPistaText] = useState('');
   const [currentRound, setCurrentRound] = useState(1);
 
@@ -30,15 +30,19 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
 
   // Obtener el jugador actual que debe dar la pista
   const currentPlayer = useMemo(() => {
-    if (!gameState || !roleAssignment) return null;
+    if (!roleAssignment) return null;
     
-    const playerIndex = gameState.currentPlayerIndex;
-    if (playerIndex === undefined || playerIndex < 0 || playerIndex >= roleAssignment.players.length) {
+    // Usar getCurrentPlayer del contexto o currentPlayerIndex directamente
+    const player = getCurrentPlayer();
+    if (player) return player;
+    
+    // Fallback: usar currentPlayerIndex directamente
+    if (currentPlayerIndex === undefined || currentPlayerIndex < 0 || currentPlayerIndex >= roleAssignment.players.length) {
       return null;
     }
     
-    return roleAssignment.players[playerIndex];
-  }, [gameState, roleAssignment]);
+    return roleAssignment.players[currentPlayerIndex];
+  }, [roleAssignment, currentPlayerIndex, getCurrentPlayer]);
 
   // Verificar si es el turno del jugador actual (en modo local, siempre es su turno cuando corresponde)
   const isMyTurn = currentPlayer !== null;
@@ -50,22 +54,29 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
     const player = roleAssignment.players.find(p => p.id === currentPlayer.id);
     if (!player) return null;
     
+    // Verificar si el jugador ya dio su pista en esta ronda
+    const hasGivenPista = pistas.some(
+      (p) => p.playerId === currentPlayer.id && p.round === currentRound
+    );
+    
     return {
       player,
       role: player.role,
-      secretWord: roleAssignment.secretWord,
+      secretWord: player.role === 'impostor' ? null : roleAssignment.secretWord,
       isImpostor: player.role === 'impostor',
+      hasGivenPista,
     };
-  }, [currentPlayer, roleAssignment]);
+  }, [currentPlayer, roleAssignment, pistas, currentRound]);
 
   // Obtener el esquema de colores para la ronda actual
-  const colorScheme = getRoundColorScheme(currentRound);
+  const colorScheme = getRoundColorScheme(currentRound, gameState?.maxRounds || null);
 
   // Manejar el envío de pista
   const handleSubmitPista = () => {
     if (!pistaText.trim() || !currentPlayer) return;
     
-    addPista(currentPlayer.id, pistaText.trim());
+    // IMPORTANTE: addPista recibe (text, playerId) según el contexto
+    addPista(pistaText.trim(), currentPlayer.id);
     setPistaText('');
     
     // Avanzar al siguiente turno automáticamente
@@ -76,7 +87,10 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
   // Navegar automáticamente a la fase de discusión cuando todos han dado su pista
   useEffect(() => {
     if (gameState?.phase === 'discussion') {
-      navigation.navigate('Discussion', { mode: 'local' });
+      // Pequeño delay para asegurar que el estado se actualice completamente
+      setTimeout(() => {
+        navigation.navigate('Discussion', { mode: 'local' });
+      }, 100);
     }
   }, [gameState?.phase, navigation]);
 
@@ -94,6 +108,7 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
   const myRole = playerInfo?.role;
   const mySecretWord = playerInfo?.secretWord;
   const isImpostor = playerInfo?.isImpostor || false;
+  const hasGivenPista = playerInfo?.hasGivenPista || false;
 
   return (
     <ScreenContainer>
@@ -109,7 +124,7 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
         >
           {/* Header con información de la ronda */}
           <View style={styles.header}>
-            <Text variant="displaySmall" style={[styles.roundTitle, { color: colorScheme.primary }]}>
+            <Text variant="displaySmall" style={[styles.roundTitle, { color: colorScheme.accent }]}>
               Ronda {currentRound}
             </Text>
             <Text variant="titleMedium" style={styles.roundSubtitle}>
@@ -120,12 +135,12 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
           {/* Barra de progreso */}
           <ProgressBar
             progress={currentRound / gameState.maxRounds}
-            color={colorScheme.primary}
+            color={colorScheme.accent}
             style={styles.progressBar}
           />
 
           {/* Información del jugador actual */}
-          <Card style={[styles.playerCard, { backgroundColor: colorScheme.background }]} mode="elevated">
+          <Card style={[styles.playerCard, { backgroundColor: colorScheme.surface }]} mode="elevated">
             <Card.Content>
               <Text variant="titleLarge" style={styles.playerName}>
                 {currentPlayer.name}
@@ -139,20 +154,31 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
           {/* Información de la palabra secreta */}
           <Card style={styles.secretWordCard} mode="outlined">
             <Card.Content>
-              <Text variant="labelLarge" style={styles.secretWordLabel}>
-                Tu palabra secreta:
-              </Text>
-              <Text variant="headlineMedium" style={[styles.secretWord, { color: colorScheme.primary }]}>
-                {mySecretWord || 'Cargando...'}
-              </Text>
-              {isImpostor && (
-                <Chip
-                  icon="alert"
-                  style={[styles.impostorChip, { backgroundColor: colorScheme.error }]}
-                  textStyle={styles.impostorChipText}
-                >
-                  Eres el impostor
-                </Chip>
+              {isImpostor ? (
+                <>
+                  <Text variant="labelLarge" style={styles.secretWordLabel}>
+                    Tu rol:
+                  </Text>
+                  <Chip
+                    icon="alert"
+                    style={[styles.impostorChip, { backgroundColor: colorScheme.error }]}
+                    textStyle={styles.impostorChipText}
+                  >
+                    IMPOSTOR
+                  </Chip>
+                  <Text variant="bodyMedium" style={[styles.secretWord, { color: colorScheme.accent, marginTop: 12 }]}>
+                    No conoces la palabra secreta. Tu objetivo es descubrirla mediante las pistas de los demás.
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text variant="labelLarge" style={styles.secretWordLabel}>
+                    Tu palabra secreta:
+                  </Text>
+                  <Text variant="headlineMedium" style={[styles.secretWord, { color: colorScheme.accent }]}>
+                    {mySecretWord || 'Cargando...'}
+                  </Text>
+                </>
               )}
             </Card.Content>
           </Card>
@@ -169,47 +195,60 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
           </Card>
 
           {/* Input de pista */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              label="Tu pista"
-              value={pistaText}
-              onChangeText={setPistaText}
-              placeholder="Escribe tu pista aquí..."
-              mode="outlined"
-              multiline
-              numberOfLines={3}
-              style={styles.input}
-              maxLength={200}
-              right={<TextInput.Affix text={`${pistaText.length}/200`} />}
-            />
-            <Button
-              mode="contained"
-              onPress={handleSubmitPista}
-              disabled={!pistaText.trim() || pistaText.trim().length < 3}
-              style={[styles.submitButton, { backgroundColor: colorScheme.primary }]}
-              contentStyle={styles.submitButtonContent}
-              icon="send"
-            >
-              Enviar Pista
-            </Button>
-          </View>
+          {hasGivenPista ? (
+            <Card style={styles.alreadySubmittedCard} mode="outlined">
+              <Card.Content>
+                <Text variant="bodyLarge" style={styles.alreadySubmittedText}>
+                  ✅ Ya enviaste tu pista en esta ronda
+                </Text>
+                <Text variant="bodyMedium" style={styles.waitingText}>
+                  Esperando a que los demás jugadores den su pista...
+                </Text>
+              </Card.Content>
+            </Card>
+          ) : (
+            <View style={styles.inputContainer}>
+              <TextInput
+                label="Tu pista"
+                value={pistaText}
+                onChangeText={setPistaText}
+                placeholder="Escribe tu pista aquí..."
+                mode="outlined"
+                multiline
+                numberOfLines={3}
+                style={styles.input}
+                maxLength={200}
+                right={<TextInput.Affix text={`${pistaText.length}/200`} />}
+              />
+              <Button
+                mode="contained"
+                onPress={handleSubmitPista}
+                disabled={!pistaText.trim() || pistaText.trim().length < 3}
+                style={[styles.submitButton, { backgroundColor: colorScheme.accent }]}
+                contentStyle={styles.submitButtonContent}
+                icon="send"
+              >
+                Enviar Pista
+              </Button>
+            </View>
+          )}
 
           {/* Lista de pistas de esta ronda */}
-          {gameState.pistas && gameState.pistas.length > 0 && (
+          {pistas && pistas.length > 0 && (
             <View style={styles.pistasContainer}>
               <Text variant="titleMedium" style={styles.pistasTitle}>
                 Pistas de esta ronda:
               </Text>
-              {gameState.pistas
-                .filter((p: any) => p.round === currentRound)
-                .map((pista: any, index: number) => {
+              {pistas
+                .filter((p) => p.round === currentRound)
+                .map((pista, index: number) => {
                   const pistaPlayer = roleAssignment.players.find(p => p.id === pista.playerId);
                   return (
-                    <Card key={index} style={styles.pistaCard} mode="outlined">
+                    <Card key={pista.id || index} style={styles.pistaCard} mode="outlined">
                       <Card.Content>
                         <View style={styles.pistaHeader}>
                           <Text variant="labelLarge" style={styles.pistaPlayerName}>
-                            {pistaPlayer?.name || 'Desconocido'}
+                            {pistaPlayer?.name || pista.playerName || 'Desconocido'}
                           </Text>
                           <Chip
                             compact
@@ -341,6 +380,23 @@ const styles = StyleSheet.create({
   },
   pistaText: {
     color: theme.colors.text,
+  },
+  alreadySubmittedCard: {
+    marginBottom: 24,
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.success,
+    borderWidth: 2,
+  },
+  alreadySubmittedText: {
+    textAlign: 'center',
+    color: theme.colors.success,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  waitingText: {
+    textAlign: 'center',
+    color: theme.colors.textSecondary,
+    fontSize: 14,
   },
 });
 

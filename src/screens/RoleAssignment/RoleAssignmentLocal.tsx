@@ -83,8 +83,12 @@ export const RoleAssignmentLocalScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleContinue = () => {
+    // Asegurar que la fase cambie a 'round' antes de navegar
     nextPhase();
-    navigation.navigate('Round', { mode: 'local' });
+    // Usar setTimeout para asegurar que el estado se actualice antes de navegar
+    setTimeout(() => {
+      navigation.navigate('Round', { mode: 'local' });
+    }, 100);
   };
 
   // Si no hay asignación de roles, mostrar mensaje de error
