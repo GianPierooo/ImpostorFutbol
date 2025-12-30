@@ -131,7 +131,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const nextPhase = useCallback(() => {
     if (!gameState) return;
 
-    const phases: GamePhase[] = ['roleAssignment', 'round', 'voting', 'results'];
+    const phases: GamePhase[] = ['roleAssignment', 'round', 'discussion', 'voting', 'results'];
     const currentIndex = phases.indexOf(gameState.phase);
     
     if (currentIndex < phases.length - 1) {

@@ -11,7 +11,7 @@ export interface GameState {
   impostorId: string;
   currentRound: number;
   maxRounds: number | null; // null = sin límite
-  phase: 'roleAssignment' | 'round' | 'voting' | 'results';
+  phase: 'roleAssignment' | 'round' | 'discussion' | 'voting' | 'results';
 }
 
 export interface RoleAssignment {
