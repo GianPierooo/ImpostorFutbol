@@ -15,4 +15,5 @@ export { AnimatedButton } from './AnimatedButton';
 export { FlipCard } from './FlipCard';
 export { BubbleEffect } from './BubbleEffect';
 export { AppLogo } from './AppLogo';
+export { Countdown } from './Countdown';
 

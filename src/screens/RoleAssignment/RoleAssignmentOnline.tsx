@@ -5,7 +5,7 @@
  * No tiene ninguna dependencia del modo local.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import Animated, { 
   useSharedValue, 
@@ -16,7 +16,7 @@ import Animated, {
   Easing
 } from 'react-native-reanimated';
 import { Text, Button, Card, Chip } from 'react-native-paper';
-import { ScreenContainer } from '../../components';
+import { ScreenContainer, Countdown } from '../../components';
 import { useOnlineGame } from '../../contexts';
 import { useOnlineNavigation } from '../../hooks/useOnlineNavigation';
 import { theme } from '../../theme';
@@ -38,6 +38,19 @@ export const RoleAssignmentOnlineScreen: React.FC<Props> = ({ navigation, route 
   const [hasMarkedSeen, setHasMarkedSeen] = useState(false);
   const [allPlayersSeen, setAllPlayersSeen] = useState(false);
   const [rolesSeenStatus, setRolesSeenStatus] = useState({ playersWhoSeen: 0, totalPlayers: 0 });
+  const [showCountdown, setShowCountdown] = useState(true);
+  const countdownShownRef = useRef(false);
+  
+  // Obtener roleAssignment del contexto
+  const roleAssignment = onlineGame.roleAssignment;
+  
+  // Mostrar conteo solo una vez al inicio
+  useEffect(() => {
+    if (!countdownShownRef.current && roleAssignment) {
+      countdownShownRef.current = true;
+      setShowCountdown(true);
+    }
+  }, [roleAssignment]);
   
   // Animaciones dramáticas para la revelación
   const scale = useSharedValue(1);
@@ -224,6 +237,13 @@ export const RoleAssignmentOnlineScreen: React.FC<Props> = ({ navigation, route 
   if (!showRole) {
     return (
       <ScreenContainer>
+        {showCountdown && (
+          <Countdown
+            onComplete={() => setShowCountdown(false)}
+            startNumber={3}
+            duration={1000}
+          />
+        )}
         <View style={styles.content}>
           <Card style={styles.revealCard} mode="elevated">
             <Card.Content style={styles.revealContent}>

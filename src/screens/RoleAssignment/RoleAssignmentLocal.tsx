@@ -17,7 +17,7 @@ import Animated, {
   runOnJS
 } from 'react-native-reanimated';
 import { Text, Button, Card, ProgressBar, Chip } from 'react-native-paper';
-import { ScreenContainer, AnimatedEmoji, AnimatedButton, FlipCard } from '../../components';
+import { ScreenContainer, AnimatedEmoji, AnimatedButton, FlipCard, Countdown } from '../../components';
 import { useGame } from '../../game';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -44,7 +44,17 @@ export const RoleAssignmentLocalScreen: React.FC<Props> = ({ navigation }) => {
   const [displayedPlayerIndex, setDisplayedPlayerIndex] = useState(0);
   const [showRole, setShowRole] = useState(false);
   const [allPlayersSeen, setAllPlayersSeen] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(true);
   const prevShowRoleRef = useRef(false);
+  const countdownShownRef = useRef(false);
+  
+  // Mostrar conteo solo una vez al inicio
+  useEffect(() => {
+    if (!countdownShownRef.current && roleAssignment) {
+      countdownShownRef.current = true;
+      setShowCountdown(true);
+    }
+  }, [roleAssignment]);
   
   // Animaciones dramáticas para la revelación
   const scale = useSharedValue(1);
@@ -245,6 +255,13 @@ export const RoleAssignmentLocalScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScreenContainer>
+      {showCountdown && (
+        <Countdown
+          onComplete={() => setShowCountdown(false)}
+          startNumber={3}
+          duration={1000}
+        />
+      )}
       <View style={styles.content}>
         <View style={styles.header}>
           <Text variant="headlineMedium" style={styles.playerName}>
