@@ -20,18 +20,26 @@ import { getPlayerColor, getInitials } from '../../utils';
 type Props = NativeStackScreenProps<NavigationParamList, 'Results'>;
 
 export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
+  // IMPORTANTE: Todos los hooks deben ejecutarse siempre, antes de cualquier return temprano
   // Usar SOLO el contexto online
   const onlineGame = useOnlineGame();
   
   // Usar navegación automática online (verifica internamente si debe ejecutarse)
   useOnlineNavigation();
   
+  // Estado para los resultados de votación (se carga de forma asíncrona)
+  const [votingResults, setVotingResults] = useState<any | null>(null);
+  
+  // Intentar cargar el estado si no está disponible
+  const [loadingState, setLoadingState] = useState(false);
+  
+  // Flag para prevenir return temprano durante la navegación
+  const [isNavigating, setIsNavigating] = useState(false);
+  
+  // Obtener datos del contexto (después de todos los hooks)
   const gameState = onlineGame.gameState;
   const roleAssignment = onlineGame.roleAssignment;
   const votes = onlineGame.votes || [];
-  
-  // Estado para los resultados de votación (se carga de forma asíncrona)
-  const [votingResults, setVotingResults] = useState<any | null>(null);
   
   // Cargar resultados de votación cuando el componente se monta o cuando cambian los votos
   useEffect(() => {
@@ -52,7 +60,31 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
     loadVotingResults();
   }, [votes, roleAssignment, onlineGame]);
   
-  // Calcular ganador
+  // Intentar cargar el estado si no está disponible
+  useEffect(() => {
+    if (onlineGame?.roomCode && onlineGame?.loadGameState && (!gameState || !roleAssignment) && !loadingState && !isNavigating) {
+      setLoadingState(true);
+      const loadState = async () => {
+        try {
+          await onlineGame.loadGameState();
+        } catch (error) {
+          console.error('Error loading game state in Results:', error);
+        } finally {
+          setLoadingState(false);
+        }
+      };
+      loadState();
+    }
+  }, [onlineGame?.roomCode, onlineGame?.loadGameState, gameState, roleAssignment, loadingState, isNavigating]);
+  
+  // Cleanup: resetear flag de navegación si el componente se desmonta
+  useEffect(() => {
+    return () => {
+      setIsNavigating(false);
+    };
+  }, []);
+
+  // Calcular ganador (después de todos los hooks)
   const gameWinner = (() => {
     if (!onlineGame || !roleAssignment) return null;
     if (!votingResults) return null;
@@ -66,26 +98,10 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
     };
   })();
 
-  // Intentar cargar el estado si no está disponible
-  const [loadingState, setLoadingState] = useState(false);
-  useEffect(() => {
-    if (onlineGame?.roomCode && onlineGame?.loadGameState && (!gameState || !roleAssignment) && !loadingState) {
-      setLoadingState(true);
-      const loadState = async () => {
-        try {
-          await onlineGame.loadGameState();
-        } catch (error) {
-          console.error('Error loading game state in Results:', error);
-        } finally {
-          setLoadingState(false);
-        }
-      };
-      loadState();
-    }
-  }, [onlineGame?.roomCode, onlineGame?.loadGameState, gameState, roleAssignment, loadingState]);
-
   // Si no hay estado del juego después de intentar cargarlo, mostrar loading
-  if (!gameState || !roleAssignment) {
+  // IMPORTANTE: Este return debe estar DESPUÉS de todos los hooks
+  // No mostrar loading si estamos navegando (para evitar error de hooks)
+  if ((!gameState || !roleAssignment) && !isNavigating) {
     return (
       <ScreenContainer>
         <View style={styles.content}>
@@ -100,6 +116,17 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
       </ScreenContainer>
     );
   }
+  
+  // Si estamos navegando, mostrar una pantalla vacía o mantener el último estado
+  if (isNavigating) {
+    return (
+      <ScreenContainer>
+        <View style={styles.content}>
+          <ActivityIndicator size="large" style={{ marginTop: 20 }} />
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   const impostor = roleAssignment?.players?.find((p) => p.id === roleAssignment?.impostorId);
   const impostorName = impostor?.name || 'Desconocido';
@@ -107,13 +134,25 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
 
 
   const handleNewGame = async () => {
-    await onlineGame.leaveRoom();
-    navigation.navigate('Home');
+    setIsNavigating(true);
+    try {
+      await onlineGame.leaveRoom();
+      navigation.navigate('Home');
+    } catch (error) {
+      console.error('Error in handleNewGame:', error);
+      setIsNavigating(false);
+    }
   };
 
   const handlePlayAgain = async () => {
-    await onlineGame.leaveRoom();
-    navigation.navigate('OnlineLobby');
+    setIsNavigating(true);
+    try {
+      await onlineGame.leaveRoom();
+      navigation.navigate('OnlineLobby');
+    } catch (error) {
+      console.error('Error in handlePlayAgain:', error);
+      setIsNavigating(false);
+    }
   };
 
   return (
