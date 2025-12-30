@@ -37,6 +37,7 @@ interface OnlineGameContextType {
   markRoleSeen: () => Promise<{ allSeen: boolean }>;
   getAllRolesSeen: () => Promise<{ allSeen: boolean; playersWhoSeen: number; totalPlayers: number }>;
   loadGameState: () => Promise<void>;
+  resetRoomToLobby: () => Promise<void>;
   
   // Helpers
   getCurrentPlayer: () => Player | null;
@@ -270,6 +271,18 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       // Si es un error crítico, el backend debería manejar la desconexión apropiadamente
     };
 
+    const handleRoomReset = (data: any) => {
+      // Cuando la sala se resetea a lobby, limpiar el estado del juego
+      if (data.roomState) {
+        setRoomState(data.roomState);
+        setPlayers(data.roomState.players || []);
+        setGameState(null);
+        setRoleAssignment(null);
+        setPistas([]);
+        setVotes([]);
+      }
+    };
+
     socketService.on('room_updated', handleRoomUpdated);
     socketService.on('player_joined', handlePlayerJoined);
     socketService.on('player_left', handlePlayerLeft);
@@ -277,6 +290,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     socketService.on('pista_added', handlePistaAdded);
     socketService.on('vote_added', handleVoteAdded);
     socketService.on('phase_changed', handlePhaseChanged);
+    socketService.on('room_reset', handleRoomReset);
     socketService.on('error', handleSocketError);
 
     return () => {
@@ -287,6 +301,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       socketService.off('pista_added', handlePistaAdded);
       socketService.off('vote_added', handleVoteAdded);
       socketService.off('phase_changed', handlePhaseChanged);
+      socketService.off('room_reset', handleRoomReset);
       socketService.off('error', handleSocketError);
     };
     // IMPORTANTE: No incluir gameState y roleAssignment en las dependencias
@@ -528,6 +543,28 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     }
   }, [roomCode, playerId, isHost, loadGameState]);
 
+  const resetRoomToLobby = useCallback(async () => {
+    if (!roomCode || !playerId || !isHost) {
+      throw new Error('Solo el host puede resetear la sala');
+    }
+
+    try {
+      // Usar WebSocket para resetear la sala
+      socketService.resetRoom(roomCode, playerId);
+      
+      // Limpiar estado local
+      setGameState(null);
+      setRoleAssignment(null);
+      setPistas([]);
+      setVotes([]);
+      
+      // El estado se actualizará automáticamente cuando llegue el evento ROOM_RESET
+    } catch (error) {
+      console.error('Error resetting room to lobby:', error);
+      throw error;
+    }
+  }, [roomCode, playerId, isHost]);
+
   const getPlayerRole = useCallback(async (pId: string) => {
     if (!roomCode) return null;
 
@@ -763,6 +800,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     markRoleSeen,
     getAllRolesSeen,
     loadGameState,
+    resetRoomToLobby,
     getCurrentPlayer,
     getPlayerInfo,
   };

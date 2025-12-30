@@ -222,6 +222,42 @@ class RoomService {
       gameState,
     };
   }
+
+  /**
+   * Resetea una sala a lobby (limpia el estado del juego para jugar otra vez)
+   * @param {string} code - Código de la sala
+   * @param {string} hostId - ID del host
+   * @returns {Promise<object>}
+   */
+  async resetRoomToLobby(code, hostId) {
+    const room = await redisService.getRoom(code);
+    if (!room) {
+      throw new Error('Sala no encontrada');
+    }
+
+    // Verificar que es el host
+    const hostInfo = await redisService.getPlayerInfo(code, hostId);
+    if (!hostInfo || !hostInfo.isHost) {
+      throw new Error('Solo el host puede resetear la sala');
+    }
+
+    // Limpiar estado del juego
+    await redisService.deleteGameState(code);
+    await redisService.clearRolesSeen(code);
+    
+    // Resetear estado de la sala a lobby
+    await redisService.updateRoomStatus(code, constants.GAME_PHASES.LOBBY);
+    
+    // Obtener estado actualizado
+    const updatedRoom = await redisService.getRoom(code);
+    const players = await redisService.getAllPlayersInfo(code);
+
+    return {
+      room: updatedRoom,
+      players,
+      gameState: null,
+    };
+  }
 }
 
 module.exports = new RoomService();

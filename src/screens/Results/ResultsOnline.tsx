@@ -136,8 +136,15 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   const handleNewGame = async () => {
     setIsNavigating(true);
     try {
+      // Salir de la sala y volver a Home
       await onlineGame.leaveRoom();
-      navigation.navigate('Home');
+      // Pequeño delay para asegurar que la navegación se complete
+      setTimeout(() => {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Home' }],
+        });
+      }, 100);
     } catch (error) {
       console.error('Error in handleNewGame:', error);
       setIsNavigating(false);
@@ -145,10 +152,17 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   };
 
   const handlePlayAgain = async () => {
+    if (!onlineGame.isHost) {
+      // Los jugadores no host no pueden iniciar una nueva partida
+      return;
+    }
+
     setIsNavigating(true);
     try {
-      await onlineGame.leaveRoom();
-      navigation.navigate('OnlineLobby');
+      // Resetear la sala a lobby usando el nuevo método
+      await onlineGame.resetRoomToLobby();
+      // La navegación automática llevará a los jugadores de vuelta a OnlineRoom
+      // cuando el estado cambie a lobby
     } catch (error) {
       console.error('Error in handlePlayAgain:', error);
       setIsNavigating(false);
@@ -380,27 +394,54 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
           entering={FadeInUp.delay(2000).springify()}
           style={styles.actions}
         >
-          <Button
-            mode="contained"
-            onPress={handlePlayAgain}
-            style={styles.actionButton}
-            contentStyle={styles.buttonContent}
-            labelStyle={styles.buttonLabel}
-            icon="replay"
-            buttonColor={theme.colors.accent}
-          >
-            Jugar Otra Vez
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={handleNewGame}
-            style={styles.actionButton}
-            contentStyle={styles.buttonContent}
-            labelStyle={styles.buttonLabel}
-            icon="home"
-          >
-            Nueva Partida
-          </Button>
+          {onlineGame.isHost ? (
+            <>
+              <Button
+                mode="contained"
+                onPress={handlePlayAgain}
+                disabled={isNavigating}
+                style={styles.actionButton}
+                contentStyle={styles.buttonContent}
+                labelStyle={styles.buttonLabel}
+                icon="replay"
+                buttonColor={theme.colors.accent}
+              >
+                Jugar Otra Vez
+              </Button>
+              <Button
+                mode="outlined"
+                onPress={handleNewGame}
+                disabled={isNavigating}
+                style={styles.actionButton}
+                contentStyle={styles.buttonContent}
+                labelStyle={styles.buttonLabel}
+                icon="home"
+              >
+                Nueva Partida
+              </Button>
+            </>
+          ) : (
+            <>
+              <Card style={styles.waitingCard} mode="outlined">
+                <Card.Content style={styles.waitingContent}>
+                  <Text variant="bodyLarge" style={styles.waitingText}>
+                    Esperando a que el host inicie una nueva partida...
+                  </Text>
+                </Card.Content>
+              </Card>
+              <Button
+                mode="outlined"
+                onPress={handleNewGame}
+                disabled={isNavigating}
+                style={styles.actionButton}
+                contentStyle={styles.buttonContent}
+                labelStyle={styles.buttonLabel}
+                icon="home"
+              >
+                Salir de la Partida
+              </Button>
+            </>
+          )}
         </Animated.View>
       </ScrollView>
     </ScreenContainer>
@@ -655,6 +696,20 @@ const styles = StyleSheet.create({
   impostorText: {
     color: theme.colors.impostor,
     fontWeight: '700',
+  },
+  waitingCard: {
+    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.accent,
+    borderWidth: 2,
+  },
+  waitingContent: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.md,
+  },
+  waitingText: {
+    textAlign: 'center',
+    color: theme.colors.text,
   },
 });
 

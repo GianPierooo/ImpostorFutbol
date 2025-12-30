@@ -34,6 +34,7 @@ module.exports = {
     ADD_PISTA: 'add_pista',
     ADD_VOTE: 'add_vote',
     CHANGE_PHASE: 'change_phase',
+    RESET_ROOM: 'reset_room',
     
     // Servidor → Cliente
     ROOM_UPDATED: 'room_updated',
@@ -43,6 +44,7 @@ module.exports = {
     PISTA_ADDED: 'pista_added',
     VOTE_ADDED: 'vote_added',
     PHASE_CHANGED: 'phase_changed',
+    ROOM_RESET: 'room_reset',
     ERROR: 'error',
   },
 };

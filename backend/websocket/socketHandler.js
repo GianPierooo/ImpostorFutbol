@@ -248,6 +248,41 @@ function setupSocketHandlers(io) {
     });
 
     /**
+     * Resetear sala a lobby (jugar otra vez)
+     */
+    socket.on(constants.SOCKET_EVENTS.RESET_ROOM, async (data) => {
+      try {
+        const { code, hostId } = data;
+
+        if (!code || !hostId) {
+          socket.emit(constants.SOCKET_EVENTS.ERROR, {
+            message: 'code y hostId son requeridos',
+          });
+          return;
+        }
+
+        const result = await roomService.resetRoomToLobby(code, hostId);
+
+        // Notificar a todos en la sala que la sala fue reseteada
+        io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.ROOM_RESET, {
+          roomState: result,
+        });
+
+        // También notificar cambio de fase a lobby
+        io.to(`room:${code}`).emit(constants.SOCKET_EVENTS.PHASE_CHANGED, {
+          phase: constants.GAME_PHASES.LOBBY,
+          gameState: null,
+        });
+
+        console.log(`🔄 Sala ${code} reseteada a lobby por el host`);
+      } catch (error) {
+        socket.emit(constants.SOCKET_EVENTS.ERROR, {
+          message: error.message,
+        });
+      }
+    });
+
+    /**
      * Desconexión
      */
     socket.on('disconnect', async () => {

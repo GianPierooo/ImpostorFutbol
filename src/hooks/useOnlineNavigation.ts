@@ -17,7 +17,7 @@ type NavigationProp = NativeStackNavigationProp<NavigationParamList>;
 export const useOnlineNavigation = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProp<NavigationParamList, keyof NavigationParamList>>();
-  const { gameState, roomState, roomCode } = useOnlineGame();
+  const { gameState, roomState, roomCode, playerId, playerName } = useOnlineGame();
   const previousPhaseRef = useRef<GamePhase | null>(null);
   
   // Obtener parámetros de la ruta
@@ -56,6 +56,16 @@ export const useOnlineNavigation = () => {
 
       // Navegar según la fase, asegurando que siempre se pase mode: 'online'
       switch (currentPhase) {
+        case 'lobby':
+          // Si estamos en Results y la sala vuelve a lobby, navegar a OnlineRoom
+          if (route.name === 'Results' && playerId && playerName) {
+            navigation.navigate('OnlineRoom', {
+              code: roomCode,
+              playerId,
+              playerName,
+            });
+          }
+          break;
         case 'roleAssignment':
           navigation.navigate('RoleAssignment', { 
             mode: 'online', 
@@ -90,6 +100,6 @@ export const useOnlineNavigation = () => {
           break;
       }
     }
-  }, [gameState?.phase, roomState?.room?.status, roomCode, navigation, shouldNavigate]);
+  }, [gameState?.phase, roomState?.room?.status, roomCode, navigation, shouldNavigate, playerId, playerName, route.name]);
 };
 

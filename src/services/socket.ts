@@ -142,6 +142,13 @@ class SocketService {
   }
 
   /**
+   * Resetear sala a lobby (jugar otra vez)
+   */
+  resetRoom(code: string, hostId: string): void {
+    this.socket?.emit('reset_room', { code, hostId });
+  }
+
+  /**
    * Escuchar eventos del servidor
    */
   on(event: string, callback: (data: any) => void): void {
