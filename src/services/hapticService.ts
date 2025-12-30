@@ -14,6 +14,7 @@ export enum HapticType {
   VOTE = 'vote',
   REVEAL = 'reveal',
   BUTTON_CLICK = 'button_click',
+  HEARTBEAT = 'heartbeat',
 }
 
 class HapticService {
@@ -62,11 +63,39 @@ class HapticService {
           Vibration.vibrate(5);
           break;
 
+        case HapticType.HEARTBEAT:
+          // Patrón de latidos de corazón: dos latidos rápidos seguidos de pausa
+          // Patrón: latido1 (corto), pausa corta, latido2 (corto)
+          // No usar repetición automática, se controla con setInterval en los componentes
+          Vibration.vibrate([50, 100, 50]);
+          break;
+
         default:
           Vibration.vibrate(10);
       }
     } catch (error) {
       // Ignorar errores de vibración
+    }
+  }
+
+  /**
+   * Iniciar patrón de latidos de corazón continuo
+   */
+  startHeartbeat(): void {
+    if (!this.enabled) {
+      return;
+    }
+    this.play(HapticType.HEARTBEAT);
+  }
+
+  /**
+   * Detener vibración (cancelar patrón repetitivo)
+   */
+  stop(): void {
+    try {
+      Vibration.cancel();
+    } catch (error) {
+      // Ignorar errores
     }
   }
 

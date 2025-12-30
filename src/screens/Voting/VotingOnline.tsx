@@ -24,6 +24,7 @@ import { theme, getRoundColorScheme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList, Player } from '../../types';
 import { getPlayerColor, getInitials } from '../../utils';
+import { hapticService } from '../../services/hapticService';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'Voting'>;
 
@@ -246,8 +247,42 @@ export const VotingOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null);
   const [viewingVoterId, setViewingVoterId] = useState<string | null>(null);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const currentVoter = getCurrentVoter();
+  
+  // Iniciar vibración de latidos cuando se entra a la pantalla de votación
+  useEffect(() => {
+    if (!allComplete && currentVoter && isMyTurn) {
+      // Iniciar patrón de latidos de corazón
+      hapticService.startHeartbeat();
+      
+      // Mantener el patrón activo con intervalos
+      heartbeatIntervalRef.current = setInterval(() => {
+        hapticService.startHeartbeat();
+      }, 700); // Cada 700ms (aproximadamente el ritmo de un corazón)
+    }
+    
+    // Limpiar cuando se desmonte o cuando todos hayan votado
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+      hapticService.stop();
+    };
+  }, [allComplete, currentVoter, isMyTurn]);
+
+  // Detener latidos cuando todos han votado
+  useEffect(() => {
+    if (allComplete) {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+      hapticService.stop();
+    }
+  }, [allComplete]);
 
   // Inicializar el votante actual y actualizar selectedTarget cuando cambia el votante o los votos
   useEffect(() => {

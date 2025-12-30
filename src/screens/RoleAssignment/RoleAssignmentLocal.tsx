@@ -7,12 +7,22 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withTiming, 
+  withSequence,
+  withDelay,
+  Easing,
+  runOnJS
+} from 'react-native-reanimated';
 import { Text, Button, Card, ProgressBar, Chip } from 'react-native-paper';
 import { ScreenContainer, AnimatedEmoji, AnimatedButton, FlipCard } from '../../components';
 import { useGame } from '../../game';
 import { theme } from '../../theme';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
+import { hapticService, HapticType } from '../../services/hapticService';
 
 type Props = NativeStackScreenProps<NavigationParamList, 'RoleAssignment'>;
 
@@ -36,9 +46,56 @@ export const RoleAssignmentLocalScreen: React.FC<Props> = ({ navigation }) => {
   const [allPlayersSeen, setAllPlayersSeen] = useState(false);
   const prevShowRoleRef = useRef(false);
   
+  // Animaciones dramáticas para la revelación
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(1);
+  const rotation = useSharedValue(0);
+  const glowIntensity = useSharedValue(0);
+  
   const players = roleAssignment?.players || [];
   const currentPlayer = players[currentPlayerIndex];
   const displayedPlayer = players[displayedPlayerIndex];
+  
+  // Estilo animado (siempre definido, fuera de condicionales)
+  // Usar un valor compartido para el color de la sombra para evitar problemas
+  const shadowColorValue = useSharedValue(theme.colors.primary);
+  
+  useEffect(() => {
+    if (playerInfo) {
+      shadowColorValue.value = playerInfo.isImpostor ? theme.colors.impostor : theme.colors.primary;
+    }
+  }, [playerInfo]);
+  
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: scale.value },
+      { rotate: `${rotation.value}deg` }
+    ],
+    opacity: opacity.value,
+    shadowOpacity: glowIntensity.value,
+    shadowRadius: glowIntensity.value * 20,
+    shadowColor: shadowColorValue.value,
+  }));
+  
+  // Resetear animaciones cuando showRole cambia a false
+  useEffect(() => {
+    if (!showRole) {
+      scale.value = 1;
+      opacity.value = 1;
+      rotation.value = 0;
+      glowIntensity.value = 0;
+    }
+  }, [showRole]);
+  
+  // Cleanup al desmontar
+  useEffect(() => {
+    return () => {
+      scale.value = 1;
+      opacity.value = 1;
+      rotation.value = 0;
+      glowIntensity.value = 0;
+    };
+  }, []);
 
   // Verificar si todos los jugadores han visto su rol
   useEffect(() => {
@@ -56,6 +113,37 @@ export const RoleAssignmentLocalScreen: React.FC<Props> = ({ navigation }) => {
 
   const handleShowRole = () => {
     prevShowRoleRef.current = showRole;
+    
+    // Vibración dramática
+    hapticService.play(HapticType.REVEAL);
+    
+    // Iniciar animación dramática
+    scale.value = 0.5;
+    opacity.value = 0;
+    rotation.value = -10;
+    glowIntensity.value = 0;
+    
+    // Secuencia de animación dramática (cámara lenta)
+    scale.value = withSequence(
+      withTiming(1.2, { duration: 400, easing: Easing.out(Easing.cubic) }),
+      withTiming(1.0, { duration: 300, easing: Easing.inOut(Easing.cubic) })
+    );
+    
+    opacity.value = withSequence(
+      withDelay(100, withTiming(1, { duration: 500, easing: Easing.out(Easing.cubic) }))
+    );
+    
+    rotation.value = withSequence(
+      withTiming(5, { duration: 400, easing: Easing.out(Easing.cubic) }),
+      withTiming(0, { duration: 300, easing: Easing.inOut(Easing.cubic) })
+    );
+    
+    // Efecto de brillo/glow
+    glowIntensity.value = withSequence(
+      withTiming(1, { duration: 300, easing: Easing.out(Easing.cubic) }),
+      withDelay(200, withTiming(0.3, { duration: 400, easing: Easing.inOut(Easing.cubic) }))
+    );
+    
     setShowRole(true);
   };
 
@@ -198,46 +286,50 @@ export const RoleAssignmentLocalScreen: React.FC<Props> = ({ navigation }) => {
             back={
               playerInfo ? (
                 playerInfo.isImpostor ? (
-                  <Card style={styles.impostorCard} mode="elevated">
-                    <Card.Content style={styles.cardContent}>
-                      <AnimatedEmoji emoji="👹" animation="pulse" size={48} duration={3500} />
-                      <Text variant="headlineMedium" style={styles.roleText}>
-                        Eres el
-                      </Text>
-                      <Chip 
-                        icon="alert" 
-                        style={[styles.roleChip, styles.impostorChip]}
-                        textStyle={styles.roleChipText}
-                        selectedColor={theme.colors.textLight}
-                      >
-                        IMPOSTOR
-                      </Chip>
-                      <Text variant="bodyLarge" style={styles.instructionText}>
-                        No sabes la palabra secreta. Tu objetivo es descubrirla o hacer que los demás no la descubran.
-                      </Text>
-                    </Card.Content>
-                  </Card>
-                ) : (
-                  <Card style={styles.normalCard} mode="elevated">
-                    <Card.Content style={styles.cardContent}>
-                      <AnimatedEmoji emoji="🔍" animation="pulse" size={48} duration={3500} />
-                      <Text variant="titleMedium" style={styles.labelText}>
-                        La palabra secreta es:
-                      </Text>
-                      <View style={styles.chipContainer}>
+                  <Animated.View style={[styles.dramaticContainer, animatedStyle]}>
+                    <Card style={[styles.impostorCard, styles.dramaticCard]} mode="elevated">
+                      <Card.Content style={styles.cardContent}>
+                        <AnimatedEmoji emoji="👹" animation="pulse" size={48} duration={3500} />
+                        <Text variant="headlineMedium" style={styles.roleText}>
+                          Eres el
+                        </Text>
                         <Chip 
-                          icon="lightbulb" 
-                          style={[styles.roleChip, styles.normalChip]}
+                          icon="alert" 
+                          style={[styles.roleChip, styles.impostorChip]}
                           textStyle={styles.roleChipText}
+                          selectedColor={theme.colors.textLight}
                         >
-                          {playerInfo.secretWord || 'Cargando...'}
+                          IMPOSTOR
                         </Chip>
-                      </View>
-                      <Text variant="bodyLarge" style={styles.instructionText}>
-                        Da pistas sobre esta palabra sin decirla directamente. Encuentra al impostor.
-                      </Text>
-                    </Card.Content>
-                  </Card>
+                        <Text variant="bodyLarge" style={styles.instructionText}>
+                          No sabes la palabra secreta. Tu objetivo es descubrirla o hacer que los demás no la descubran.
+                        </Text>
+                      </Card.Content>
+                    </Card>
+                  </Animated.View>
+                ) : (
+                  <Animated.View style={[styles.dramaticContainer, animatedStyle]}>
+                    <Card style={[styles.normalCard, styles.dramaticCard]} mode="elevated">
+                      <Card.Content style={styles.cardContent}>
+                        <AnimatedEmoji emoji="🔍" animation="pulse" size={48} duration={3500} />
+                        <Text variant="titleMedium" style={styles.labelText}>
+                          La palabra secreta es:
+                        </Text>
+                        <View style={styles.chipContainer}>
+                          <Chip 
+                            icon="lightbulb" 
+                            style={[styles.roleChip, styles.normalChip]}
+                            textStyle={styles.roleChipText}
+                          >
+                            {playerInfo.secretWord || 'Cargando...'}
+                          </Chip>
+                        </View>
+                        <Text variant="bodyLarge" style={styles.instructionText}>
+                          Da pistas sobre esta palabra sin decirla directamente. Encuentra al impostor.
+                        </Text>
+                      </Card.Content>
+                    </Card>
+                  </Animated.View>
                 )
               ) : (
                 <Card style={styles.revealCard} mode="elevated">
@@ -432,6 +524,15 @@ const styles = StyleSheet.create({
   buttonLabel: {
     fontSize: 16,
     fontWeight: '700',
+  },
+  dramaticContainer: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dramaticCard: {
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 20,
   },
 });
 
