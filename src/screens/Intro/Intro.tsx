@@ -9,9 +9,9 @@
  * - VIDEO_RESIZE_MODE: 'cover' (cubre toda la pantalla), 'contain' (ajusta sin recortar), 'stretch' (estira)
  */
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
-import Video, { OnLoadData, OnEndData } from 'react-native-video';
+import Video from 'react-native-video';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
 import { theme } from '../../theme';
@@ -47,102 +47,59 @@ type Props = NativeStackScreenProps<NavigationParamList, 'Intro'>;
 
 export const IntroScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
-  const [hasEnded, setHasEnded] = useState(false);
-  const [isNavigating, setIsNavigating] = useState(false);
-  const videoRef = useRef<Video>(null);
+  const hasNavigatedRef = useRef(false);
+  const videoRef = useRef<any>(null);
 
-  const handleLoad = (data: OnLoadData) => {
-    setLoading(false);
-  };
-
-  const handleEnd = (data: OnEndData) => {
-    // Prevenir múltiples llamadas
-    if (hasEnded || isNavigating) {
-      console.log('Video end handler: ya se está navegando o ya terminó');
+  const navigateToHome = React.useCallback(() => {
+    // Prevenir múltiples navegaciones
+    if (hasNavigatedRef.current) {
+      console.log('Ya se navegó, ignorando llamada duplicada');
       return;
     }
     
-    console.log('Video terminó, iniciando navegación...');
-    setHasEnded(true);
-    setIsNavigating(true);
+    hasNavigatedRef.current = true;
+    console.log('Navegando a Home...');
     
-    // Pausar el video primero para evitar problemas
-    if (videoRef.current) {
+    // Usar replace para reemplazar Intro con Home en el stack
+    // Esto es mejor que navigate cuando Intro es la ruta inicial
+    try {
+      navigation.replace('Home');
+    } catch (error) {
+      console.error('Error con replace, intentando con reset:', error);
       try {
-        // @ts-ignore - react-native-video puede tener métodos adicionales
-        videoRef.current.setNativeProps({ paused: true });
-      } catch (e) {
-        console.warn('No se pudo pausar el video:', e);
+        // Si replace falla, usar reset como fallback
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Home' }],
+        });
+      } catch (resetError) {
+        console.error('Error con reset también, intentando navigate:', resetError);
+        // Último recurso: navigate
+        try {
+          navigation.navigate('Home');
+        } catch (navError) {
+          console.error('Error con navigate también:', navError);
+        }
       }
     }
-    
-    // Esperar un momento para que el video se pause y luego navegar
-    // Usar requestAnimationFrame para asegurar que la navegación ocurra en el siguiente frame
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        try {
-          console.log('Navegando a Home...');
-          // Usar navigate en lugar de reset para evitar problemas con el stack
-          navigation.navigate('Home');
-        } catch (error) {
-          console.error('Error navigating to Home:', error);
-          // Si navigate falla, intentar con reset
-          try {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Home' }],
-            });
-          } catch (resetError) {
-            console.error('Error con reset también:', resetError);
-            // Último recurso: usar goBack si es posible, o simplemente dejar que el usuario cierre la app
-          }
-        }
-      }, 200);
-    });
+  }, [navigation]);
+
+  const handleLoad = () => {
+    setLoading(false);
+  };
+
+  const handleEnd = () => {
+    console.log('Video terminó');
+    // Navegar inmediatamente sin delays complejos
+    navigateToHome();
   };
 
   const handleError = (error: any) => {
     console.error('Error loading video:', error);
-    // Si hay un error, navegar directamente a Home
     setLoading(false);
-    if (!hasEnded && !isNavigating) {
-      setHasEnded(true);
-      setIsNavigating(true);
-      setTimeout(() => {
-        try {
-          console.log('Navegando a Home por error...');
-          navigation.navigate('Home');
-        } catch (navError) {
-          console.error('Error navigating to Home:', navError);
-          try {
-            navigation.reset({
-              index: 0,
-              routes: [{ name: 'Home' }],
-            });
-          } catch (resetError) {
-            console.error('Error con reset también:', resetError);
-          }
-        }
-      }, 200);
-    }
+    // Si hay un error, navegar directamente a Home
+    navigateToHome();
   };
-  
-  // Cleanup: si el componente se desmonta, asegurar que no haya navegaciones pendientes
-  useEffect(() => {
-    return () => {
-      console.log('IntroScreen desmontándose...');
-      setIsNavigating(false);
-    };
-  }, []);
-
-  // Si estamos navegando, no renderizar el video para evitar problemas
-  if (isNavigating) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color={theme.colors.accent} />
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
