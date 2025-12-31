@@ -66,6 +66,7 @@ export type OnlineRoom = {
 };
 
 export type NavigationParamList = {
+  Intro: undefined;
   Home: undefined;
   Lobby: undefined;
   OnlineLobby: undefined;

@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../types';
 
 // Screens
+import { IntroScreen } from '../screens/Intro';
 import { HomeScreen } from '../screens/Home';
 import { LobbyScreen } from '../screens/Lobby';
 import { OnlineLobbyScreen } from '../screens/OnlineLobby';
@@ -28,7 +29,9 @@ export const AppNavigator: React.FC = () => {
           },
           animation: 'slide_from_right', // Transiciones suaves
         }}
+        initialRouteName="Intro"
       >
+        <Stack.Screen name="Intro" component={IntroScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Lobby" component={LobbyScreen} />
         <Stack.Screen name="OnlineLobby" component={OnlineLobbyScreen} />
