@@ -28,7 +28,7 @@ export const DiscussionOnlineScreen: React.FC<Props> = ({ navigation, route }) =
   const gameState = onlineGame.gameState;
   const roleAssignment = onlineGame.roleAssignment;
   const pistas = onlineGame.pistas || [];
-  const getRoundPistas = (round: number) => onlineGame.pistas.filter(p => p.round === round) || [];
+  const getRoundPistas = (round: number) => (onlineGame.pistas || []).filter(p => p.round === round);
   const roomCode = route.params?.roomCode || onlineGame.roomCode;
 
   // Intentar cargar el estado si no está disponible

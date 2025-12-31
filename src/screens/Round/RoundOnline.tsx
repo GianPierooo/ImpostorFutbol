@@ -27,7 +27,7 @@ export const RoundOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   const gameState = onlineGame.gameState;
   const roleAssignment = onlineGame.roleAssignment;
   const pistas = onlineGame.pistas || [];
-  const getRoundPistas = (round: number) => onlineGame.pistas.filter(p => p.round === round) || [];
+  const getRoundPistas = (round: number) => (onlineGame.pistas || []).filter(p => p.round === round);
   const currentPlayer = onlineGame.getCurrentPlayer();
 
   const [pistaText, setPistaText] = useState('');

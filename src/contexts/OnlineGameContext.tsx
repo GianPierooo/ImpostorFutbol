@@ -273,13 +273,18 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
 
     const handleRoomReset = (data: any) => {
       // Cuando la sala se resetea a lobby, limpiar el estado del juego
+      // IMPORTANTE: Actualizar roomState con el nuevo estado que viene del backend
+      // para que useOnlineNavigation pueda detectar el cambio a 'lobby' y navegar correctamente
       if (data.roomState) {
         setRoomState(data.roomState);
         setPlayers(data.roomState.players || []);
+        // Limpiar estado del juego - la sala vuelve a lobby
         setGameState(null);
         setRoleAssignment(null);
         setPistas([]);
         setVotes([]);
+        // Actualizar isHost por si el host cambió
+        setIsHost(data.roomState.room?.hostId === playerId);
       }
     };
 
@@ -549,16 +554,16 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     }
 
     try {
+      // IMPORTANTE: NO limpiar el estado aquí - dejar que el evento room_reset lo haga
+      // Limpiar inmediatamente puede causar que los componentes se desmonten antes de tiempo
+      // y generar errores de "fewer hooks than expected"
+      
       // Usar WebSocket para resetear la sala
+      // El backend emitirá el evento room_reset que limpiará el estado de forma sincronizada
       socketService.resetRoom(roomCode, playerId);
       
-      // Limpiar estado local
-      setGameState(null);
-      setRoleAssignment(null);
-      setPistas([]);
-      setVotes([]);
-      
       // El estado se actualizará automáticamente cuando llegue el evento ROOM_RESET
+      // que actualizará roomState y limpiará gameState, roleAssignment, pistas y votes
     } catch (error) {
       console.error('Error resetting room to lobby:', error);
       throw error;

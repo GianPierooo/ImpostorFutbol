@@ -81,6 +81,9 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   }, [newPlayerId, showBubble]);
 
+  // Ref para evitar llamadas duplicadas a leaveRoom durante cleanup
+  const isLeavingRef = useRef(false);
+
   /**
    * Unirse a la sala cuando se monta el componente
    * 
@@ -89,11 +92,13 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
    * y no deberían cambiar durante la vida del componente.
    * 
    * Cleanup: Cuando el componente se desmonta, salir de la sala automáticamente.
+   * IMPORTANTE: Solo hacer cleanup si no estamos ya saliendo (evitar duplicados).
    */
   useEffect(() => {
     const join = async () => {
       try {
         await joinRoom(code, playerId, playerName);
+        isLeavingRef.current = false; // Resetear flag después de unirse exitosamente
       } catch (error: any) {
         // Error manejado por el contexto
         console.error('Error joining room:', error);
@@ -104,7 +109,14 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
 
     return () => {
       // Cleanup: salir de la sala cuando el componente se desmonta
-      leaveRoom();
+      // Solo si no estamos ya en proceso de salir (evitar duplicados)
+      if (!isLeavingRef.current) {
+        isLeavingRef.current = true;
+        leaveRoom().catch((error) => {
+          // Ignorar errores durante cleanup - el componente ya se está desmontando
+          console.warn('Error durante cleanup de OnlineRoom:', error);
+        });
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Solo ejecutar una vez al montar - las dependencias vienen de route.params que no cambian
@@ -147,11 +159,20 @@ export const OnlineRoomScreen: React.FC<Props> = ({ route, navigation }) => {
   };
 
   const handleLeave = async () => {
+    // Prevenir llamadas duplicadas
+    if (isLeavingRef.current) {
+      return;
+    }
+
     try {
+      isLeavingRef.current = true; // Marcar que estamos saliendo
       await leaveRoom();
+      // Navegar después de salir exitosamente
       navigation.goBack();
     } catch (error: any) {
-      // Error manejado
+      // Si hay error, permitir intentar salir de nuevo
+      isLeavingRef.current = false;
+      console.error('Error leaving room:', error);
     }
   };
 

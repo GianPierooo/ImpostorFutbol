@@ -40,6 +40,7 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   const gameState = onlineGame.gameState;
   const roleAssignment = onlineGame.roleAssignment;
   const votes = onlineGame.votes || [];
+  const roomState = onlineGame.roomState;
   
   // Cargar resultados de votación cuando el componente se monta o cuando cambian los votos
   useEffect(() => {
@@ -98,10 +99,25 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
     };
   })();
 
-  // Si no hay estado del juego después de intentar cargarlo, mostrar loading
+  // Si estamos navegando (reseteo o salida), mostrar loading sin acceder a datos que pueden ser null
   // IMPORTANTE: Este return debe estar DESPUÉS de todos los hooks
-  // No mostrar loading si estamos navegando (para evitar error de hooks)
-  if ((!gameState || !roleAssignment) && !isNavigating) {
+  // Mostrar loading primero para evitar acceder a gameState/roleAssignment cuando se están limpiando
+  if (isNavigating) {
+    return (
+      <ScreenContainer>
+        <View style={styles.content}>
+          <ActivityIndicator size="large" style={{ marginTop: 20 }} />
+          <Text variant="bodyLarge" style={styles.errorText}>
+            Preparando nueva partida...
+          </Text>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // Si no hay estado del juego después de intentar cargarlo, mostrar loading
+  // Solo mostrar esto si NO estamos navegando
+  if (!gameState || !roleAssignment) {
     return (
       <ScreenContainer>
         <View style={styles.content}>
@@ -116,29 +132,24 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
       </ScreenContainer>
     );
   }
-  
-  // Si estamos navegando, mostrar una pantalla vacía o mantener el último estado
-  if (isNavigating) {
-    return (
-      <ScreenContainer>
-        <View style={styles.content}>
-          <ActivityIndicator size="large" style={{ marginTop: 20 }} />
-        </View>
-      </ScreenContainer>
-    );
-  }
 
   const impostor = roleAssignment?.players?.find((p) => p.id === roleAssignment?.impostorId);
   const impostorName = impostor?.name || 'Desconocido';
-  const secretWord = roleAssignment.secretWord;
+  const secretWord = roleAssignment?.secretWord || 'Desconocida';
 
 
   const handleNewGame = async () => {
+    // Prevenir múltiples llamadas
+    if (isNavigating) {
+      return;
+    }
+
     setIsNavigating(true);
     try {
       // Salir de la sala y volver a Home
       await onlineGame.leaveRoom();
       // Pequeño delay para asegurar que la navegación se complete
+      // y que el estado se limpie antes de navegar
       setTimeout(() => {
         navigation.reset({
           index: 0,
@@ -147,6 +158,7 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
       }, 100);
     } catch (error) {
       console.error('Error in handleNewGame:', error);
+      // Solo resetear isNavigating si hubo un error
       setIsNavigating(false);
     }
   };
@@ -157,14 +169,24 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
       return;
     }
 
+    // Prevenir múltiples llamadas
+    if (isNavigating) {
+      return;
+    }
+
+    // IMPORTANTE: Establecer isNavigating ANTES de resetear para prevenir renders inconsistentes
+    // Esto previene que el componente acceda a gameState/roleAssignment mientras se están limpiando
     setIsNavigating(true);
     try {
       // Resetear la sala a lobby usando el nuevo método
+      // El estado se limpiará automáticamente cuando llegue el evento room_reset
       await onlineGame.resetRoomToLobby();
       // La navegación automática llevará a los jugadores de vuelta a OnlineRoom
-      // cuando el estado cambie a lobby
+      // cuando el estado cambie a lobby y useOnlineNavigation detecte el cambio
+      // isNavigating se mantendrá true hasta que se complete la navegación
     } catch (error) {
       console.error('Error in handlePlayAgain:', error);
+      // Solo resetear isNavigating si hubo un error
       setIsNavigating(false);
     }
   };
