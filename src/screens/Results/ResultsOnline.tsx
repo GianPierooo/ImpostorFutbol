@@ -33,14 +33,14 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   // Intentar cargar el estado si no está disponible
   const [loadingState, setLoadingState] = useState(false);
   
-  // Flag para prevenir return temprano durante la navegación
-  const [isNavigating, setIsNavigating] = useState(false);
-  
   // Obtener datos del contexto (después de todos los hooks)
   const gameState = onlineGame.gameState;
   const roleAssignment = onlineGame.roleAssignment;
   const votes = onlineGame.votes || [];
   const roomState = onlineGame.roomState;
+  const roomCode = onlineGame.roomCode;
+  const playerId = onlineGame.playerId;
+  const playerName = onlineGame.playerName;
   
   // Cargar resultados de votación cuando el componente se monta o cuando cambian los votos
   useEffect(() => {
@@ -63,7 +63,7 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   
   // Intentar cargar el estado si no está disponible
   useEffect(() => {
-    if (onlineGame?.roomCode && onlineGame?.loadGameState && (!gameState || !roleAssignment) && !loadingState && !isNavigating) {
+    if (onlineGame?.roomCode && onlineGame?.loadGameState && (!gameState || !roleAssignment) && !loadingState) {
       setLoadingState(true);
       const loadState = async () => {
         try {
@@ -76,14 +76,7 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
       };
       loadState();
     }
-  }, [onlineGame?.roomCode, onlineGame?.loadGameState, gameState, roleAssignment, loadingState, isNavigating]);
-  
-  // Cleanup: resetear flag de navegación si el componente se desmonta
-  useEffect(() => {
-    return () => {
-      setIsNavigating(false);
-    };
-  }, []);
+  }, [onlineGame?.roomCode, onlineGame?.loadGameState, gameState, roleAssignment, loadingState]);
 
   // Calcular ganador (después de todos los hooks)
   const gameWinner = (() => {
@@ -99,24 +92,7 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
     };
   })();
 
-  // Si estamos navegando (reseteo o salida), mostrar loading sin acceder a datos que pueden ser null
-  // IMPORTANTE: Este return debe estar DESPUÉS de todos los hooks
-  // Mostrar loading primero para evitar acceder a gameState/roleAssignment cuando se están limpiando
-  if (isNavigating) {
-    return (
-      <ScreenContainer>
-        <View style={styles.content}>
-          <ActivityIndicator size="large" style={{ marginTop: 20 }} />
-          <Text variant="bodyLarge" style={styles.errorText}>
-            Preparando nueva partida...
-          </Text>
-        </View>
-      </ScreenContainer>
-    );
-  }
-
   // Si no hay estado del juego después de intentar cargarlo, mostrar loading
-  // Solo mostrar esto si NO estamos navegando
   if (!gameState || !roleAssignment) {
     return (
       <ScreenContainer>
@@ -138,56 +114,56 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   const secretWord = roleAssignment?.secretWord || 'Desconocida';
 
 
-  const handleNewGame = async () => {
-    // Prevenir múltiples llamadas
-    if (isNavigating) {
+  /**
+   * Navegar de vuelta a la sala de espera (OnlineRoom) sin salir de la sala
+   * Mantiene roomCode, playerId y playerName en el contexto
+   */
+  const handleBackToRoom = () => {
+    if (!roomCode || !playerId || !playerName) {
+      console.error('Missing room data for navigation to OnlineRoom');
       return;
     }
 
-    setIsNavigating(true);
-    try {
-      // Salir de la sala y volver a Home
-      await onlineGame.leaveRoom();
-      // Pequeño delay para asegurar que la navegación se complete
-      // y que el estado se limpie antes de navegar
-      setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Home' }],
-        });
-      }, 100);
-    } catch (error) {
-      console.error('Error in handleNewGame:', error);
-      // Solo resetear isNavigating si hubo un error
-      setIsNavigating(false);
-    }
+    // Navegar directamente a OnlineRoom con los datos del contexto
+    // El contexto ya tiene estos datos, solo necesitamos navegar
+    navigation.navigate('OnlineRoom', {
+      code: roomCode,
+      playerId,
+      playerName,
+    });
   };
 
-  const handlePlayAgain = async () => {
-    if (!onlineGame.isHost) {
-      // Los jugadores no host no pueden iniciar una nueva partida
-      return;
-    }
-
-    // Prevenir múltiples llamadas
-    if (isNavigating) {
-      return;
-    }
-
-    // IMPORTANTE: Establecer isNavigating ANTES de resetear para prevenir renders inconsistentes
-    // Esto previene que el componente acceda a gameState/roleAssignment mientras se están limpiando
-    setIsNavigating(true);
+  /**
+   * Salir de la sala y volver al inicio (Home)
+   * Limpia el estado del contexto y desconecta WebSocket
+   */
+  const handleBackToHome = async () => {
     try {
-      // Resetear la sala a lobby usando el nuevo método
-      // El estado se limpiará automáticamente cuando llegue el evento room_reset
-      await onlineGame.resetRoomToLobby();
-      // La navegación automática llevará a los jugadores de vuelta a OnlineRoom
-      // cuando el estado cambie a lobby y useOnlineNavigation detecte el cambio
-      // isNavigating se mantendrá true hasta que se complete la navegación
+      // IMPORTANTE: Navegar primero, luego limpiar el estado en un timeout
+      // Esto previene el error "fewer hooks than expected" porque el componente
+      // se desmontará antes de que el estado se limpie completamente
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+
+      // Limpiar el estado después de un pequeño delay para asegurar que la navegación se complete
+      setTimeout(async () => {
+        try {
+          await onlineGame.leaveRoom();
+        } catch (error) {
+          console.error('Error leaving room after navigation:', error);
+          // El estado se limpiará de todas formas en leaveRoom
+        }
+      }, 300);
     } catch (error) {
-      console.error('Error in handlePlayAgain:', error);
-      // Solo resetear isNavigating si hubo un error
-      setIsNavigating(false);
+      console.error('Error in handleBackToHome:', error);
+      // Si hay un error, intentar limpiar el estado de todas formas
+      try {
+        await onlineGame.leaveRoom();
+      } catch (leaveError) {
+        console.error('Error in fallback leaveRoom:', leaveError);
+      }
     }
   };
 
@@ -416,54 +392,27 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
           entering={FadeInUp.delay(2000).springify()}
           style={styles.actions}
         >
-          {onlineGame.isHost ? (
-            <>
-              <Button
-                mode="contained"
-                onPress={handlePlayAgain}
-                disabled={isNavigating}
-                style={styles.actionButton}
-                contentStyle={styles.buttonContent}
-                labelStyle={styles.buttonLabel}
-                icon="replay"
-                buttonColor={theme.colors.accent}
-              >
-                Jugar Otra Vez
-              </Button>
-              <Button
-                mode="outlined"
-                onPress={handleNewGame}
-                disabled={isNavigating}
-                style={styles.actionButton}
-                contentStyle={styles.buttonContent}
-                labelStyle={styles.buttonLabel}
-                icon="home"
-              >
-                Nueva Partida
-              </Button>
-            </>
-          ) : (
-            <>
-              <Card style={styles.waitingCard} mode="outlined">
-                <Card.Content style={styles.waitingContent}>
-                  <Text variant="bodyLarge" style={styles.waitingText}>
-                    Esperando a que el host inicie una nueva partida...
-                  </Text>
-                </Card.Content>
-              </Card>
-              <Button
-                mode="outlined"
-                onPress={handleNewGame}
-                disabled={isNavigating}
-                style={styles.actionButton}
-                contentStyle={styles.buttonContent}
-                labelStyle={styles.buttonLabel}
-                icon="home"
-              >
-                Salir de la Partida
-              </Button>
-            </>
-          )}
+          <Button
+            mode="contained"
+            onPress={handleBackToRoom}
+            style={styles.actionButton}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="door"
+            buttonColor={theme.colors.accent}
+          >
+            Volver a Sala
+          </Button>
+          <Button
+            mode="outlined"
+            onPress={handleBackToHome}
+            style={styles.actionButton}
+            contentStyle={styles.buttonContent}
+            labelStyle={styles.buttonLabel}
+            icon="home"
+          >
+            Volver al Inicio
+          </Button>
         </Animated.View>
       </ScrollView>
     </ScreenContainer>
@@ -718,20 +667,6 @@ const styles = StyleSheet.create({
   impostorText: {
     color: theme.colors.impostor,
     fontWeight: '700',
-  },
-  waitingCard: {
-    marginBottom: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.accent,
-    borderWidth: 2,
-  },
-  waitingContent: {
-    alignItems: 'center',
-    paddingVertical: theme.spacing.md,
-  },
-  waitingText: {
-    textAlign: 'center',
-    color: theme.colors.text,
   },
 });
 
