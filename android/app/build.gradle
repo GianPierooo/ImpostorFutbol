@@ -90,6 +90,8 @@ android {
         resolutionStrategy {
             force 'androidx.core:core:1.12.0'
             force 'androidx.core:core-ktx:1.12.0'
+            force 'androidx.activity:activity:1.8.2'
+            force 'androidx.activity:activity-ktx:1.8.2'
         }
     }
     signingConfigs {
@@ -118,9 +120,11 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
     
-    // Forzar versiones compatibles de androidx.core
+    // Forzar versiones compatibles de androidx.core y androidx.activity
     implementation("androidx.core:core:1.12.0")
     implementation("androidx.core:core-ktx:1.12.0")
+    implementation("androidx.activity:activity:1.8.2")
+    implementation("androidx.activity:activity-ktx:1.8.2")
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
