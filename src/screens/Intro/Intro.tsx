@@ -4,16 +4,19 @@
  */
 
 import React, { useRef, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
 import Video, { OnLoadData, OnEndData } from 'react-native-video';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { NavigationParamList } from '../../types';
 import { theme } from '../../theme';
 
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+
 type Props = NativeStackScreenProps<NavigationParamList, 'Intro'>;
 
 export const IntroScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
+  const [hasEnded, setHasEnded] = useState(false);
   const videoRef = useRef<Video>(null);
 
   const handleLoad = (data: OnLoadData) => {
@@ -21,15 +24,44 @@ export const IntroScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   const handleEnd = (data: OnEndData) => {
-    // Navegar a Home después de que termine el video
-    navigation.replace('Home');
+    // Prevenir múltiples llamadas
+    if (hasEnded) return;
+    setHasEnded(true);
+    
+    // Usar setTimeout para asegurar que la navegación ocurra después de que el evento se procese
+    // Esto previene crashes relacionados con la navegación durante el ciclo de renderizado
+    setTimeout(() => {
+      try {
+        navigation.reset({
+          index: 0,
+          routes: [{ name: 'Home' }],
+        });
+      } catch (error) {
+        console.error('Error navigating to Home:', error);
+        // Fallback a navigate si reset falla
+        navigation.navigate('Home');
+      }
+    }, 100);
   };
 
   const handleError = (error: any) => {
     console.error('Error loading video:', error);
     // Si hay un error, navegar directamente a Home
     setLoading(false);
-    navigation.replace('Home');
+    if (!hasEnded) {
+      setHasEnded(true);
+      setTimeout(() => {
+        try {
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Home' }],
+          });
+        } catch (navError) {
+          console.error('Error navigating to Home:', navError);
+          navigation.navigate('Home');
+        }
+      }, 100);
+    }
   };
 
   return (
@@ -37,7 +69,7 @@ export const IntroScreen: React.FC<Props> = ({ navigation }) => {
       <Video
         ref={videoRef}
         source={require('../../../assets/videos/SGS-INTRO.mp4')}
-        style={styles.video}
+        style={[styles.video, { width: screenWidth, height: screenHeight }]}
         resizeMode="cover"
         onLoad={handleLoad}
         onEnd={handleEnd}
@@ -62,24 +94,21 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: screenWidth,
+    height: screenHeight,
+    overflow: 'hidden',
   },
   video: {
     position: 'absolute',
     top: 0,
     left: 0,
-    bottom: 0,
-    right: 0,
-    width: '100%',
-    height: '100%',
   },
   loadingContainer: {
     position: 'absolute',
     top: 0,
     left: 0,
-    bottom: 0,
-    right: 0,
+    width: screenWidth,
+    height: screenHeight,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: theme.colors.background,
