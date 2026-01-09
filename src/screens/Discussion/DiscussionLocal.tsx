@@ -66,21 +66,27 @@ export const DiscussionLocalScreen: React.FC<Props> = ({ navigation }) => {
   }, [roundToShow, gameState?.maxRounds]);
 
   const handleContinue = () => {
+    console.log(`[DiscussionLocal] handleContinue - ronda actual: ${roundToShow}, última ronda: ${isLastRound}`);
+    
     // Si es la última ronda, ir a votación
     if (isLastRound) {
+      console.log('[DiscussionLocal] Última ronda, finalizando y yendo a votación');
       localGame.finishRound();
       navigation.navigate('Voting', { mode: 'local' });
     } else if (canFinish && gameState.maxRounds === null) {
       // Modo sin límite y pueden finalizar (3+ rondas), ir a votación
+      console.log('[DiscussionLocal] Modo sin límite, finalizando y yendo a votación');
       localGame.finishRound();
       navigation.navigate('Voting', { mode: 'local' });
     } else {
       // Avanzar a la siguiente ronda
       const hasMoreRounds = gameState.maxRounds === null || roundToShow < gameState.maxRounds;
       if (hasMoreRounds) {
+        console.log('[DiscussionLocal] Avanzando a la siguiente ronda');
         localGame.finishRound();
         // Navegar a la siguiente ronda
         setTimeout(() => {
+          console.log('[DiscussionLocal] Navegando a Round');
           navigation.navigate('Round', { mode: 'local' });
         }, 100);
       }
@@ -90,8 +96,10 @@ export const DiscussionLocalScreen: React.FC<Props> = ({ navigation }) => {
   const handleNextRound = () => {
     // Solo disponible en modo sin límite
     if (gameState.maxRounds === null) {
+      console.log('[DiscussionLocal] handleNextRound - Continuando a la siguiente ronda');
       localGame.finishRound();
       setTimeout(() => {
+        console.log('[DiscussionLocal] Navegando a Round desde handleNextRound');
         navigation.navigate('Round', { mode: 'local' });
       }, 100);
     }

@@ -74,24 +74,17 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
   // Efecto para reiniciar turno cuando cambia la ronda
   React.useEffect(() => {
-    if (gameState && gameState.currentRound !== lastRoundNumber) {
-      // La ronda cambió, reiniciar turno a 1
+    if (gameState && gameState.currentRound !== lastRoundNumber && lastRoundNumber !== 0) {
+      // La ronda cambió, reiniciar turno a 1 y el índice del jugador a 0
+      console.log(`[GameContext] Ronda cambió de ${lastRoundNumber} a ${gameState.currentRound}, reiniciando turnos`);
       setCurrentTurn(1);
       setCurrentPlayerIndex(0);
       setLastRoundNumber(gameState.currentRound);
-      
-      // Asegurar que la fase sea 'round' cuando cambia la ronda (excepto en roleAssignment)
-      if (gameState.phase !== 'round' && gameState.phase !== 'roleAssignment' && gameState.phase !== 'voting' && gameState.phase !== 'results') {
-        setGameState((prev) => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            phase: 'round',
-          };
-        });
-      }
+    } else if (lastRoundNumber === 0 && gameState) {
+      // Inicialización
+      setLastRoundNumber(gameState.currentRound);
     }
-  }, [gameState?.currentRound, lastRoundNumber, gameState]);
+  }, [gameState?.currentRound, lastRoundNumber]);
 
   const startGame = useCallback((players: Player[], config: GameConfig) => {
     // Asignar roles
@@ -209,7 +202,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     
     if (existingPistaInRound) {
       // El jugador ya dio una pista en esta ronda, no permitir otra
-      // No mostrar warning en consola para evitar ruido, solo retornar
+      console.log(`[GameContext] addPista: Jugador ${player.name} ya dio pista en ronda ${gameState.currentRound}, ignorando`);
       return; // No permitir agregar otra pista en la misma ronda
     }
 
@@ -222,6 +215,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       turn: currentTurn,
     };
 
+    console.log(`[GameContext] addPista: Agregando pista de ${player.name} en ronda ${gameState.currentRound}`);
+    
     // Agregar la nueva pista
     setPistas((prev) => [...prev, newPista]);
   }, [gameState, roleAssignment, currentTurn, pistas]);
@@ -242,6 +237,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     
     // Si todos dieron pista, cambiar automáticamente a fase de discusión
     if (allPlayersGavePista && roundPistas.length >= roleAssignment.players.length) {
+      console.log(`[GameContext] Todos los jugadores dieron su pista en ronda ${gameState.currentRound}, cambiando a discussion`);
       setGameState((prev) => {
         if (!prev || prev.phase !== 'round') return prev;
         // Solo cambiar si estamos en la ronda correcta
@@ -322,6 +318,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     
     if (hasMoreRounds) {
       const newRound = gameState.currentRound + 1;
+      console.log(`[GameContext] finishRound: Avanzando de ronda ${gameState.currentRound} a ${newRound}`);
       
       // IMPORTANTE: Actualizar lastRoundNumber ANTES de actualizar gameState
       // Esto asegura que el efecto que reinicia turnos se ejecute correctamente
@@ -342,6 +339,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       });
     } else {
       // Si es la última ronda, cambiar a fase de votación
+      console.log(`[GameContext] finishRound: Última ronda alcanzada, cambiando a votación`);
       setGameState((prev) => {
         if (!prev) return prev;
         return {

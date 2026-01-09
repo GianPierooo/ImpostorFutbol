@@ -117,20 +117,44 @@ export const ResultsOnlineScreen: React.FC<Props> = ({ navigation, route }) => {
   /**
    * Navegar de vuelta a la sala de espera (OnlineRoom) sin salir de la sala
    * Mantiene roomCode, playerId y playerName en el contexto
+   * 
+   * IMPORTANTE: Debe resetear el estado de la sala a "lobby" antes de navegar
+   * para que el host pueda iniciar otra partida
    */
-  const handleBackToRoom = () => {
+  const handleBackToRoom = async () => {
     if (!roomCode || !playerId || !playerName) {
       console.error('Missing room data for navigation to OnlineRoom');
       return;
     }
 
-    // Navegar directamente a OnlineRoom con los datos del contexto
-    // El contexto ya tiene estos datos, solo necesitamos navegar
-    navigation.navigate('OnlineRoom', {
-      code: roomCode,
-      playerId,
-      playerName,
-    });
+    try {
+      // IMPORTANTE: Solo el host puede resetear la sala
+      // Si no eres el host, solo navega de vuelta (el host reseteará por todos)
+      if (onlineGame.isHost) {
+        console.log('[ResultsOnline] Host reseteando sala a lobby...');
+        await onlineGame.resetRoomToLobby();
+        console.log('[ResultsOnline] Sala reseteada exitosamente');
+      } else {
+        console.log('[ResultsOnline] No soy host, navegando sin resetear');
+      }
+      
+      // Navegar directamente a OnlineRoom con los datos del contexto
+      // El evento room_reset actualizará el estado automáticamente para todos
+      navigation.navigate('OnlineRoom', {
+        code: roomCode,
+        playerId,
+        playerName,
+      });
+    } catch (error: any) {
+      console.error('[ResultsOnline] Error al resetear sala:', error);
+      // Si hay error, mostrar mensaje pero intentar navegar de todas formas
+      // El estado podría no estar sincronizado pero al menos pueden volver a la sala
+      navigation.navigate('OnlineRoom', {
+        code: roomCode,
+        playerId,
+        playerName,
+      });
+    }
   };
 
   /**

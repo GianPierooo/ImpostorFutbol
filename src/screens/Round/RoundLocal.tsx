@@ -19,14 +19,10 @@ type Props = NativeStackScreenProps<NavigationParamList, 'Round'>;
 export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
   const { gameState, roleAssignment, addPista, nextTurn, currentPlayerIndex, pistas, getCurrentPlayer } = useGame();
   const [pistaText, setPistaText] = useState('');
-  const [currentRound, setCurrentRound] = useState(1);
 
-  // Actualizar la ronda actual cuando cambia el gameState
-  useEffect(() => {
-    if (gameState?.currentRound) {
-      setCurrentRound(gameState.currentRound);
-    }
-  }, [gameState?.currentRound]);
+  // IMPORTANTE: NO usar estado local para currentRound, usar directamente gameState.currentRound
+  // Esto evita problemas de sincronización al navegar entre pantallas
+  const currentRound = gameState?.currentRound || 1;
 
   // Obtener el jugador actual que debe dar la pista
   const currentPlayer = useMemo(() => {
@@ -49,14 +45,15 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
 
   // Obtener información del jugador actual
   const playerInfo = useMemo(() => {
-    if (!currentPlayer || !roleAssignment) return null;
+    if (!currentPlayer || !roleAssignment || !gameState) return null;
     
     const player = roleAssignment.players.find(p => p.id === currentPlayer.id);
     if (!player) return null;
     
-    // Verificar si el jugador ya dio su pista en esta ronda
+    // IMPORTANTE: Verificar si el jugador ya dio su pista en esta ronda
+    // Usar gameState.currentRound directamente para asegurar sincronización correcta
     const hasGivenPista = pistas.some(
-      (p) => p.playerId === currentPlayer.id && p.round === currentRound
+      (p) => p.playerId === currentPlayer.id && p.round === gameState.currentRound
     );
     
     return {
@@ -66,14 +63,16 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
       isImpostor: player.role === 'impostor',
       hasGivenPista,
     };
-  }, [currentPlayer, roleAssignment, pistas, currentRound]);
+  }, [currentPlayer, roleAssignment, pistas, gameState]);
 
   // Obtener el esquema de colores para la ronda actual
   const colorScheme = getRoundColorScheme(currentRound, gameState?.maxRounds || null);
 
   // Manejar el envío de pista
   const handleSubmitPista = () => {
-    if (!pistaText.trim() || !currentPlayer) return;
+    if (!pistaText.trim() || !currentPlayer || !gameState) return;
+    
+    console.log(`[RoundLocal] Jugador ${currentPlayer.name} enviando pista en ronda ${gameState.currentRound}`);
     
     // IMPORTANTE: addPista recibe (text, playerId) según el contexto
     addPista(pistaText.trim(), currentPlayer.id);
@@ -87,6 +86,7 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
   // Navegar automáticamente a la fase de discusión cuando todos han dado su pista
   useEffect(() => {
     if (gameState?.phase === 'discussion') {
+      console.log('[RoundLocal] Fase cambió a discussion, navegando automáticamente');
       // Pequeño delay para asegurar que el estado se actualice completamente
       setTimeout(() => {
         navigation.navigate('Discussion', { mode: 'local' });
@@ -105,9 +105,6 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
   }
 
   // Obtener información del jugador actual
-  const myRole = playerInfo?.role;
-  const mySecretWord = playerInfo?.secretWord;
-  const isImpostor = playerInfo?.isImpostor || false;
   const hasGivenPista = playerInfo?.hasGivenPista || false;
 
   return (
@@ -147,49 +144,6 @@ export const RoundLocalScreen: React.FC<Props> = ({ navigation }) => {
               </Text>
               <Text variant="bodyMedium" style={styles.playerInfo}>
                 Es tu turno de dar una pista
-              </Text>
-            </Card.Content>
-          </Card>
-
-          {/* Información de la palabra secreta */}
-          <Card style={styles.secretWordCard} mode="outlined">
-            <Card.Content>
-              {isImpostor ? (
-                <>
-                  <Text variant="labelLarge" style={styles.secretWordLabel}>
-                    Tu rol:
-                  </Text>
-                  <Chip
-                    icon="alert"
-                    style={[styles.impostorChip, { backgroundColor: colorScheme.error }]}
-                    textStyle={styles.impostorChipText}
-                  >
-                    IMPOSTOR
-                  </Chip>
-                  <Text variant="bodyMedium" style={[styles.secretWord, { color: colorScheme.accent, marginTop: 12 }]}>
-                    No conoces la palabra secreta. Tu objetivo es descubrirla mediante las pistas de los demás.
-                  </Text>
-                </>
-              ) : (
-                <>
-                  <Text variant="labelLarge" style={styles.secretWordLabel}>
-                    Tu palabra secreta:
-                  </Text>
-                  <Text variant="headlineMedium" style={[styles.secretWord, { color: colorScheme.accent }]}>
-                    {mySecretWord || 'Cargando...'}
-                  </Text>
-                </>
-              )}
-            </Card.Content>
-          </Card>
-
-          {/* Instrucciones */}
-          <Card style={styles.instructionsCard} mode="outlined">
-            <Card.Content>
-              <Text variant="bodyMedium" style={styles.instructionsText}>
-                {isImpostor
-                  ? '💡 Como impostor, no sabes la palabra secreta. Da una pista que no te delate.'
-                  : '💡 Da una pista relacionada con la palabra secreta, pero no la menciones directamente.'}
               </Text>
             </Card.Content>
           </Card>
@@ -312,33 +266,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: theme.colors.textSecondary,
     marginTop: 4,
-  },
-  secretWordCard: {
-    marginBottom: 16,
-  },
-  secretWordLabel: {
-    color: theme.colors.textSecondary,
-    marginBottom: 8,
-  },
-  secretWord: {
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  impostorChip: {
-    alignSelf: 'center',
-    marginTop: 8,
-  },
-  impostorChipText: {
-    color: theme.colors.textLight,
-    fontWeight: 'bold',
-  },
-  instructionsCard: {
-    marginBottom: 24,
-  },
-  instructionsText: {
-    textAlign: 'center',
-    color: theme.colors.textSecondary,
   },
   inputContainer: {
     marginBottom: 24,

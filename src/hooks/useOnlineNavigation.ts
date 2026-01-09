@@ -19,6 +19,7 @@ export const useOnlineNavigation = () => {
   const route = useRoute<RouteProp<NavigationParamList, keyof NavigationParamList>>();
   const { gameState, roomState, roomCode, playerId, playerName } = useOnlineGame();
   const previousPhaseRef = useRef<GamePhase | null>(null);
+  const isNavigatingRef = useRef(false);
   
   // Obtener parámetros de la ruta
   const routeParams = route.params as any;
@@ -47,57 +48,83 @@ export const useOnlineNavigation = () => {
   useEffect(() => {
     // Si no estamos en modo online, no hacer nada
     if (!shouldNavigate || !roomCode) return;
+    
+    // Prevenir navegaciones duplicadas si ya estamos navegando
+    if (isNavigatingRef.current) {
+      console.log('[useOnlineNavigation] Ya hay una navegación en curso, ignorando');
+      return;
+    }
 
     const currentPhase = gameState?.phase || roomState?.room?.status;
     
     // Solo navegar si la fase cambió
     if (currentPhase && currentPhase !== previousPhaseRef.current) {
+      console.log(`[useOnlineNavigation] Fase cambió de ${previousPhaseRef.current} a ${currentPhase}`);
       previousPhaseRef.current = currentPhase;
+      
+      // Marcar que estamos navegando
+      isNavigatingRef.current = true;
 
       // Navegar según la fase, asegurando que siempre se pase mode: 'online'
-      switch (currentPhase) {
-        case 'lobby':
-          // Si estamos en Results y la sala vuelve a lobby, navegar a OnlineRoom
-          if (route.name === 'Results' && playerId && playerName) {
-            navigation.navigate('OnlineRoom', {
-              code: roomCode,
-              playerId,
-              playerName,
+      try {
+        switch (currentPhase) {
+          case 'lobby':
+            // Si estamos en Results y la sala vuelve a lobby, navegar a OnlineRoom
+            if (route.name === 'Results' && playerId && playerName) {
+              console.log('[useOnlineNavigation] Navegando a OnlineRoom (reset a lobby)');
+              navigation.navigate('OnlineRoom', {
+                code: roomCode,
+                playerId,
+                playerName,
+              });
+            }
+            break;
+          case 'roleAssignment':
+            console.log('[useOnlineNavigation] Navegando a RoleAssignment');
+            navigation.navigate('RoleAssignment', { 
+              mode: 'online', 
+              roomCode 
             });
-          }
-          break;
-        case 'roleAssignment':
-          navigation.navigate('RoleAssignment', { 
-            mode: 'online', 
-            roomCode 
-          });
-          break;
-        case 'round':
-          navigation.navigate('Round', { 
-            mode: 'online', 
-            roomCode 
-          });
-          break;
-        case 'discussion':
-          navigation.navigate('Discussion', { 
-            mode: 'online', 
-            roomCode 
-          });
-          break;
-        case 'voting':
-          navigation.navigate('Voting', { 
-            mode: 'online', 
-            roomCode 
-          });
-          break;
-        case 'results':
-          navigation.navigate('Results', { 
-            mode: 'online', 
-            roomCode 
-          });
-          break;
-        default:
-          break;
+            break;
+          case 'round':
+            console.log('[useOnlineNavigation] Navegando a Round');
+            navigation.navigate('Round', { 
+              mode: 'online', 
+              roomCode 
+            });
+            break;
+          case 'discussion':
+            console.log('[useOnlineNavigation] Navegando a Discussion');
+            navigation.navigate('Discussion', { 
+              mode: 'online', 
+              roomCode 
+            });
+            break;
+          case 'voting':
+            console.log('[useOnlineNavigation] Navegando a Voting');
+            navigation.navigate('Voting', { 
+              mode: 'online', 
+              roomCode 
+            });
+            break;
+          case 'results':
+            console.log('[useOnlineNavigation] Navegando a Results');
+            navigation.navigate('Results', { 
+              mode: 'online', 
+              roomCode 
+            });
+            break;
+          default:
+            console.log(`[useOnlineNavigation] Fase desconocida: ${currentPhase}`);
+            break;
+        }
+      } catch (error) {
+        console.error('[useOnlineNavigation] Error al navegar:', error);
+      } finally {
+        // Resetear el flag después de un pequeño delay para evitar re-navegaciones inmediatas
+        setTimeout(() => {
+          isNavigatingRef.current = false;
+        }, 500);
       }
     }
   }, [gameState?.phase, roomState?.room?.status, roomCode, navigation, shouldNavigate, playerId, playerName, route.name]);

@@ -173,6 +173,11 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     };
 
     const handleGameStateChanged = async (data: any) => {
+      console.log('[OnlineGameContext] GAME_STATE_CHANGED recibido:', { 
+        phase: data.gameState?.phase,
+        hasRoleAssignment: !!data.roleAssignment 
+      });
+      
       if (data.gameState) {
         setGameState(data.gameState);
         // Actualizar también el status de la sala cuando cambia el estado del juego
@@ -233,6 +238,11 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     };
 
     const handlePhaseChanged = async (data: any) => {
+      console.log('[OnlineGameContext] PHASE_CHANGED recibido:', { 
+        phase: data.phase,
+        hasGameState: !!data.gameState 
+      });
+      
       if (data.gameState) {
         setGameState(data.gameState);
       }
@@ -250,12 +260,14 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       // IMPORTANTE: Usar loadGameState del closure, no verificar gameState/roleAssignment del estado
       // porque pueden estar desactualizados en el momento del evento
       if (data.phase === 'roleAssignment' && roomCode) {
+        console.log('[OnlineGameContext] Fase es roleAssignment, cargando gameState...');
         try {
           await loadGameState();
+          console.log('[OnlineGameContext] GameState cargado exitosamente');
         } catch (error: any) {
           // Ignorar errores 429 (rate limiting)
           if (error.response?.status !== 429) {
-            console.error('Error loading game state after PHASE_CHANGED:', error);
+            console.error('[OnlineGameContext] Error loading game state after PHASE_CHANGED:', error);
           }
         }
       }
@@ -272,6 +284,12 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     };
 
     const handleRoomReset = (data: any) => {
+      console.log('[OnlineGameContext] ROOM_RESET recibido:', {
+        hasRoomState: !!data.roomState,
+        status: data.roomState?.room?.status,
+        players: data.roomState?.players?.length
+      });
+      
       // Cuando la sala se resetea a lobby, limpiar el estado del juego
       // IMPORTANTE: Actualizar roomState con el nuevo estado que viene del backend
       // para que useOnlineNavigation pueda detectar el cambio a 'lobby' y navegar correctamente
@@ -285,6 +303,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
         setVotes([]);
         // Actualizar isHost por si el host cambió
         setIsHost(data.roomState.room?.hostId === playerId);
+        console.log('[OnlineGameContext] Sala reseteada a lobby, estado limpiado');
       }
     };
 
@@ -456,8 +475,13 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
   }, [roomCode, playerId]);
 
   const startGame = useCallback(async () => {
-    if (!roomCode || !playerId || !isHost) return;
+    if (!roomCode || !playerId || !isHost) {
+      console.log('[OnlineGameContext] startGame: Requisitos no cumplidos', { roomCode, playerId, isHost });
+      return;
+    }
 
+    console.log(`[OnlineGameContext] startGame: Iniciando juego en sala ${roomCode}`);
+    
     // IMPORTANTE: Usar solo WebSocket para iniciar el juego.
     // El backend emitirá los eventos GAME_STATE_CHANGED y PHASE_CHANGED
     // que actualizarán automáticamente el estado mediante los listeners.
@@ -466,6 +490,7 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
     
     // El estado se actualizará automáticamente cuando lleguen los eventos WebSocket
     // desde el backend (handleGameStateChanged y handlePhaseChanged)
+    console.log('[OnlineGameContext] startGame: Evento WebSocket enviado, esperando respuesta del servidor');
   }, [roomCode, playerId, isHost]);
 
   /**
@@ -549,8 +574,16 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
   }, [roomCode, playerId, isHost, loadGameState]);
 
   const resetRoomToLobby = useCallback(async () => {
+    console.log('[OnlineGameContext] resetRoomToLobby llamado', { 
+      roomCode, 
+      playerId, 
+      isHost 
+    });
+    
     if (!roomCode || !playerId || !isHost) {
-      throw new Error('Solo el host puede resetear la sala');
+      const error = new Error('Solo el host puede resetear la sala');
+      console.error('[OnlineGameContext] Error en resetRoomToLobby:', error.message);
+      throw error;
     }
 
     try {
@@ -558,14 +591,18 @@ export const OnlineGameProvider: React.FC<OnlineGameProviderProps> = ({ children
       // Limpiar inmediatamente puede causar que los componentes se desmonten antes de tiempo
       // y generar errores de "fewer hooks than expected"
       
+      console.log('[OnlineGameContext] Enviando evento RESET_ROOM vía WebSocket');
+      
       // Usar WebSocket para resetear la sala
       // El backend emitirá el evento room_reset que limpiará el estado de forma sincronizada
       socketService.resetRoom(roomCode, playerId);
       
+      console.log('[OnlineGameContext] Evento RESET_ROOM enviado, esperando respuesta del servidor');
+      
       // El estado se actualizará automáticamente cuando llegue el evento ROOM_RESET
       // que actualizará roomState y limpiará gameState, roleAssignment, pistas y votes
     } catch (error) {
-      console.error('Error resetting room to lobby:', error);
+      console.error('[OnlineGameContext] Error resetting room to lobby:', error);
       throw error;
     }
   }, [roomCode, playerId, isHost]);
