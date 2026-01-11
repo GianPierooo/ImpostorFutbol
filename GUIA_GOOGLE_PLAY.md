@@ -83,16 +83,58 @@ El `build.gradle` ya está configurado para:
 
 Google Play requiere **AAB** (Android App Bundle), NO APK.
 
-Ejecuta el script:
+### Opción A: Usar el script automatizado (RECOMENDADO)
+
+**⚠️ IMPORTANTE**: El script está en la **raíz del proyecto**, NO en la carpeta `android`.
+
+Desde la raíz del proyecto (donde está el archivo `package.json`), ejecuta:
 ```powershell
 .\generar-aab-release.ps1
 ```
 
-El AAB se generará en:
-- `android/app/build/outputs/bundle/release/app-release.aab`
-- Se copiará a: `versiones/impostor-futbol-v1.5-code5.aab`
+El script automáticamente:
+1. Limpia builds anteriores
+2. Genera el bundle de JavaScript
+3. Genera el AAB firmado
+4. Copia el AAB a `versiones/impostor-futbol-v1.6-code6.aab` (con la versión actual)
 
-**Verifica que el AAB esté firmado correctamente**:
+### Opción B: Pasos manuales
+
+Si prefieres ejecutar los comandos manualmente (o si el script no funciona):
+
+**1. Desde la raíz del proyecto, limpia builds anteriores:**
+```powershell
+cd android
+.\gradlew.bat clean
+cd ..
+```
+
+**2. Genera el bundle de JavaScript:**
+```powershell
+npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+```
+
+**3. Genera el AAB:**
+```powershell
+cd android
+.\gradlew.bat bundleRelease
+cd ..
+```
+
+**4. El AAB estará en:**
+- `android/app/build/outputs/bundle/release/app-release.aab`
+
+**5. (Opcional) Copia el AAB a la carpeta versiones:**
+```powershell
+# Asegúrate de estar en la raíz del proyecto
+$versionName = "1.6"  # Cambia según tu versión
+$versionCode = "6"    # Cambia según tu versionCode
+Copy-Item "android\app\build\outputs\bundle\release\app-release.aab" "versiones\impostor-futbol-v$versionName-code$versionCode.aab"
+```
+
+### Verificar que el AAB esté firmado correctamente
+
+Después de generar el AAB, verifica que esté firmado:
 ```powershell
 jarsigner -verify -verbose -certs android\app\build\outputs\bundle\release\app-release.aab
 ```
@@ -210,6 +252,61 @@ targetSdkVersion = 35
 ```gradle
 applicationId "com.tudominio.impostorfutbol"
 ```
+
+### Error: "Debes subir un APK o un Android App Bundle para esta app"
+
+Este error puede ocurrir por varias razones:
+
+**Solución**:
+1. **Verifica que el AAB se subió correctamente**: Asegúrate de que el archivo `.aab` se subió completamente y que tiene un tamaño razonable (generalmente > 5 MB)
+2. **Verifica la firma**: El AAB debe estar firmado correctamente. Verifica con:
+   ```powershell
+   jarsigner -verify -verbose -certs android\app\build\outputs\bundle\release\app-release.aab
+   ```
+   Debe mostrar `jar verified.`
+3. **Regenera el AAB**: Ejecuta el script nuevamente:
+   ```powershell
+   .\generar-aab-release.ps1
+   ```
+4. **Aumenta el versionCode**: Si ya subiste una versión, incrementa el `versionCode` en `android/app/build.gradle`:
+   ```gradle
+   versionCode 6  // Debe ser mayor que la versión anterior
+   ```
+
+### Error: "No puedes lanzar esta versión debido a que no permite que ningún usuario existente actualice los nuevos paquetes de aplicaciones agregados"
+
+Este error ocurre cuando hay problemas con la configuración de arquitecturas (ABI splits) o cambios en las arquitecturas soportadas.
+
+**Solución**:
+1. **Ya está corregido en el build.gradle**: El archivo `android/app/build.gradle` ahora tiene la configuración correcta de `bundle` splits
+2. **Regenera el AAB con la nueva configuración**:
+   ```powershell
+   .\generar-aab-release.ps1
+   ```
+3. **Si es la primera versión de la app**: En Google Play Console, elimina la versión actual (si la hay) y sube el nuevo AAB
+4. **Verifica las arquitecturas**: Asegúrate de que las arquitecturas en `abiFilters` coincidan con versiones anteriores (si las hay):
+   ```gradle
+   abiFilters "armeabi-v7a", "arm64-v8a"
+   ```
+
+### Error: "Esta versión no agrega ni quita ningún paquete de aplicaciones"
+
+Este error puede aparecer junto con el anterior y generalmente indica un problema con la configuración de splits.
+
+**Solución**:
+1. **Usa la configuración actualizada**: El `build.gradle` ya tiene la configuración correcta con `bundle { abi { enableSplit = false } }`
+2. **Regenera el AAB**:
+   ```powershell
+   .\generar-aab-release.ps1
+   ```
+3. **Asegúrate de que el versionCode aumentó**: Si es una actualización, el `versionCode` debe ser mayor:
+   ```gradle
+   versionCode 6  // Incrementa desde 5
+   versionName "1.6"  // Opcional: actualiza también la versión visible
+   ```
+4. **Si persiste el problema**: Elimina la versión actual en Google Play Console y sube el AAB nuevamente (esto solo aplica si aún no hay usuarios con la app instalada)
+
+**⚠️ IMPORTANTE**: Si ya tienes usuarios con la app instalada, NO elimines la versión. En su lugar, asegúrate de que el nuevo AAB tenga el mismo `applicationId` y las mismas arquitecturas que la versión anterior.
 
 ---
 

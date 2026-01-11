@@ -79,8 +79,8 @@ android {
         applicationId "com.impostorfutbol"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "1.5"
+        versionCode 6
+        versionName "1.6"
         ndk {
             abiFilters "armeabi-v7a", "arm64-v8a"
         }
@@ -124,6 +124,26 @@ android {
             }
         }
     }
+    
+    // Configuración para Android App Bundle (AAB) - Necesaria para Google Play
+    // NOTA: React Native ya maneja las arquitecturas correctamente
+    // Dejamos que Google Play maneje los splits automáticamente
+    bundle {
+        language {
+            // Deshabilitar splits por idioma - incluir todos los idiomas en un solo APK base
+            enableSplit = false
+        }
+        density {
+            // Deshabilitar splits por densidad - incluir todas las densidades en un solo APK base
+            enableSplit = false
+        }
+        abi {
+            // Deshabilitar splits por ABI - Google Play generará APKs automáticamente
+            // basándose en las arquitecturas incluidas en el AAB
+            enableSplit = false
+        }
+    }
+    
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
