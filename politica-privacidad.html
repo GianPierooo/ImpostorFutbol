@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidad - Impostor Fútbol</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #1a1a1a;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        h3 {
+            color: #34495e;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+        
+        ul {
+            margin-left: 30px;
+            margin-bottom: 15px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 15px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .contact-info {
+            background: #e8f4f8;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 30px;
+        }
+        
+        .last-updated {
+            text-align: center;
+            color: #999;
+            font-size: 0.9em;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Política de Privacidad</h1>
+        <p class="subtitle"><strong>Impostor Fútbol</strong> - Última actualización: Enero 2025</p>
+        
+        <p>
+            En <strong>Impostor Fútbol</strong> ("nosotros", "nuestro" o "la aplicación"), nos comprometemos a proteger tu privacidad. 
+            Esta Política de Privacidad explica cómo recopilamos, usamos, almacenamos y protegemos tu información cuando utilizas nuestra aplicación móvil.
+        </p>
+        
+        <h2>1. Información que Recopilamos</h2>
+        
+        <h3>1.1. Información de Usuario</h3>
+        <p>Cuando utilizas nuestra aplicación, recopilamos la siguiente información:</p>
+        <ul>
+            <li><strong>Nombre de usuario:</strong> El nombre que eliges al crear tu perfil o unirte a partidas online.</li>
+            <li><strong>Email (opcional):</strong> Si decides proporcionarlo, lo almacenamos de forma segura.</li>
+            <li><strong>Avatar (opcional):</strong> URL de imagen de perfil si decides usar una.</li>
+        </ul>
+        
+        <h3>1.2. Datos de Juego</h3>
+        <p>Para proporcionar la funcionalidad del juego, recopilamos:</p>
+        <ul>
+            <li><strong>Historial de partidas:</strong> Información sobre las partidas que has jugado, incluyendo resultados, rondas y participantes.</li>
+            <li><strong>Pistas y votos:</strong> Las pistas que proporcionas durante las partidas y los votos que realizas.</li>
+            <li><strong>Estadísticas:</strong> Tu rating, número de partidas jugadas, ganadas y perdidas.</li>
+            <li><strong>Datos de conexión:</strong> Información técnica necesaria para la conexión al servidor (dirección IP, tipo de dispositivo).</li>
+        </ul>
+        
+        <h3>1.3. Información Técnica</h3>
+        <p>Recopilamos automáticamente cierta información técnica para mejorar el servicio:</p>
+        <ul>
+            <li>Dirección IP (para conexión al servidor)</li>
+            <li>Tipo de dispositivo y sistema operativo</li>
+            <li>Información de errores y rendimiento de la aplicación</li>
+        </ul>
+        
+        <h2>2. Cómo Usamos tu Información</h2>
+        
+        <p>Utilizamos la información recopilada para los siguientes propósitos:</p>
+        <ul>
+            <li><strong>Proporcionar el servicio:</strong> Para permitirte jugar partidas online, crear salas y unirte a otras partidas.</li>
+            <li><strong>Mejorar la experiencia:</strong> Para calcular rankings, mostrar estadísticas y personalizar tu experiencia de juego.</li>
+            <li><strong>Mantener el servicio:</strong> Para detectar y solucionar problemas técnicos, prevenir fraudes y asegurar la seguridad del servicio.</li>
+            <li><strong>Análisis y mejoras:</strong> Para analizar el uso de la aplicación y mejorar nuestras funcionalidades.</li>
+        </ul>
+        
+        <h2>3. Almacenamiento de Datos</h2>
+        
+        <p>Tu información se almacena de forma segura utilizando:</p>
+        <ul>
+            <li><strong>PostgreSQL:</strong> Base de datos relacional para almacenar información de usuarios, partidas e historial de forma permanente.</li>
+            <li><strong>Redis:</strong> Almacenamiento temporal en memoria para partidas activas y sincronización en tiempo real.</li>
+            <li><strong>Elasticsearch:</strong> Motor de búsqueda para permitir búsquedas de partidas y jugadores.</li>
+        </ul>
+        
+        <p class="highlight">
+            <strong>Seguridad:</strong> Implementamos medidas de seguridad técnicas y organizativas para proteger tu información contra acceso no autorizado, pérdida o destrucción.
+        </p>
+        
+        <h2>4. Compartir Información</h2>
+        
+        <p>No vendemos, alquilamos ni compartimos tu información personal con terceros, excepto en las siguientes circunstancias:</p>
+        <ul>
+            <li><strong>Información pública:</strong> Tu nombre de usuario, rating y estadísticas básicas pueden ser visibles en rankings públicos y búsquedas dentro de la aplicación.</li>
+            <li><strong>Requisitos legales:</strong> Podemos divulgar información si es requerido por ley o para proteger nuestros derechos legales.</li>
+            <li><strong>Proveedores de servicios:</strong> Utilizamos servicios de hosting y infraestructura (Oracle Cloud) que procesan datos en nuestro nombre bajo estrictos acuerdos de confidencialidad.</li>
+        </ul>
+        
+        <h2>5. Tus Derechos</h2>
+        
+        <p>Tienes derecho a:</p>
+        <ul>
+            <li><strong>Acceder:</strong> Solicitar una copia de la información personal que tenemos sobre ti.</li>
+            <li><strong>Rectificar:</strong> Corregir cualquier información incorrecta o incompleta.</li>
+            <li><strong>Eliminar:</strong> Solicitar la eliminación de tu información personal (nota: esto puede afectar tu capacidad de usar la aplicación).</li>
+            <li><strong>Oponerte:</strong> Oponerte al procesamiento de tu información para ciertos fines.</li>
+        </ul>
+        
+        <p>Para ejercer estos derechos, puedes contactarnos usando la información proporcionada al final de esta política.</p>
+        
+        <h2>6. Retención de Datos</h2>
+        
+        <p>
+            Conservamos tu información mientras tu cuenta esté activa o según sea necesario para proporcionar el servicio. 
+            Los datos de historial de partidas se conservan para mantener las estadísticas y rankings. 
+            Si deseas eliminar tu cuenta y datos asociados, puedes contactarnos.
+        </p>
+        
+        <h2>7. Menores de Edad</h2>
+        
+        <p>
+            Nuestra aplicación está dirigida a usuarios de todas las edades. No recopilamos intencionalmente información personal 
+            de menores de 13 años sin el consentimiento de los padres. Si descubrimos que hemos recopilado información de un menor 
+            sin consentimiento, tomaremos medidas para eliminar esa información.
+        </p>
+        
+        <h2>8. Cambios a esta Política</h2>
+        
+        <p>
+            Podemos actualizar esta Política de Privacidad ocasionalmente. Te notificaremos sobre cambios significativos 
+            publicando la nueva política en esta página y actualizando la fecha de "Última actualización". 
+            Te recomendamos revisar esta política periódicamente.
+        </p>
+        
+        <h2>9. Modo Local vs Modo Online</h2>
+        
+        <p>
+            Nuestra aplicación ofrece dos modos de juego:
+        </p>
+        <ul>
+            <li><strong>Modo Local:</strong> Los datos de las partidas se almacenan solo en tu dispositivo y no se envían a nuestros servidores.</li>
+            <li><strong>Modo Online:</strong> Los datos se sincronizan con nuestros servidores para permitir partidas multijugador en tiempo real. 
+                En este modo, se aplica esta política de privacidad.</li>
+        </ul>
+        
+        <h2>10. Cookies y Tecnologías Similares</h2>
+        
+        <p>
+            Nuestra aplicación utiliza tecnologías de conexión (WebSocket) para proporcionar funcionalidad en tiempo real. 
+            No utilizamos cookies tradicionales, pero podemos almacenar información localmente en tu dispositivo para mejorar 
+            la experiencia de usuario.
+        </p>
+        
+        <div class="contact-info">
+            <h2>11. Contacto</h2>
+            <p>
+                Si tienes preguntas, inquietudes o solicitudes relacionadas con esta Política de Privacidad o el manejo de tus datos personales, 
+                puedes contactarnos a través de:
+            </p>
+            <ul style="list-style: none; margin-left: 0;">
+                <li><strong>Email:</strong>shadowgames.devteam@gmail.com</li>
+                <li><strong>GitHub:</strong>https://github.com/GianPierooo/politica-privacidad-impostor-futbol/</li>
+            </ul>
+            <p style="margin-top: 15px;">
+                Nos comprometemos a responder a tus consultas en un plazo razonable.
+            </p>
+        </div>
+        
+        <div class="last-updated">
+            <p><strong>Última actualización:</strong> Enero 2025</p>
+            <p>Esta política es efectiva a partir de la fecha de publicación.</p>
+        </div>
+    </div>
+</body>
+</html>
+
